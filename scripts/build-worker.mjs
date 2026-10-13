@@ -11,6 +11,7 @@ const targets = {
   'examples/cache/wrangler.jsonc': 'cache',
   'examples/service/wrangler.jsonc': 'service',
   'examples/durable/wrangler.jsonc': 'durable',
+  'examples/events/wrangler.jsonc': 'events',
   'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';

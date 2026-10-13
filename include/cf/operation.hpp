@@ -39,6 +39,8 @@ enum class Operation : std::uint8_t {
   DurableSqlBatch = 81,
   DurableSetAlarm = 82,
   DurableFetch = 96,
+  QueueSendText = 112,
+  QueueSendBytes = 113,
 };
 
 struct OperationCall {

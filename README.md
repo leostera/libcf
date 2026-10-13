@@ -14,6 +14,6 @@ npm run test:core    # HTTP/router/Env/coroutine fetch/stream/crypto
 npm run bench:spike  # optional rough local comparison to plain JS
 ```
 
-[Core](examples/core/README.md) · [KV](examples/kv/README.md) · [D1](examples/d1/README.md) · [R2](examples/r2/README.md) · [Cache](examples/cache/README.md) · [Service bindings](examples/service/README.md) · [Durable Objects](examples/durable/README.md) · [bridge spike](examples/hello/README.md).
+[Core](examples/core/README.md) · [KV](examples/kv/README.md) · [D1](examples/d1/README.md) · [R2](examples/r2/README.md) · [Cache](examples/cache/README.md) · [Service bindings](examples/service/README.md) · [Durable Objects](examples/durable/README.md) · [Queues/scheduling](examples/events/README.md) · [bridge spike](examples/hello/README.md).
 
 The reusable [JS runtime shim](lib/runtime.mjs) adapts Worker events and bindings; C++ runs as an imported `CompiledWasm` module. The C++ headers are installable via CMake (`cf::cf`); the package test installs them and compiles an independent consumer. No account, login, remote binding or live deployment is used by these default tests. Live tests and more binding families are planned, and every supported method must have its own verification level before a release claim. Do not use the proof-of-concept KV namespace ID for deployment.

@@ -36,12 +36,20 @@ async function workerOptions(configPath, root) {
         ...Object.fromEntries(wasm.map(x => [basename(x.path), { type: 'wasm', contents: x.contents }])),
       },
     },
+    triggers: [
+      ...(config.triggers?.crons ?? []).map(schedule => ({ type: 'scheduled', schedule })),
+      ...(config.queues?.consumers ?? []).map(queue => ({ type: 'queue', name: queue.queue,
+        maxBatchSize: queue.max_batch_size, maxBatchTimeout: queue.max_batch_timeout,
+        maxRetries: queue.max_retries, retryDelay: queue.retry_delay,
+      })),
+    ],
     exports: Object.fromEntries((config.migrations ?? []).flatMap(migration =>
       (migration.new_sqlite_classes ?? []).map(name => [name, { type: 'durable-object', storage: 'sqlite' }]))),
     env: {
       ...Object.fromEntries(Object.entries(config.vars ?? {}).map(([name, value]) => [name, { type: 'text', value }])),
       ...Object.fromEntries((config.kv_namespaces ?? []).map(x => [x.binding, { type: 'kv', id: x.id }])),
       ...Object.fromEntries((config.d1_databases ?? []).map(x => [x.binding, { type: 'd1', id: x.database_id }])),
+      ...Object.fromEntries((config.queues?.producers ?? []).map(x => [x.binding, { type: 'queue', name: x.queue }])),
       ...Object.fromEntries((config.r2_buckets ?? []).map(x => [x.binding, { type: 'r2', name: x.bucket_name }])),
       ...Object.fromEntries((config.services ?? []).map(x => [x.binding, { type: 'worker', worker: x.service }])),
       ...Object.fromEntries((config.durable_objects?.bindings ?? []).map(x =>
@@ -69,7 +77,7 @@ export async function startLocalWorker(config, { readyPath = '/', additionalConf
     const base = (await runtime.ready).origin;
     const ready = await fetch(`${base}${readyPath}`, { signal: AbortSignal.timeout(10000) });
     await ready.arrayBuffer();
-    return { base, dispose };
+    return { base, dispose, scheduled: async options => (await runtime.getWorker()).scheduled(options) };
   } catch (error) {
     await dispose();
     throw error;
