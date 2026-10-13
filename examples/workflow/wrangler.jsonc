@@ -1,0 +1,7 @@
+{
+  "name": "libcf-workflow-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workflows": [{ "binding": "FLOW", "name": "libcf-workflow-fixture", "class_name": "FixtureWorkflow" }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}

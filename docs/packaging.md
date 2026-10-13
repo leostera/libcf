@@ -40,7 +40,7 @@ The default suite includes `tests/installed-package.test.mjs`:
 1. Install into a temporary prefix with spaces in its path and non-default include/data/library directories.
 2. Move the entire prefix, removing the original location.
 3. Configure an independent `find_package(cf)` consumer against the relocated package.
-4. Compile all 32 current public headers together in explicit C++20 and C++23 modes, plus the core consumer, and execute all three CTest cases.
+4. Compile all 33 current public headers together in explicit C++20 and C++23 modes, plus the core consumer, and execute all three CTest cases.
 5. Verify exported include/runtime/source paths and the installed header/module inventory. Every source adapter must be present with identical contents.
 6. Bundle all installed ESM adapters using esbuild, treating `cloudflare:*` as platform imports. Intentionally remove an installed dependency and verify resolution fails, proving there is no source-tree fallback.
 7. Remove all temporary files in `finally`.

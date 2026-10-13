@@ -29,6 +29,7 @@
 #include <cf/timer.hpp>
 #include <cf/websocket.hpp>
 #include <cf/worker_loader.hpp>
+#include <cf/workflow.hpp>
 #include <cf/worker.hpp>
 
 #ifdef _MSVC_LANG

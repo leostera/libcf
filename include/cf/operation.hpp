@@ -50,6 +50,9 @@ enum class Operation : std::uint32_t {
   HttpFetch = 224,
   PipelineSend = 240,
   Sleep = 256,
+  WorkflowCreate = 272,
+  WorkflowStateGet = 273,
+  WorkflowDelete = 274,
 };
 
 struct OperationCall {
