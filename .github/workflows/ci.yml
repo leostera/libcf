@@ -33,6 +33,6 @@ jobs:
           cmake --build build/sanitized
           ctest --test-dir build/sanitized --output-on-failure --timeout 60
       - run: npm install --global cf@1.0.0-beta.6
-      - run: node scripts/build-live-cache.mjs
+      - run: node scripts/build-live-worker.mjs cache
       - run: cf deploy --prebuilt --dry-run
         working-directory: build/live-cache

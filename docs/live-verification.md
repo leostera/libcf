@@ -10,7 +10,7 @@ Current CLI baseline: `cf` **1.0.0-beta.6**. The prebuilt deployment adapter use
 
 ```sh
 npm run build:cache
-node scripts/build-live-cache.mjs
+node scripts/build-live-worker.mjs cache
 cd build/live-cache
 cf deploy --prebuilt --dry-run
 # Inspect test-deployment.json; verify its random name/domain are unused.
@@ -24,6 +24,29 @@ cf workers get <generated-worker-name> # should report not found
 ```
 
 The builder only emits artifacts; it neither deploys nor creates resources. Do not regenerate artifacts while a previous deployment still needs cleanup: retain its identity from `test-deployment.json`. The probe checks a single client/location, not global cache consistency, TTL or eviction. Its readiness phase allows roughly fifteen minutes for custom-domain certificate activation; that window is not a promise of certificate provisioning time.
+
+## D1 deployment probe
+
+Create a uniquely named `libcf-d1-...` database with `cf d1 create --name <name>` and retain the returned UUID for cleanup. Never bind an existing application database. Then:
+
+```sh
+npm run build:d1
+node scripts/build-live-worker.mjs d1 <isolated-database-uuid>
+cd build/live-d1
+cf deploy --prebuilt --dry-run
+# Inspect test-deployment.json and check for a hostname collision first.
+cf deploy --prebuilt
+# From the repository root:
+node scripts/test-live-d1.mjs <generated-hostname>
+# Always clean up and verify absence:
+cf workers delete <generated-worker-name> --force
+cf d1 delete <isolated-database-uuid> --force
+cf workers get <generated-worker-name>
+cf d1 get <isolated-database-uuid>
+cf dns records list --zone leostera.dev --name <generated-hostname>
+```
+
+The probe covers setup/exec, binary CRUD, first/null/missing, transactional batch commit/rollback and constraint errors. Default local tests exercise hostname guards without any network calls. The live probe is never invoked by `npm test`.
 
 ## Recorded attempt (2026-10-13)
 

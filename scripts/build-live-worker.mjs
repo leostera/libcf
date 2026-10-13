@@ -5,15 +5,21 @@ import { resolve } from 'node:path';
 
 // Build only: no network calls or implicit deployment. Each build receives an
 // isolated name; all live URLs stay within the user-approved DNS namespace.
-const name = `libcf-cache-${randomBytes(5).toString('hex')}`;
+const example = process.argv[2];
+const bindingId = process.argv[3];
+if (!['cache', 'd1'].includes(example)) throw new Error('Choose cache or d1');
+if (example === 'd1' && !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(bindingId ?? ''))
+  throw new Error('D1 requires the UUID of an isolated test database');
+if (example === 'cache' && bindingId) throw new Error('Cache requires no resource binding');
+const name = `libcf-${example}-${randomBytes(5).toString('hex')}`;
 const hostname = `${name}.libcf.leostera.dev`;
-const root = resolve('build/live-cache');
+const root = resolve(`build/live-${example}`);
 const output = `${root}/.cloudflare/output/v0`;
 const worker = `${output}/workers/default`;
 const bundle = `${worker}/bundle`;
 await mkdir(bundle, { recursive: true });
 await build({
-  entryPoints: ['examples/cache/worker.mjs'],
+  entryPoints: [`examples/${example}/worker.mjs`],
   outfile: `${bundle}/worker.mjs`,
   bundle: true,
   format: 'esm',
@@ -21,11 +27,11 @@ await build({
   plugins: [{
     name: 'precompiled-wasm',
     setup(builder) {
-      builder.onResolve({ filter: /cache\.wasm$/ }, () => ({ path: './cache.wasm', external: true }));
+      builder.onResolve({ filter: /\.wasm$/ }, () => ({ path: './worker.wasm', external: true }));
     },
   }],
 });
-await copyFile('build/cache.wasm', `${bundle}/cache.wasm`);
+await copyFile(`build/${example}.wasm`, `${bundle}/worker.wasm`);
 await writeFile(`${output}/config.json`, JSON.stringify({ buildContext: { isPreview: false, mode: 'production' } }, null, 2));
 await writeFile(`${worker}/worker.config.json`, JSON.stringify({
   name,
@@ -33,12 +39,13 @@ await writeFile(`${worker}/worker.config.json`, JSON.stringify({
   workersDev: false,
   previewUrls: false,
   domains: [hostname],
+  ...(example === 'd1' ? { env: { DB: { type: 'd1', id: bindingId } } } : {}),
   observability: { enabled: true, traces: { enabled: true } },
   manifest: {
     type: 'complete',
     mainModule: 'worker.mjs',
-    modules: { 'worker.mjs': { type: 'esm' }, 'cache.wasm': { type: 'wasm' } },
+    modules: { 'worker.mjs': { type: 'esm' }, 'worker.wasm': { type: 'wasm' } },
   },
 }, null, 2));
-await writeFile(`${root}/test-deployment.json`, JSON.stringify({ name, hostname, root }, null, 2));
+await writeFile(`${root}/test-deployment.json`, JSON.stringify({ name, hostname, root, example, bindingId }, null, 2));
 console.log(JSON.stringify({ name, hostname, root, note: 'Built only; no resources deployed.' }, null, 2));

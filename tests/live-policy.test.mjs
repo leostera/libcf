@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { liveHttp } from '../scripts/live-http.mjs';
+
+test('live probes reject other namespaces before making a request', () => {
+  for (const host of [undefined, '', 'example.com', 'test.workers.dev',
+    'libcf-cache-0123456789.libcf.leostera.dev.evil.test',
+    'libcf-cache-0123456789.libcf.leostera.dev/path',
+    'libcf-cache-0123456789.libcf.leostera.dev:443',
+    'libcf-d1-0123456789.libcf.leostera.dev']) {
+    assert.throws(() => liveHttp(host, 'cache'), /isolated test hostname/);
+  }
+  assert.throws(() => liveHttp('anything', '.*'), /isolated test hostname/);
+});
+
+test('live requests enforce HTTPS, redirect rejection and a bounded timeout', async () => {
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return new Response('ok'); };
+  try {
+    const request = liveHttp('libcf-d1-0123456789.libcf.leostera.dev', 'd1');
+    await request('/first-null', { redirect: 'follow' });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'https://libcf-d1-0123456789.libcf.leostera.dev/first-null');
+    assert.equal(calls[0].options.redirect, 'error');
+    assert(calls[0].options.signal instanceof AbortSignal);
+    assert.equal(calls[0].options.signal.aborted, false);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
