@@ -7,15 +7,19 @@ import { resolve, basename } from 'node:path';
 // isolated name; all live URLs stay within the user-approved DNS namespace.
 const example = process.argv[2];
 const bindingId = process.argv[3];
-if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable'].includes(example))
-  throw new Error('Choose cache, d1, kv, r2, core, service or durable');
-if (example === 'd1' && !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(bindingId ?? ''))
+const queueName = process.argv[4];
+if (process.argv.length > 5 || (example !== 'events' && queueName !== undefined)) throw new Error('Unexpected build arguments');
+if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events'].includes(example))
+  throw new Error('Choose cache, d1, kv, r2, core, service, durable or events');
+if (['d1', 'events'].includes(example) && !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(bindingId ?? ''))
   throw new Error('D1 requires the UUID of an isolated test database');
 if (['kv', 'core'].includes(example) && !/^[a-f0-9]{32}$/.test(bindingId ?? ''))
   throw new Error('KV requires the ID of an isolated test namespace');
 if (example === 'r2' && !/^libcf-r2-[a-f0-9]{10}$/.test(bindingId ?? ''))
   throw new Error('R2 requires an isolated libcf test bucket name');
 if (['cache', 'service', 'durable'].includes(example) && bindingId) throw new Error('No resource binding ID is required');
+if (example === 'events' && !/^libcf-events-[a-f0-9]{10}$/.test(queueName ?? ''))
+  throw new Error('Events requires an isolated libcf test queue name');
 const name = `libcf-${example}-${randomBytes(5).toString('hex')}`;
 const upstreamName = example === 'service' ? `${name}-upstream` : undefined;
 const env = {
@@ -30,6 +34,7 @@ const env = {
   },
   service: { UPSTREAM: { type: 'worker', worker: upstreamName } },
   durable: { COUNTERS: { type: 'durable-object', worker: name, exportName: 'Counter' } },
+  events: { DB: { type: 'd1', id: bindingId }, EVENTS: { type: 'queue', name: queueName } },
 }[example];
 const hostname = `${name}.libcf.leostera.dev`;
 const root = resolve(`build/live-${example}`);
@@ -82,7 +87,12 @@ await writeFile(`${worker}/worker.config.json`, JSON.stringify({
   previewUrls: false,
   domains: [hostname],
   env,
-  ...(example === 'durable' ? { exports: { Counter: { type: 'durable-object', storage: 'sqlite' } } } : {}),  ...(example === 'core' ? { assets: { runWorkerFirst: true } } : {}),
+  ...(example === 'durable' ? { exports: { Counter: { type: 'durable-object', storage: 'sqlite' } } } : {}),
+  ...(example === 'core' ? { assets: { runWorkerFirst: true } } : {}),
+  ...(example === 'events' ? { triggers: [
+    { type: 'scheduled', schedule: '* * * * *' },
+    { type: 'queue', name: queueName, maxBatchSize: 1, maxBatchTimeout: 1, maxRetries: 3, retryDelay: 1 },
+  ] } : {}),
   observability: { enabled: true, traces: { enabled: true } },
   manifest: {
     type: 'complete',
@@ -90,5 +100,5 @@ await writeFile(`${worker}/worker.config.json`, JSON.stringify({
     modules: { 'worker.mjs': { type: 'esm' }, ...Object.fromEntries([...wasmModules.keys()].map(name => [name, { type: 'wasm' }])) },
   },
 }, null, 2));
-await writeFile(`${root}/test-deployment.json`, JSON.stringify({ name, hostname, root, example, bindingId, upstreamName }, null, 2));
+await writeFile(`${root}/test-deployment.json`, JSON.stringify({ name, hostname, root, example, bindingId, upstreamName, queueName }, null, 2));
 console.log(JSON.stringify({ name, hostname, root, note: 'Built only; no resources deployed.' }, null, 2));

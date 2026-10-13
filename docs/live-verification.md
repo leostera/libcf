@@ -68,6 +68,14 @@ After `npm run build:service`, run `node scripts/build-live-worker.mjs service`.
 
 Run `node scripts/test-live-durable.mjs <host>`. Cleanup with `cf workers delete <worker-name> --force`, then verify Worker 404, exact-name DNS absence, and absence of the recorded namespace ID from the complete namespace listing. Do not assume deleting only the hostname removes stored objects.
 
+## Queue and scheduled-event probes
+
+Create a unique queue with `cf queues create --queue-name libcf-events-<10-hex-digits>` and a dedicated D1 database. Record both resource IDs. Run `npm run build:events`, then `node scripts/build-live-worker.mjs events <database-uuid> <queue-name>`. Deploy from `build/live-events` after the usual hostname collision check. This attaches a Queue consumer (batch size 1, 1-second timeout/retry delay, 3 retries) and an every-minute Cron trigger.
+
+Run `node scripts/test-live-events.mjs <host>`. It checks live text/binary delivery and explicit retry/redelivery, then waits up to 20 minutes for a **real Cron invocation** to write controller metadata into D1. No public route can manufacture a scheduled invocation. HTTP certificate readiness has its own bounded wait; Queue lookups also use bounded waits. A producer 202 is not delivery evidence—the probe reads the consumer's D1 write.
+
+Always clean up: find the exact consumer with `cf queues consumers list --queue-id <id>`, remove it with `cf queues consumers delete <consumer-id> --queue-id <id> --force`, delete the Worker (including Cron triggers), delete the queue and D1 database, and verify all resources plus DNS/certificates are gone. Do not leave the every-minute trigger running after a probe failure.
+
 ## Recorded attempt (2026-10-13)
 
 - Worker: `libcf-cache-b97ca19200`
