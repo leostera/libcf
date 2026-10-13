@@ -1,0 +1,8 @@
+{
+  "name": "libcf-durable-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "durable_objects": { "bindings": [{ "name": "COUNTERS", "class_name": "Counter" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}

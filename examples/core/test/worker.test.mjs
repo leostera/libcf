@@ -6,7 +6,7 @@ import { startLocalWorker } from '../../test/local-worker.mjs';
 let worker;
 let base;
 before(async () => {
-  worker = await startLocalWorker('examples/core/wrangler.jsonc', '/hello/ready');
+  worker = await startLocalWorker('examples/core/wrangler.jsonc', { readyPath: '/hello/ready' });
   base = worker.base;
 });
 after(async () => { await worker?.dispose(); });

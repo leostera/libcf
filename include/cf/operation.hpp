@@ -35,6 +35,7 @@ enum class Operation : std::uint8_t {
   CachePut = 49,
   CacheDelete = 50,
   ServiceFetch = 64,
+  DurableFetch = 96,
 };
 
 struct OperationCall {

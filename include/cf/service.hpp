@@ -17,13 +17,19 @@ class ServiceBinding {
       : runtime_(std::move(runtime)), name_(std::move(name)) {}
 
   [[nodiscard]] AsyncResult<Response> fetch(Request request) const {
+    return fetch(std::move(request), Operation::ServiceFetch, {});
+  }
+
+ private:
+  friend class DurableObjectStub;
+  AsyncResult<Response> fetch(Request request, Operation operation, std::string options) const {
     if (request.body.size() > 1024 * 1024 || request.method.empty() || request.method.size() > 32)
-      return invalid("invalid service request size");
+      return invalid("invalid binding request size");
     Bytes headers;
     for (const auto& header : request.headers.fields()) {
       if (header.name.size() > 65536 || header.value.size() > 65536 ||
           headers.size() + header.name.size() + header.value.size() + 8 > 65536)
-        return invalid("service request headers too large");
+        return invalid("binding request headers too large");
       u32(headers, static_cast<std::uint32_t>(header.name.size()));
       u32(headers, static_cast<std::uint32_t>(header.value.size()));
       headers.insert(headers.end(), header.name.begin(), header.name.end());
@@ -35,9 +41,9 @@ class ServiceBinding {
     wire.insert(wire.end(), headers.begin(), headers.end());
     field(wire, request.body);
     return runtime_.call<Response>(
-        {Operation::ServiceFetch, name_, std::move(request.url), std::move(wire), {}},
+        {operation, name_, std::move(request.url), std::move(wire), std::move(options)},
         [](OperationReply reply) -> Result<Response> {
-          const auto invalid = [] { return Result<Response>::failure({ErrorCode::InvalidInput, "invalid service response"}); };
+          const auto invalid = [] { return Result<Response>::failure({ErrorCode::InvalidInput, "invalid binding response"}); };
           if (reply.kind != ReplyKind::Value) return invalid();
           detail::WireReader reader(reply.bytes);
           Response response;
@@ -54,7 +60,6 @@ class ServiceBinding {
         });
   }
 
- private:
   static AsyncResult<Response> invalid(std::string message) {
     return AsyncResult<Response>([message = std::move(message)](auto complete) {
       complete(Result<Response>::failure({ErrorCode::InvalidInput, message}));

@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "cf/cache.hpp"
+#include "cf/durable_object.hpp"
 #include "cf/kv.hpp"
 #include "cf/r2.hpp"
 #include "cf/service.hpp"
@@ -126,4 +127,23 @@ int main() {
   deliver({cf::ReplyKind::Value, {1, 2}});
   assert(service_task.done());
   service_task.destroy();
+
+  cf::DurableObjectNamespace objects(runtime, "COUNTERS");
+  auto object_handler = [&]() -> cf::Task {
+    cf::Request empty_request{"GET", "https://example.test/value", {}, {}};
+    auto empty_name = co_await objects.getByName("").fetch(std::move(empty_request));
+    assert(!empty_name && empty_name.error().code == cf::ErrorCode::InvalidInput);
+    assert(!complete);
+    cf::Request request{"GET", "https://example.test/value", {}, {}};
+    auto response = co_await objects.getByName("room:\"/").fetch(std::move(request));
+    assert(!response && response.error().code == cf::ErrorCode::InvalidInput);
+    co_return cf::Response::text("object checked");
+  };
+  auto object_task = object_handler().take();
+  object_task.resume();
+  assert(last.method == cf::Operation::DurableFetch && last.binding == "COUNTERS");
+  assert(last.options == "room:\"/" && last.key == "https://example.test/value");
+  deliver({cf::ReplyKind::Missing, {}});
+  assert(object_task.done());
+  object_task.destroy();
 }
