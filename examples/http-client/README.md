@@ -16,7 +16,15 @@ The incoming request signal is passed to native fetch and bounded response readi
 
 Three workerd cases verify binary POST/status/selected headers, credential non-forwarding by the fixture, manual/follow/error redirects, empty 204 responses, network failures, response limits and recovery. Native tests check operation/redirect encoding and invalid inputs; JS tests check schemes/credentials/wire rejection before network dispatch and cancellation.
 
-Live verification is pending after the documented DNS resolution blocker. No online endpoint was created for this feature. Worker-to-Worker public fetch may require the `global_fetch_strictly_public` compatibility setting; service bindings remain the preferred internal mechanism.
+Live verification is pending. The opt-in fixture deliberately tests public Worker-to-Worker fetch with `global_fetch_strictly_public`; service bindings remain the preferred internal mechanism.
+
+## Opt-in live probe
+
+After building the C++ example, run `node scripts/build-live-worker.mjs http-client`. Retain `build/live-http-client/test-deployment.json`; do not regenerate it while resources remain active. Verify **both** generated Worker names and exact hostnames are unused. From `build/live-http-client`, dry-run and deploy the upstream first using `cf deploy --prebuilt --worker <upstreamName>`, then the frontend using `cf deploy --prebuilt`. Both disable workers.dev/previews and have isolated custom domains under `libcf.leostera.dev`. No persistent resource bindings are needed.
+
+Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-http-client.mjs <frontend-host>` from the repository root. Both readiness waits run concurrently. The upstream performs no external fetches and bounds request bodies; the probe verifies binary/status/header forwarding, credential non-forwarding, redirect policies, oversized response rejection/recovery, 204 and a real 503 response. Connection-drop behavior remains local-only. An explicit manual probe redirect mode inspects 302 without following Location; all other probe requests reject redirects.
+
+Delete the frontend and upstream after testing, including failures. Verify both Worker lookups return 404, both exact-host DNS listings are empty, and their certificates are absent from a complete listing. A deploy or readiness success alone is not runtime verification.
 
 Not implemented here: streaming upload/download, WebSocket upgrades, per-operation abort handles/timeouts, `cf` fetch options, mTLS, private-network routing or a structured URL API. Use application-level policy rather than assuming redirects, credentials or destinations are safe by default.
 

@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import upstream from '../examples/http-client/upstream/worker.mjs';
+const request = (path, init) => upstream.fetch(new Request(`https://fixture.invalid${path}`, init));
+test('diagnostic upstream returns binary metadata and bounded responses without network I/O', async () => {
+  const body = new Uint8Array([0, 255, 128]);
+  const response = await request('/echo', { method: 'POST', body, headers: { 'x-client': 'fixture' } });
+  assert.equal(response.status, 201);
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), body);
+  assert.equal(response.headers.get('x-upstream-host'), 'fixture.invalid');
+  assert.equal(response.headers.get('x-client'), 'fixture');
+  assert.equal(response.headers.get('x-has-authorization'), 'false');
+  assert.equal(response.headers.get('x-has-cookie'), 'false');
+  assert.equal((await request('/echo', { method: 'POST', body: new Uint8Array(1048577) })).status, 413);
+  assert.equal((await request('/echo', { method: 'POST', body: new Uint8Array(1048576) })).status, 201);
+  assert.equal((await request('/large')).headers.get('location'), null);
+  assert.equal((await (await request('/large')).arrayBuffer()).byteLength, 1048577);
+  assert.equal((await request('/redirect')).headers.get('location'), '/echo');
+  assert.equal((await request('/redirect')).status, 302);
+  assert.equal((await request('/empty')).status, 204);
+  assert.equal((await request('/failure')).status, 503);
+  assert.equal((await request('/unknown')).status, 404);
+});

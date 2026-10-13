@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 
 export function liveHttp(host, family) {
-  if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images'].includes(family) ||
+  if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'http-upstream'].includes(family) ||
       typeof host !== 'string' ||
       new RegExp(`^libcf-${family}-[a-f0-9]{10}\\.libcf\\.leostera\\.dev$`).exec(host)?.[0] !== host)
     throw new Error('Expected an isolated test hostname under libcf.leostera.dev');
@@ -14,7 +14,9 @@ export function liveHttp(host, family) {
     if (target.origin !== origin || target.username || target.password)
       throw new Error('Live test path must remain on its isolated origin');
     return fetch(target.href, {
-      ...init, redirect: 'error',
+      ...init,
+      // Explicit manual inspection is safe; never follow a Location header.
+      redirect: init.redirect === 'manual' ? 'manual' : 'error',
       signal: init.signal
         ? AbortSignal.any([init.signal, AbortSignal.timeout(10000)])
         : AbortSignal.timeout(10000),

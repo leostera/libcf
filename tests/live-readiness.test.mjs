@@ -55,6 +55,22 @@ test('live URL policy rejects trailing newlines and path-based authority escapes
   } finally { globalThis.fetch = original; }
 });
 
+test('manual redirect inspection is explicit and cannot follow an off-origin Location', async () => {
+  const original = globalThis.fetch;
+  const modes = [];
+  globalThis.fetch = async (_url, options) => {
+    modes.push(options.redirect);
+    return new Response(null, { status: 302, headers: { location: 'https://foreign.invalid/' } });
+  };
+  try {
+    const request = liveHttp('libcf-http-client-0123456789.libcf.leostera.dev', 'http-client');
+    assert.equal((await request('/manual', { redirect: 'manual' })).status, 302);
+    await request('/default');
+    await request('/override', { redirect: 'follow' });
+    assert.deepEqual(modes, ['manual', 'error', 'error']);
+  } finally { globalThis.fetch = original; }
+});
+
 test('HTTPS probe preserves caller cancellation while enforcing redirect policy', async () => {
   const original = globalThis.fetch;
   const controller = new AbortController();
