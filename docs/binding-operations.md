@@ -51,7 +51,7 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 
 ## Scope not represented by binding-operation numbers
 
-- HTTP entry/response, environment variables, RNG/UUID and the streaming C ABI have separate tests and live records. The synchronous `libcf_host_now` f64 import is outside this enum: [wall-clock example](../examples/clock/README.md), native and host tests plus two workerd cases; live pending. RNG smoke is not an entropy audit. Stream bytes/client cancellation are not a verified transport-backpressure claim.
+- HTTP entry/response, environment variables, RNG/UUID and the streaming C ABI have separate tests and live records. The synchronous `libcf_host_now` f64 import is outside this enum: [wall-clock example](../examples/clock/README.md), native and host tests plus two workerd cases; corrected live probe verified f64 samples, same-turn reads, post-I/O sampling, JS brackets and concurrency, followed by cleanup. No clock precision or monotonicity guarantee. RNG smoke is not an entropy audit. Stream bytes/client cancellation are not a verified transport-backpressure claim.
 - DO initialization, alarm callbacks and hibernating WebSocket events have local/live evidence in the capability ledger; object tags/attachments and arbitrary RPC remain gaps.
 - Queue consumer dispositions have delivery/retry evidence. Real Cron remains unresolved after both C++ and plain-JS controls failed to produce a scheduled write within their bounded windows.
 - Inbound email is locally tested only; real sender/destination approval is still needed. Outbound email is not implemented.
