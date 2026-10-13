@@ -1,12 +1,12 @@
 # Bazel development (migration in progress)
 
 Use Bazel **9.3.0** (`.bazelversion`). The public header target is `//:cf`;
-the Bzlmod module is named `cf`. Full examples, packaging and CI are still being
-migrated; the following build/test paths are available:
+the Bzlmod module is named `cf`. Packaging, CI and final command cleanup are still being migrated. The declared
+local test graph is available:
 
 ```sh
-bazel test //:native_tests //:node_toolchain_test //:core_local_test
-bazel test --config=cxx23 //:native_core_test
+bazel test //...
+bazel test --config=cxx23 //:native_tests
 bazel build //:all_workers //:all_bundles
 bazel test //:bundles_test
 # Individual module, producing bazel-bin/build/rpc.mjs and rpc.wasm:
@@ -70,6 +70,23 @@ as did the actual core Worker integration suite and all 19 native suites.
 Bazel outputs are ignored as `/bazel-*`; generated sources live in Bazel output
 and runfiles trees. Existing `build/` is excluded from package discovery, not
 deleted: it contains retained live-test ownership records and evidence.
+
+## Test coverage during cutover
+
+The default graph currently contains **79 test targets**: 19 native suites,
+C++20/23 all-header checks, 24 example/benchmark integration targets, 32 JS
+adapter/policy checks and two toolchain/bundle checks. The 79-target graph passes
+locally; the 21-target native/header suite also passes under `--config=cxx23`.
+Integration targets consume declared Wasm outputs rather than spawning compilers.
+The initial all-header attempt omitted `CF_CONSUMER_STANDARD`; the rules now
+provide the same explicit standard assertion selector as the previous consumer.
+
+The old CMake installed-package test is **not** counted or run by Bazel. Its
+archive/external-consumer replacement is a remaining migration requirement.
+Compiler-spawning integration wrapper files still exist pending command cleanup,
+but their example tests run directly through Bazel. Linux CI and sanitizer results
+are not yet established for this graph. Live-policy/readiness/artifact tests are
+local simulations; their names do not imply account access or new live evidence.
 
 ## Current evidence
 

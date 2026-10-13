@@ -94,20 +94,56 @@ js_test(
 
 filegroup(
     name = "example_sources",
-    srcs = glob(["examples/**/*.mjs", "examples/**/*.jsonc", "examples/**/public/**"]),
+    srcs = glob(["examples/**/*.mjs", "examples/**/*.jsonc", "examples/**/public/**", "examples/**/README.md"]),
 )
 
+JS_TEST_DATA = [
+    ":runtime_modules",
+    ":example_sources",
+    ":node_modules/esbuild",
+    ":node_modules/jsonc-parser",
+    ":node_modules/miniflare",
+]
+
+LOCAL_EXAMPLES = [name for name in EXAMPLES if name != "benchmark"] + ["hello"]
+
+[js_test(
+    name = name + "_local_test",
+    entry_point = "examples/%s/test/worker.test.mjs" % name,
+    data = JS_TEST_DATA + [":spike" if name == "hello" else ":" + name] +
+           ([":durable-object"] if name == "durable" else []),
+) for name in LOCAL_EXAMPLES]
+
+filegroup(
+    name = "js_test_inputs",
+    srcs = glob(["tests/*.test.mjs", "scripts/*.mjs", "include/cf/**/*.hpp", "docs/*.md"]),
+)
+
+JS_TEST_FILES = glob(
+    ["tests/*.test.mjs"],
+    exclude = ["tests/*-integration.test.mjs", "tests/installed-package.test.mjs"],
+)
+
+[js_test(
+    name = "js_" + path.removeprefix("tests/").removesuffix(".test.mjs") + "_test",
+    entry_point = path,
+    data = JS_TEST_DATA + [":js_test_inputs"],
+) for path in JS_TEST_FILES]
+
 js_test(
-    name = "core_local_test",
-    entry_point = "examples/core/test/worker.test.mjs",
-    data = [
-        ":core",
-        ":runtime_modules",
-        ":example_sources",
-        ":node_modules/esbuild",
-        ":node_modules/jsonc-parser",
-        ":node_modules/miniflare",
-    ],
+    name = "benchmark_local_test",
+    entry_point = "tests/benchmark-integration.test.mjs",
+    data = JS_TEST_DATA + [":benchmark", ":js_test_inputs"],
+)
+
+test_suite(
+    name = "local_tests",
+    tests = [":" + name + "_local_test" for name in LOCAL_EXAMPLES] + [":benchmark_local_test"],
+)
+
+test_suite(
+    name = "js_tests",
+    tests = [":js_" + path.removeprefix("tests/").removesuffix(".test.mjs") + "_test" for path in JS_TEST_FILES],
 )
 
 NATIVE_SUITES = [
@@ -122,9 +158,18 @@ NATIVE_SUITES = [
     deps = [":cf"],
 ) for name in NATIVE_SUITES]
 
+[cc_test(
+    name = "headers_cxx%d_test" % standard,
+    srcs = ["tests/package/all_headers.cpp"],
+    copts = ["-std=c++%d" % standard],
+    local_defines = ["CF_CONSUMER_STANDARD=%d" % standard],
+    deps = [":cf"],
+) for standard in [20, 23]]
+
 test_suite(
     name = "native_tests",
-    tests = [":native_%s_test" % name for name in NATIVE_SUITES],
+    tests = [":native_%s_test" % name for name in NATIVE_SUITES] +
+            [":headers_cxx20_test", ":headers_cxx23_test"],
 )
 
 js_test(
