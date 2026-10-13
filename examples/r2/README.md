@@ -11,6 +11,6 @@ node scripts/dev-example.mjs r2
 
 Four local integration tests cover binary and empty values, metadata/ETags, missing objects, ranged reads, invalid offsets, deletion and paginated listing. Native tests reject malformed metadata wire replies. Deletion returns a successful `Unit`, not a boolean claiming that the object existed.
 
-Limits and gaps: this first slice buffers bodies (1 MiB limit); results are limited to 4 MiB. Streaming bodies, multipart uploads, conditional operations, suffix ranges, custom metadata, checksums, upload timestamps, SSE-C, storage classes and delimiter listings remain unimplemented. These limits are libcf constraints, not R2 constraints. No live verification yet; the configured bucket is for local emulation only.
+Limits and gaps: this first slice buffers bodies (1 MiB limit); results are limited to 4 MiB. Streaming bodies, multipart uploads, conditional operations, suffix ranges, custom metadata, checksums, upload timestamps, SSE-C, storage classes and delimiter listings remain unimplemented. These limits are libcf constraints, not R2 constraints. An isolated private-bucket live probe verified binary CRUD, metadata/ETag, HEAD, ranges, invalid offsets, empty/missing values and prefix pagination; see [evidence and cleanup](../../docs/live-verification.md). The checked-in bucket config remains local-only.
 
 Sources: [R2 Workers API](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/), [multipart usage](https://developers.cloudflare.com/r2/api/workers/workers-multipart-usage/).

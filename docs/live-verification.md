@@ -48,6 +48,14 @@ cf dns records list --zone leostera.dev --name <generated-hostname>
 
 The probe covers setup/exec, binary CRUD, first/null/missing, transactional batch commit/rollback and constraint errors. Default local tests exercise hostname guards without any network calls. The live probe is never invoked by `npm test`.
 
+## KV and R2 deployment probes
+
+Create isolated resources with `cf kv namespaces create --title libcf-kv-<random-suffix>` and `cf r2 buckets create --name libcf-r2-<10-hex-digits>`. Retain their returned ID/name for cleanup. Build with `npm run build:kv` / `npm run build:r2`, followed by `node scripts/build-live-worker.mjs kv <namespace-id>` / `node scripts/build-live-worker.mjs r2 <bucket-name>`. Deploy with `cf deploy --prebuilt` from the corresponding `build/live-kv` / `build/live-r2` directory after checking the generated hostname is unused.
+
+Run `node scripts/test-live-kv.mjs <kv-host>` and `node scripts/test-live-r2.mjs <r2-host>` from the repository root. KV reads retry for up to 80 seconds to accommodate eventual consistency; mutations are not blindly retried. Neither probe establishes geographic behavior or TTL expiry.
+
+Cleanup order: probe deletes test keys/objects, `cf workers delete <worker-name> --force`, then `cf kv namespaces delete <namespace-id> --force` / `cf r2 buckets delete <bucket-name> --force`. Verify Worker/resource absence and exact-name DNS removal. Do not enable R2's public bucket domain.
+
 ## Recorded attempt (2026-10-13)
 
 - Worker: `libcf-cache-b97ca19200`
@@ -83,3 +91,20 @@ The first deployment's certificate subsequently disappeared from the certificate
 - `node scripts/test-live-d1.mjs <host>` passed after certificate provisioning: setup/exec, binary CRUD, first/null/missing, batch commit, batch rollback and constraint errors. Rollback was verified by reading both attempted row IDs and observing 404s, not merely by checking the failed batch's response.
 - Cleanup: Worker and D1 deletion succeeded; subsequent reads returned 404 (Worker code 10007, D1 code 7404); exact-name DNS listing returned `[]`. Certificate cleanup was `pending_deletion` at the first check.
 - No live claim for sessions, raw queries, replication routing, arbitrary large results or operations absent from this probe.
+
+## KV and R2 live verification (2026-10-13)
+
+| Resource | Identity |
+|---|---|
+| KV Worker/host | `libcf-kv-cc2ffa59da` / `libcf-kv-cc2ffa59da.libcf.leostera.dev` |
+| KV Worker version | `d3b63ad9-3576-4338-a945-18593ac1cdc5` |
+| KV namespace | `libcf-kv-694322f9b2` / `10802e5e02764053aa439f4840c6f603` |
+| R2 Worker/host | `libcf-r2-e3d1aaaaef` / `libcf-r2-e3d1aaaaef.libcf.leostera.dev` |
+| R2 Worker version | `f003aa0d-a27f-4204-b2fe-5d049e1d937b` |
+| R2 bucket | `libcf-r2-955e9de94b` (Standard, WEUR) |
+
+Both deployments and HTTPS probes passed. KV verified empty/missing, binary values, metadata/TTL acceptance, prefix pagination, invalid metadata rejection and delete, with bounded eventual reads. R2 verified binary CRUD, metadata/ETag, HEAD, offset range, invalid offset, empty/missing, prefix pagination and delete. R2 managed-domain inspection reported `enabled: false`; no bucket-public endpoint was used.
+
+Cleanup verified: both Worker lookups returned 404/code 10007, KV namespace lookup returned 404/code 10013, R2 bucket lookup returned 404/code 10006, and both exact-name DNS listings returned `[]`. A subsequent full certificate-pack listing contained no libcf hosts, completing certificate cleanup for these runs and the preceding D1 run.
+
+During this work Linux CI exposed a transport race in the oversized-upload test (client `ECONNRESET` after early rejection). The test now sends only oversized Content-Length headers and requires 413 before providing a body; separate adapter tests prove both declared-length rejection and unknown-length stream cancellation return 413 before invoking any C++ export. No response-size limit was relaxed.
