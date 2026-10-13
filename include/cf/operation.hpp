@@ -41,6 +41,7 @@ enum class Operation : std::uint8_t {
   DurableFetch = 96,
   QueueSendText = 112,
   QueueSendBytes = 113,
+  RateLimit = 128,
 };
 
 struct OperationCall {
