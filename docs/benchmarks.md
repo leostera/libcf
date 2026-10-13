@@ -51,6 +51,24 @@ C++ artifacts: 49,522-byte bundled ESM and 54,342-byte Wasm. The ESM includes th
 
 Setup includes esbuild, local process/runtime work, the harness's readiness request and initial Wasm instantiation. Compiler build time is recorded separately. OS/file/compiler caches may be warm; this is **not production cold-start evidence**.
 
+## Follow-up snapshot: 17:31 UTC
+
+[Second raw report](benchmarks/local-2026-10-13-1731.json), recorded after outbound HTTP, Pipelines, Workflows client, timers and lifetime hardening. Same host/toolchain, six rounds, warmups and 6,720 correctness-checked samples. Git base `7910bd6`; the worktree still includes formatter changes. The 73-input fingerprint is `9e16dc6085b36b58e4bd7e55e1e6c64d864e0246487d7a8de62d56ef5cfae149`. A sleeping DNS diagnostic process was present; no host isolation is claimed.
+
+| Scenario | JS median | C++ median | JS p95 | C++ p95 | Median paired delta |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Hello | 0.514 | 0.591 | 0.931 | 1.065 | +0.079 |
+| Echo 1 KiB | 0.622 | 0.696 | 1.071 | 1.112 | +0.064 |
+| Echo 64 KiB | 1.154 | 1.275 | 2.230 | 2.324 | +0.141 |
+| Echo 1 MiB | 7.240 | 7.568 | 11.400 | 11.897 | +0.314 |
+| SHA-256 once, 1 KiB | 0.605 | 0.708 | 1.047 | 1.236 | +0.156 |
+| SHA-256 16 times, 1 KiB | 0.643 | 0.772 | 1.214 | 1.349 | +0.119 |
+| SHA-256 once, 64 KiB | 0.864 | 0.949 | 1.590 | 1.739 | +0.082 |
+
+Incremental digest estimate: median **1.96 μs**, range **−12.83 to 6.99 μs**. The negative range illustrates noise; it is not evidence of negative overhead or a proven improvement over the first run. Some paired latency deltas increased, but this single noisy rerun cannot attribute a regression to a particular change. Scenario order remains fixed within each round, and both source/artifact fingerprints changed.
+
+Median setup: JS **69.95 ms**, C++ **79.20 ms**. JS bundle **1,869 bytes / 845 gzip**; C++ **110,928 bytes / 33,371 gzip** (56,586-byte ESM plus unchanged 54,342-byte Wasm). The generic runtime now includes more adapters. Both JS and C++ ESM artifacts differ from the first snapshot, so even bundle changes should not be attributed solely to one SDK feature.
+
 ## Remaining release measurements
 
 Production edge latency/cold starts, CPU/memory profiles, concurrent throughput, additional binding workloads and a pure ABI microbenchmark remain unmeasured. The earlier spike benchmark remains a rough feasibility probe, not an interchangeable baseline. Current local comparisons must not be used to claim complete platform parity or universal C++ performance advantages.
