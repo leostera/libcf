@@ -1,6 +1,6 @@
 # Core C++ Worker example
 
-A bounded HTTP Worker built with the header-only `include/libcf/` types and reusable [`lib/runtime.mjs`](../../lib/runtime.mjs). Its C++ router serves `/hello/:name`, `/echo`, `/header`, `/env/:name`, `/uuid`, `/stream/:count` and `/background/:key`; `/asset` awaits an Assets binding fetch in a C++ coroutine. `worker.mjs` wires the generated Wasm module into the runtime shim, which converts Worker events into owned C++ request data over a length-prefixed ABI and turns C++ responses into JS `Response`s.
+A bounded HTTP Worker built with the header-only `include/libcf/` types, reusable [`lib/runtime.mjs`](../../lib/runtime.mjs), and [`lib/emscripten-host.js`](../../lib/emscripten-host.js) for Emscripten host imports. Its C++ router serves `/hello/:name`, `/echo`, `/header`, `/env/:name`, `/uuid`, `/stream/:count` and `/background/:key`; `/asset` awaits an Assets binding fetch in a C++ coroutine. `worker.mjs` wires the generated Wasm module into the runtime shim, which converts Worker events into owned C++ request data over a length-prefixed ABI and turns C++ responses into JS `Response`s.
 
 ```sh
 npm ci
