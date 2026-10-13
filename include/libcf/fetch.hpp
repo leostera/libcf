@@ -2,12 +2,10 @@
 
 #include <coroutine>
 #include <functional>
-#include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 
-#include "libcf/result.hpp"
+#include "libcf/async.hpp"
 
 namespace libcf {
 
@@ -22,56 +20,17 @@ using FetchResult = Result<FetchedResponse>;
 
 class Fetcher {
  public:
-  using Completion = std::function<void(FetchResult)>;
+  using Completion = AsyncResult<FetchedResponse>::Completion;
   using Start = std::function<void(std::string, Completion)>;
-  using Resume = std::function<void(std::coroutine_handle<>)>;
+  using Resume = AsyncResult<FetchedResponse>::Resume;
 
   Fetcher(Start start, Resume resume) : start_(std::move(start)), resume_(std::move(resume)) {}
 
-  class Awaitable {
-   public:
-    Awaitable(Start start, Resume resume, std::string url)
-        : start_(std::move(start)), resume_(std::move(resume)), url_(std::move(url)),
-          state_(std::make_shared<State>()) {}
-    Awaitable(const Awaitable&) = delete;
-    Awaitable& operator=(const Awaitable&) = delete;
-    Awaitable(Awaitable&&) noexcept = default;
-    ~Awaitable() { if (state_) state_->active = false; }
-
-    bool await_ready() const noexcept { return false; }
-    bool await_suspend(std::coroutine_handle<> handle) {
-      auto state = state_;
-      state->handle = handle;
-      std::weak_ptr<State> weak_state = state;
-      auto resume = resume_;
-      start_(std::move(url_), [weak_state, resume = std::move(resume)](FetchResult result) {
-        if (auto current = weak_state.lock(); current && current->active) {
-          current->result = std::move(result);
-          if (!current->suspending) resume(current->handle);
-        }
-      });
-      // A host may complete inline. In that case the coroutine must never be
-      // resumed recursively while await_suspend is still on the stack.
-      state->suspending = false;
-      return !state->result.has_value();
-    }
-    FetchResult await_resume() { return std::move(*state_->result); }
-
-   private:
-    struct State {
-      bool active = true;
-      bool suspending = true;
-      std::coroutine_handle<> handle;
-      std::optional<FetchResult> result;
-    };
-    Start start_;
-    Resume resume_;
-    std::string url_;
-    std::shared_ptr<State> state_;
-  };
-
-  [[nodiscard]] Awaitable get(std::string url) const {
-    return Awaitable(start_, resume_, std::move(url));
+  [[nodiscard]] AsyncResult<FetchedResponse> get(std::string url) const {
+    return AsyncResult<FetchedResponse>(
+        [start = start_, url = std::move(url)](Completion done) mutable {
+          start(std::move(url), std::move(done));
+        }, resume_);
   }
 
  private:
