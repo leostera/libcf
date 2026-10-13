@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
 project(libcf-consumer LANGUAGES CXX)
-find_package(libcf 0.1 CONFIG REQUIRED)
+find_package(cf 0.1 CONFIG REQUIRED)
 add_executable(libcf-consumer main.cpp)
-target_link_libraries(libcf-consumer PRIVATE libcf::libcf)
+target_link_libraries(libcf-consumer PRIVATE cf::cf)

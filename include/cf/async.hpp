@@ -6,9 +6,9 @@
 #include <optional>
 #include <utility>
 
-#include "libcf/result.hpp"
+#include "cf/result.hpp"
 
-namespace libcf {
+namespace cf {
 
 // One host Promise -> one C++ coroutine continuation. The awaitable is owned
 // by the coroutine frame; a late callback holds only a weak reference, so
@@ -63,4 +63,4 @@ class AsyncResult {
   std::shared_ptr<State> state_;
 };
 
-}  // namespace libcf
+}  // namespace cf

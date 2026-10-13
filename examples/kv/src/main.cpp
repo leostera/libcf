@@ -4,8 +4,8 @@
 #include <string>
 #include <string_view>
 
-#include "libcf/kv.hpp"
-#include "libcf/worker.hpp"
+#include "cf/kv.hpp"
+#include "cf/worker.hpp"
 
 namespace {
 std::string json_quote(std::string_view value) {
@@ -26,8 +26,8 @@ std::string json_quote(std::string_view value) {
   return result + '"';
 }
 
-libcf::Response json(std::string body) {
-  libcf::Response response;
+cf::Response json(std::string body) {
+  cf::Response response;
   response.body = std::move(body);
   response.headers.append("content-type", "application/json; charset=utf-8");
   return response;
@@ -38,7 +38,7 @@ std::string_view after(std::string_view path, std::string_view prefix) {
 }
 }
 
-namespace libcf {
+namespace cf {
 
 Task handle(Request request, WorkerContext context) {
   KvNamespace kv(context.bindings, "DEMO_KV");
@@ -125,4 +125,4 @@ Task handle(Request request, WorkerContext context) {
   co_return Response::text("not found", 404);
 }
 
-}  // namespace libcf
+}  // namespace cf

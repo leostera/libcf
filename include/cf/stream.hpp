@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-namespace libcf {
+namespace cf {
 
 // The host invokes next() only when its ReadableStream requests data. A nullopt
 // closes the stream; an empty string is a valid zero-length chunk. The source
@@ -21,4 +21,4 @@ class StreamSource {
   Next next_;
 };
 
-}  // namespace libcf
+}  // namespace cf

@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-namespace libcf {
+namespace cf {
 
 // A background task is a description of one host operation, not a detached
 // C++ thread. The JS adapter attaches its Promise to ExecutionContext.waitUntil.
@@ -35,4 +35,4 @@ class Context {
   Schedule schedule_;
 };
 
-}  // namespace libcf
+}  // namespace cf

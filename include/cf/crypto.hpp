@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace libcf {
+namespace cf {
 
 // Entropy always comes from the platform's cryptographic RNG, never from the
 // C++ runtime's predictable PRNG. Fill must either fill all bytes or fail.
@@ -46,4 +46,4 @@ class Crypto {
   Fill fill_;
 };
 
-}  // namespace libcf
+}  // namespace cf

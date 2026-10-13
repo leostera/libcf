@@ -5,9 +5,9 @@
 #include <string>
 #include <utility>
 
-#include "libcf/async.hpp"
+#include "cf/async.hpp"
 
-namespace libcf {
+namespace cf {
 
 struct FetchedResponse {
   int status;
@@ -38,4 +38,4 @@ class Fetcher {
   Resume resume_;
 };
 
-}  // namespace libcf
+}  // namespace cf

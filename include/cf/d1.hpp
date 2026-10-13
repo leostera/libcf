@@ -9,10 +9,10 @@
 #include <variant>
 #include <vector>
 
-#include "libcf/detail/wire.hpp"
-#include "libcf/operation.hpp"
+#include "cf/detail/wire.hpp"
+#include "cf/operation.hpp"
 
-namespace libcf {
+namespace cf {
 
 using SqlValue = std::variant<std::nullptr_t, double, std::int64_t, std::string, Bytes>;
 using SqlRow = std::map<std::string, SqlValue>;
@@ -170,4 +170,4 @@ class D1Database {
   std::string binding_;
 };
 
-}  // namespace libcf
+}  // namespace cf

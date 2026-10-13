@@ -3,9 +3,9 @@
 #include <coroutine>
 #include <utility>
 
-#include "libcf/http.hpp"
+#include "cf/http.hpp"
 
-namespace libcf {
+namespace cf {
 
 // A move-only, lazily started HTTP handler. The host adapter owns the handle
 // after take(); it must resume it when I/O completes and destroy it at final
@@ -46,4 +46,4 @@ class Task {
   Handle handle_;
 };
 
-}  // namespace libcf
+}  // namespace cf

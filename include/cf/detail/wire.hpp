@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace libcf::detail {
+namespace cf::detail {
 
 // Host results use length-prefixed fields; never trust lengths returned by JS
 // or a future runtime implementation before constructing owned C++ objects.
@@ -48,4 +48,4 @@ class WireReader {
   std::size_t offset_ = 0;
 };
 
-}  // namespace libcf::detail
+}  // namespace cf::detail

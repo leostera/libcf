@@ -1,4 +1,4 @@
-#include "libcf/worker.hpp"
+#include "cf/worker.hpp"
 
 #include <climits>
 #include <cstdint>
@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "libcf/detail/header_wire.hpp"
+#include "cf/detail/header_wire.hpp"
 
 extern "C" {
 int libcf_host_var(int id, const char* key, int key_length, char* output, int capacity);
@@ -33,16 +33,16 @@ namespace {
 
 struct PendingFetch {
   int invocation;
-  libcf::Fetcher::Completion finish;
+  cf::Fetcher::Completion finish;
 };
 struct PendingOperation {
   int invocation;
-  libcf::BindingRuntime::Completion finish;
+  cf::BindingRuntime::Completion finish;
 };
-std::unordered_map<int, libcf::Task::Handle> active_tasks;
+std::unordered_map<int, cf::Task::Handle> active_tasks;
 std::unordered_map<int, PendingFetch> active_fetches;
 std::unordered_map<int, PendingOperation> active_operations;
-std::unordered_map<int, libcf::StreamSource> active_streams;
+std::unordered_map<int, cf::StreamSource> active_streams;
 int next_fetch = 0;
 int next_operation = 0;
 
@@ -56,11 +56,11 @@ std::optional<std::string> lookup_var(int id, std::string_view name) {
   return value;
 }
 
-void send(int id, libcf::Response response) {
+void send(int id, cf::Response response) {
   // JS Response rejects these values. Do not emit partial headers or a stream
   // before discovering an invalid status in a user-defined C++ handler.
   if (response.status < 200 || response.status > 599)
-    response = libcf::Response::text("invalid response status", 500);
+    response = cf::Response::text("invalid response status", 500);
   for (const auto& header : response.headers.fields()) {
     libcf_host_header(id, header.name.data(), static_cast<int>(header.name.size()),
                       header.value.data(), static_cast<int>(header.value.size()));
@@ -69,7 +69,7 @@ void send(int id, libcf::Response response) {
     libcf_host_finish(id, response.status, body->data(), static_cast<int>(body->size()));
     return;
   }
-  active_streams.emplace(id, std::get<libcf::StreamSource>(std::move(response.body)));
+  active_streams.emplace(id, std::get<cf::StreamSource>(std::move(response.body)));
   libcf_host_stream_begin(id, response.status);
 }
 
@@ -85,18 +85,18 @@ void drive(int id) {
   send(id, std::move(response));
 }
 
-libcf::WorkerContext make_context(int id) {
-  libcf::Env env([id](std::string_view name) { return lookup_var(id, name); });
-  libcf::Context execution([id](const libcf::BackgroundWork& work) {
+cf::WorkerContext make_context(int id) {
+  cf::Env env([id](std::string_view name) { return lookup_var(id, name); });
+  cf::Context execution([id](const cf::BackgroundWork& work) {
     libcf_host_background(id, static_cast<int>(work.kind), work.target.data(),
                           static_cast<int>(work.target.size()), work.key.data(),
                           static_cast<int>(work.key.size()), work.value.data(),
                           static_cast<int>(work.value.size()));
   });
-  libcf::Fetcher assets(
-      [id](std::string path, libcf::Fetcher::Completion done) {
+  cf::Fetcher assets(
+      [id](std::string path, cf::Fetcher::Completion done) {
         if (next_fetch == INT_MAX) {
-          done(libcf::FetchResult::failure({libcf::ErrorCode::ResourceLimit, "operation IDs exhausted"}));
+          done(cf::FetchResult::failure({cf::ErrorCode::ResourceLimit, "operation IDs exhausted"}));
           return;
         }
         const int operation = ++next_fetch;
@@ -104,13 +104,13 @@ libcf::WorkerContext make_context(int id) {
         libcf_host_fetch(operation, id, path.data(), static_cast<int>(path.size()));
       },
       [id](std::coroutine_handle<>) { drive(id); });
-  libcf::BindingRuntime bindings(
-      [id](libcf::OperationCall call, libcf::BindingRuntime::Completion done) {
+  cf::BindingRuntime bindings(
+      [id](cf::OperationCall call, cf::BindingRuntime::Completion done) {
         if (next_operation == INT_MAX || call.binding.size() > 1024 ||
             call.key.size() > 65536 || call.body.size() > 1024 * 1024 ||
             call.options.size() > 65536) {
-          done(libcf::Result<libcf::OperationReply>::failure(
-              {libcf::ErrorCode::ResourceLimit, "operation exceeds bridge limits"}));
+          done(cf::Result<cf::OperationReply>::failure(
+              {cf::ErrorCode::ResourceLimit, "operation exceeds bridge limits"}));
           return;
         }
         const int operation = ++next_operation;
@@ -122,7 +122,7 @@ libcf::WorkerContext make_context(int id) {
                              call.options.data(), static_cast<int>(call.options.size()));
       },
       [id](std::coroutine_handle<>) { drive(id); });
-  libcf::Crypto crypto([](std::span<std::uint8_t> bytes) {
+  cf::Crypto crypto([](std::span<std::uint8_t> bytes) {
     libcf_host_random(bytes.data(), static_cast<int>(bytes.size()));
   });
   return {std::move(env), std::move(execution), std::move(assets),
@@ -151,10 +151,10 @@ extern "C" void libcf_fetch_done(int operation, int status, const char* body, in
   auto callback = std::move(it->second.finish);
   active_fetches.erase(it);
   if (length < 0 || length > 1024 * 1024 || status == 0) {
-    callback(libcf::FetchResult::failure({libcf::ErrorCode::HostFailure, "fetch failed"}));
+    callback(cf::FetchResult::failure({cf::ErrorCode::HostFailure, "fetch failed"}));
     return;
   }
-  callback(libcf::FetchResult::success(
+  callback(cf::FetchResult::success(
       {status, std::string(body, static_cast<std::size_t>(length))}));
 }
 
@@ -165,25 +165,25 @@ extern "C" void libcf_operation_done(int operation, int status,
   auto callback = std::move(it->second.finish);
   active_operations.erase(it);
   if (length < 0 || length > 4 * 1024 * 1024) {
-    callback(libcf::Result<libcf::OperationReply>::failure(
-        {libcf::ErrorCode::InvalidInput, "invalid host result length"}));
+    callback(cf::Result<cf::OperationReply>::failure(
+        {cf::ErrorCode::InvalidInput, "invalid host result length"}));
     return;
   }
   if (status == 2) {
-    callback(libcf::Result<libcf::OperationReply>::failure(
-        {libcf::ErrorCode::HostFailure,
+    callback(cf::Result<cf::OperationReply>::failure(
+        {cf::ErrorCode::HostFailure,
          length ? std::string(reinterpret_cast<const char*>(bytes), length) : "binding failed"}));
     return;
   }
   if (status != 0 && status != 1) {
-    callback(libcf::Result<libcf::OperationReply>::failure(
-        {libcf::ErrorCode::InvalidInput, "invalid host result status"}));
+    callback(cf::Result<cf::OperationReply>::failure(
+        {cf::ErrorCode::InvalidInput, "invalid host result status"}));
     return;
   }
-  libcf::Bytes payload;
+  cf::Bytes payload;
   if (length) payload.assign(bytes, bytes + length);
-  callback(libcf::Result<libcf::OperationReply>::success(
-      {status == 1 ? libcf::ReplyKind::Missing : libcf::ReplyKind::Value,
+  callback(cf::Result<cf::OperationReply>::success(
+      {status == 1 ? cf::ReplyKind::Missing : cf::ReplyKind::Value,
        std::move(payload)}));
 }
 
@@ -211,22 +211,22 @@ extern "C" void libcf_http(int id, const char* method, int method_length,
   if (method_length < 1 || url_length < 1 || header_length < 0 || body_length < 0 ||
       method_length > 32 || url_length > 8192 || header_length > 65536 ||
       body_length > 1024 * 1024) {
-    send(id, libcf::Response::text("invalid request size", 400));
+    send(id, cf::Response::text("invalid request size", 400));
     return;
   }
-  auto parsed = libcf::detail::parse_headers(
+  auto parsed = cf::detail::parse_headers(
       std::span(headers, static_cast<std::size_t>(header_length)));
   if (!parsed) {
-    send(id, libcf::Response::text("invalid headers", 400));
+    send(id, cf::Response::text("invalid headers", 400));
     return;
   }
-  libcf::Request request{std::string(method, method_length), std::string(url, url_length),
+  cf::Request request{std::string(method, method_length), std::string(url, url_length),
                          std::move(*parsed), std::string(body, body_length)};
   if (active_tasks.contains(id)) {
-    send(id, libcf::Response::text("duplicate invocation", 500));
+    send(id, cf::Response::text("duplicate invocation", 500));
     return;
   }
-  auto task = libcf::handle(std::move(request), make_context(id));
+  auto task = cf::handle(std::move(request), make_context(id));
   active_tasks.emplace(id, task.take());
   drive(id);
 }

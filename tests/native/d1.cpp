@@ -2,11 +2,11 @@
 #include <limits>
 #include <string>
 
-#include "libcf/d1.hpp"
-#include "libcf/task.hpp"
+#include "cf/d1.hpp"
+#include "cf/task.hpp"
 
 int main() {
-  using namespace libcf;
+  using namespace cf;
   assert(!detail::encode_sql_values({std::int64_t{9007199254740992LL}}));
   assert(!detail::encode_sql_values({std::numeric_limits<double>::infinity()}));
   auto parameters = detail::encode_sql_values({nullptr, 3.5, std::int64_t{42}, std::string("text"), Bytes{0, 255}});

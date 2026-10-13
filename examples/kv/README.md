@@ -1,6 +1,6 @@
 # KV from C++
 
-The application implements `libcf::handle(Request, WorkerContext)` and uses `KvNamespace` coroutine operations. `src/worker.cpp` and the shared JS runtime own the ABI and request lifetime; the example has no hand-written storage JS.
+The application implements `cf::handle(Request, WorkerContext)` and uses `KvNamespace` coroutine operations. `src/worker.cpp` and the shared JS runtime own the ABI and request lifetime; the example has no hand-written storage JS.
 
 ```sh
 npm ci

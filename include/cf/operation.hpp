@@ -6,9 +6,9 @@
 #include <utility>
 #include <vector>
 
-#include "libcf/async.hpp"
+#include "cf/async.hpp"
 
-namespace libcf {
+namespace cf {
 
 using Bytes = std::vector<std::uint8_t>;
 
@@ -71,4 +71,4 @@ class BindingRuntime {
   Resume resume_;
 };
 
-}  // namespace libcf
+}  // namespace cf

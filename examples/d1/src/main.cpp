@@ -1,9 +1,9 @@
 #include <string>
 
-#include "libcf/d1.hpp"
-#include "libcf/worker.hpp"
+#include "cf/d1.hpp"
+#include "cf/worker.hpp"
 
-namespace libcf {
+namespace cf {
 Task handle(Request request, WorkerContext context) {
   D1Database database(context.bindings, "DB");
   const auto path = request.path();
@@ -44,4 +44,4 @@ Task handle(Request request, WorkerContext context) {
   }
   co_return Response::text("method not allowed", 405);
 }
-}  // namespace libcf
+}  // namespace cf

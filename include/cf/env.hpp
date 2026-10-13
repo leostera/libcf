@@ -6,7 +6,7 @@
 #include <string_view>
 #include <utility>
 
-namespace libcf {
+namespace cf {
 
 // An Env is tied to one invocation. The lookup function must not outlive that
 // invocation; unlike raw JS values, returned strings are owned by C++.
@@ -25,4 +25,4 @@ class Env {
   Lookup lookup_;
 };
 
-}  // namespace libcf
+}  // namespace cf

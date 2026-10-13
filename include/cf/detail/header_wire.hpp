@@ -5,9 +5,9 @@
 #include <span>
 #include <string>
 
-#include "libcf/http.hpp"
+#include "cf/http.hpp"
 
-namespace libcf::detail {
+namespace cf::detail {
 
 // Each header is [name length:u32 LE][value length:u32 LE][name bytes][value
 // bytes]. The adapter limits the entire block to 64 KiB before crossing Wasm.
@@ -39,4 +39,4 @@ inline std::optional<Headers> parse_headers(std::span<const std::uint8_t> wire) 
   return result;
 }
 
-}  // namespace libcf::detail
+}  // namespace cf::detail

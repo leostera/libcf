@@ -2,10 +2,10 @@
 #include <optional>
 #include <string>
 
-#include "libcf/router.hpp"
-#include "libcf/worker.hpp"
+#include "cf/router.hpp"
+#include "cf/worker.hpp"
 
-namespace libcf {
+namespace cf {
 
 Task handle(Request request, WorkerContext context) {
   if (request.path() == "/asset") {
@@ -52,4 +52,4 @@ Task handle(Request request, WorkerContext context) {
   co_return router.dispatch(request);
 }
 
-}  // namespace libcf
+}  // namespace cf

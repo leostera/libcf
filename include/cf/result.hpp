@@ -4,7 +4,7 @@
 #include <utility>
 #include <variant>
 
-namespace libcf {
+namespace cf {
 
 enum class ErrorCode { InvalidInput, MissingBinding, Aborted, HostFailure, ResourceLimit };
 
@@ -32,4 +32,4 @@ class [[nodiscard]] Result {
   std::variant<T, Error> state_;
 };
 
-}  // namespace libcf
+}  // namespace cf

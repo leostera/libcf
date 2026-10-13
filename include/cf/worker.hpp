@@ -2,15 +2,15 @@
 
 #include <utility>
 
-#include "libcf/context.hpp"
-#include "libcf/crypto.hpp"
-#include "libcf/env.hpp"
-#include "libcf/fetch.hpp"
-#include "libcf/http.hpp"
-#include "libcf/operation.hpp"
-#include "libcf/task.hpp"
+#include "cf/context.hpp"
+#include "cf/crypto.hpp"
+#include "cf/env.hpp"
+#include "cf/fetch.hpp"
+#include "cf/http.hpp"
+#include "cf/operation.hpp"
+#include "cf/task.hpp"
 
-namespace libcf {
+namespace cf {
 
 // All capabilities belong to one request. The Worker adapter provides the
 // host callbacks; the handler may move this value into a coroutine frame.
@@ -27,4 +27,4 @@ struct WorkerContext {
 // JS Promise completes. Response streaming continues after the task finishes.
 Task handle(Request request, WorkerContext context);
 
-}  // namespace libcf
+}  // namespace cf

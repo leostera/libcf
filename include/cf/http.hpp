@@ -10,9 +10,9 @@
 #include <variant>
 #include <vector>
 
-#include "libcf/stream.hpp"
+#include "cf/stream.hpp"
 
-namespace libcf {
+namespace cf {
 
 struct Header {
   std::string name;
@@ -97,4 +97,4 @@ struct Response {
   }
 };
 
-}  // namespace libcf
+}  // namespace cf

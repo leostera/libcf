@@ -8,10 +8,10 @@
 #include <utility>
 #include <vector>
 
-#include "libcf/detail/wire.hpp"
-#include "libcf/operation.hpp"
+#include "cf/detail/wire.hpp"
+#include "cf/operation.hpp"
 
-namespace libcf {
+namespace cf {
 
 struct Unit {};
 
@@ -157,4 +157,4 @@ class KvNamespace {
   std::string binding_;
 };
 
-}  // namespace libcf
+}  // namespace cf

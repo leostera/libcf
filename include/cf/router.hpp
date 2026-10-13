@@ -6,9 +6,9 @@
 #include <utility>
 #include <vector>
 
-#include "libcf/http.hpp"
+#include "cf/http.hpp"
 
-namespace libcf {
+namespace cf {
 
 struct RouteParam {
   std::string name;
@@ -103,4 +103,4 @@ class Router {
   std::vector<Route> routes_;
 };
 
-}  // namespace libcf
+}  // namespace cf
