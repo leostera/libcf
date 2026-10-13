@@ -61,17 +61,17 @@ as did the actual core Worker integration suite and all 19 native suites.
 - First use downloads public build dependencies. Normal test execution uses
   local workerd and does not mutate a Cloudflare account. Aspect telemetry is
   disabled through `DO_NOT_TRACK` in `.bazelrc`.
-- CI is being switched to Ubuntu 24.04 with GCC **13.3.0** selected and checked,
+- CI uses Ubuntu 24.04 with GCC **13.3.0** selected and checked,
   a checksum-verified Bazel 9.3.0 binary, the default graph, explicit C++23 and
   ASan/UBSan native runs. A `cf` CLI dry-run consumes Bazel-built modules through
   `//:prepare_live_worker`; npm is used only to install that external CLI, not
-  to build or test libcf. The local dry-run passed; Linux CI results are pending.
+  to build or test libcf. Both local and Linux CI dry-runs passed.
 - **Native C++ currently uses the host toolchain**, unlike downloaded Emscripten
   and Node. The verified host is Apple clang **17.0.0 (clang-1700.6.3.2)** with
   macOS SDK **26.2**, arm64. Xcode/SDK installation is an external prerequisite;
   this is not a claim of hermetic native compilation or cross-host identical
-  output. Linux CI compiler selection and sanitizer verification remain part of
-  the CI migration. Other declared Node host architectures are not yet verified.
+  output. Linux x86_64 CI uses the checked GCC version above and passes sanitizers.
+  macOS x86_64 and Linux arm64 remain unverified.
 
 Bazel outputs are ignored as `/bazel-*`; generated sources live in Bazel output
 and runfiles trees. Existing `build/` is excluded from package discovery, not
@@ -90,8 +90,7 @@ provide the same explicit standard assertion selector as the previous consumer.
 The old CMake installed-package test is **not** counted or run by Bazel. Its
 archive/external-consumer replacement is a remaining migration requirement.
 Compiler-spawning integration wrapper files still exist pending command cleanup,
-but their example tests run directly through Bazel. Linux CI and sanitizer results
-are not yet established for this graph. Live-policy/readiness/artifact tests are
+but their example tests run directly through Bazel. Live-policy/readiness/artifact tests are
 local simulations; their names do not imply account access or new live evidence.
 
 ## Bazel distribution and lockfile
@@ -104,6 +103,21 @@ without changing dependency versions, repository definitions or archive hashes.
 All 79 tests then passed, and the native/C++23 suite passed with
 `--lockfile_mode=error`. Use the official distribution to avoid rewriting this
 version-dependent digest; strict lock checking remains enabled in CI.
+
+## Linux CI evidence
+
+[Run 38487030301](https://github.com/leostera/libcf/actions/runs/38487030301),
+commit `92d7a0c`, passed on Ubuntu 24.04/GCC 13.3.0 with official Bazel 9.3.0:
+
+- the complete 79-target default graph with strict lock checking;
+- all 21 native/header targets under the C++23 configuration;
+- all 21 native/header targets under ASan/UBSan, with a 60-second test timeout;
+- preparation using Bazel-built modules and an offline `cf deploy` dry-run.
+
+No Cloudflare account resources were created. Packaging/external-consumer tests
+and removal of superseded commands remain separate unfinished requirements.
+GitHub reported a deprecation notice for the pinned checkout/setup-node v4 actions'
+internal Node runtime; the project's Node toolchain remains pinned and tested.
 
 ## Current evidence
 
