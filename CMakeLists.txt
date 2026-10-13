@@ -12,7 +12,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 install(TARGETS cf EXPORT cfTargets)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES lib/runtime.mjs lib/d1.mjs lib/r2.mjs lib/cache.mjs lib/service.mjs lib/emscripten-host.js DESTINATION ${CMAKE_INSTALL_DATADIR}/cf)
+install(FILES lib/runtime.mjs lib/d1.mjs lib/sql.mjs lib/durable-storage.mjs lib/durable-object.mjs lib/r2.mjs lib/cache.mjs lib/service.mjs lib/emscripten-host.js DESTINATION ${CMAKE_INSTALL_DATADIR}/cf)
 install(FILES src/worker.cpp DESTINATION ${CMAKE_INSTALL_DATADIR}/cf/src)
 install(EXPORT cfTargets
   FILE cfTargets.cmake

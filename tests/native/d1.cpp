@@ -3,6 +3,7 @@
 #include <string>
 
 #include "cf/d1.hpp"
+#include "cf/durable_storage.hpp"
 #include "cf/task.hpp"
 
 int main() {
@@ -29,12 +30,12 @@ int main() {
   detail::append_field(encoded, "name");
   detail::append_u32(encoded, 2);
   detail::append_field(encoded, "Ada");
-  auto result = detail::decode_d1({ReplyKind::Value, encoded});
+  auto result = detail::decode_sql({ReplyKind::Value, encoded});
   assert(result && result.value().rows.size() == 1);
   assert(std::get<std::string>(result.value().rows[0].at("name")) == "Ada");
   encoded.push_back(0);
-  assert(!detail::decode_d1({ReplyKind::Value, encoded}));
-  assert(!detail::decode_d1({ReplyKind::Value, {1, 2, 3}}));
+  assert(!detail::decode_sql({ReplyKind::Value, encoded}));
+  assert(!detail::decode_sql({ReplyKind::Value, {1, 2, 3}}));
 
   bool host_called = false;
   BindingRuntime runtime([&](auto, auto) { host_called = true; }, [](auto) {});
@@ -86,4 +87,20 @@ int main() {
   deliver(Result<OperationReply>::success({ReplyKind::Value, Bytes{0, 0, 0, 0}}));
   assert(malformed.done());
   malformed.destroy();
+
+  DurableStorage storage(runtime);
+  SqlCommand unsafe_command{"SELECT ?", {std::int64_t{9007199254740992LL}}};
+  auto rejected_storage = [&]() -> Task {
+    auto sql = co_await storage.sql(unsafe_command);
+    assert(!sql && sql.error().code == ErrorCode::InvalidInput);
+    auto alarm = co_await storage.setAlarm(std::chrono::system_clock::time_point{std::chrono::milliseconds{-1}});
+    assert(!alarm && alarm.error().code == ErrorCode::InvalidInput);
+    co_return Response::text("storage rejected");
+  };
+  auto invalid_storage = rejected_storage().take();
+  invalid_storage.resume();
+  assert(invalid_storage.done() && !host_called);
+  invalid_storage.destroy();
+  Env not_an_object([](std::string_view) -> std::optional<std::string> { return std::nullopt; });
+  assert(!durable_event(not_an_object));
 }

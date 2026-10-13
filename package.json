@@ -9,7 +9,7 @@
     "build:d1": "node scripts/build-worker.mjs examples/d1/wrangler.jsonc",
     "build:r2": "node scripts/build-worker.mjs examples/r2/wrangler.jsonc",
     "build:cache": "node scripts/build-worker.mjs examples/cache/wrangler.jsonc",
-    "build:durable": "node scripts/build-worker.mjs examples/durable/wrangler.jsonc",
+    "build:durable": "node scripts/build-worker.mjs examples/durable/wrangler.jsonc && node scripts/build-worker.mjs examples/durable/object",
     "test:durable": "npm run build:durable && node --test examples/durable/test/*.test.mjs",
     "build:service": "node scripts/build-worker.mjs examples/service/wrangler.jsonc",
     "test:service": "npm run build:service && node --test examples/service/test/*.test.mjs",

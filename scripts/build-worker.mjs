@@ -11,6 +11,7 @@ const targets = {
   'examples/cache/wrangler.jsonc': 'cache',
   'examples/service/wrangler.jsonc': 'service',
   'examples/durable/wrangler.jsonc': 'durable',
+  'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
 const target = targets[config];
@@ -23,7 +24,7 @@ if (toolchain.status !== 0 || !toolchain.stdout.includes('6.0.12')) {
 }
 mkdirSync('build', { recursive: true });
 const args = [
-  'src/worker.cpp', `examples/${target}/src/main.cpp`, '-Iinclude', '-std=c++20', '-O2',
+  'src/worker.cpp', target === 'durable-object' ? 'examples/durable/src/object.cpp' : `examples/${target}/src/main.cpp`, '-Iinclude', '-std=c++20', '-O2',
   '-sMODULARIZE=1', '-sEXPORT_ES6=1', '-sENVIRONMENT=web',
   '-sWASM_ASYNC_COMPILATION=1', '-sALLOW_MEMORY_GROWTH=1',
   '-sFILESYSTEM=0',

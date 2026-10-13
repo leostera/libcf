@@ -21,6 +21,8 @@ test('named C++ stubs isolate objects and concurrent increments are atomic', asy
   assert.deepEqual(values.sort((a, b) => a - b), Array.from({ length: 16 }, (_, i) => i + 1));
   assert.deepEqual(await (await fetch(`${first}/value`)).json(), { value: 16 });
   assert.deepEqual(await (await fetch(`${second}/value`)).json(), { value: 0 });
+  assert.equal(await (await fetch(`${first}/initializations`)).text(), '1');
+  assert.equal(await (await fetch(`${second}/initializations`)).text(), '1');
 });
 
 test('stub forwards binary request body, headers and upstream status', async () => {
@@ -39,6 +41,27 @@ test('SQLite transaction rollback is visible through the stub', async () => {
   const url = `${base}/objects/${randomUUID()}`;
   assert.equal((await fetch(`${url}/rollback`, { method: 'POST' })).status, 409);
   assert.deepEqual(await (await fetch(`${url}/value`)).json(), { value: 0 });
+});
+
+test('typed SQLite parameters preserve binary cells', async () => {
+  const bytes = Uint8Array.of(0, 255, 128, 65);
+  const response = await fetch(`${base}/objects/${randomUUID()}/sql-echo`, { method: 'POST', body: bytes });
+  assert.equal(response.status, 200);
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), bytes);
+});
+
+test('scheduled alarm invokes the C++ handler and persists its effect', async () => {
+  const url = `${base}/objects/${randomUUID()}`;
+  assert.equal((await fetch(`${url}/schedule`, { method: 'POST' })).status, 202);
+  let count = 0;
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const response = await fetch(`${url}/alarm-count`);
+    assert.equal(response.status, 200);
+    count = (await response.json()).value;
+    if (count === 1) break;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.equal(count, 1);
 });
 
 test('SQLite state survives a complete local runtime restart', async () => {

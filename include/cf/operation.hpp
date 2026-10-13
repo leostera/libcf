@@ -35,6 +35,9 @@ enum class Operation : std::uint8_t {
   CachePut = 49,
   CacheDelete = 50,
   ServiceFetch = 64,
+  DurableSql = 80,
+  DurableSqlBatch = 81,
+  DurableSetAlarm = 82,
   DurableFetch = 96,
 };
 
