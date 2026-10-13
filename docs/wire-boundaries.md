@@ -6,4 +6,10 @@ Counts must fit the **remaining** bytes, not the original buffer length: already
 
 The review reproduced a prior decoder accepting two KV keys for `list(limit=1)`. Native regression cases now cover exact limits, excess records, missing reply kinds, continuation cursors, consumed-prefix count padding, trailing data and truncated SQL/header frames. Tests use deliberately malformed host replies; they do not claim the live providers emitted such replies.
 
+## JSON result preparation
+
+The internal `encodeBoundedJson` helper accepts only ordinary JSON-compatible values: finite numbers, strings, booleans, null, dense ordinary arrays, and ordinary/null-prototype records. It rejects accessors without invoking them, `toJSON` functions, non-enumerable data, extra array properties, unsupported prototypes/capabilities, cycles and unsupported primitive values. Repeated references are serialized by value. Proxy traps and modified JS intrinsics are outside this ordinary-data contract; this is not a JavaScript sandbox.
+
+Output is limited to 1 MiB, 32 container levels and 65,536 value nodes. String escaping uses 1024-code-unit chunks to bound temporary escaping allocations; split surrogate pairs remain semantically intact through JSON escapes. The representation is not canonical JSON. A caller may explicitly allow the native RPC root `Symbol.dispose` function to be omitted, but **the caller still owns disposal**, including on encoding failure. Nested disposers remain unsupported. This prepares a result boundary; it is not yet an advertised C++ RPC API or a remote-cleanup guarantee.
+
 The 4-MiB result-wire limit is **not** a 4-MiB heap limit. Owned strings, maps, vectors, provider results and overlapping requests add memory overhead. Wire bounds do not replace application concurrency budgets, nor do they make opaque JSON metadata schema-validated. See the family READMEs and [request lifetime](request-lifetime.md) for ownership, cancellation and side-effect limits.
