@@ -76,6 +76,14 @@ Run `node scripts/test-live-events.mjs <host>`. It checks live text/binary deliv
 
 Always clean up: find the exact consumer with `cf queues consumers list --queue-id <id>`, remove it with `cf queues consumers delete <consumer-id> --queue-id <id> --force`, delete the Worker (including Cron triggers), delete the queue and D1 database, and verify all resources plus DNS/certificates are gone. Do not leave the every-minute trigger running after a probe failure.
 
+### Internal-only Cron diagnostic control
+
+When Cron delivery is unresolved, compare plain JS and C++ against the same **new** database named `libcf-cron-db-<10-hex-digits>`. Create its schema with `cf d1 query <uuid> --sql 'CREATE TABLE cron_control(time INTEGER PRIMARY KEY,cron TEXT NOT NULL); CREATE TABLE schedules(id INTEGER PRIMARY KEY,cron TEXT NOT NULL,time TEXT NOT NULL);'`.
+
+Build the C++ event example, then run `node scripts/build-live-cron-control.mjs <uuid>`. From `build/live-cron-control`, deploy the default plain-JS Worker with `cf deploy --prebuilt`, then the C++ Worker with `cf deploy --prebuilt --worker <generated-cpp-name>`. Deploying the default does **not** deploy every Worker in the output. Both have no domains, disabled workers.dev/previews, and only a D1 binding plus an every-minute Cron trigger.
+
+Run `node scripts/test-live-cron-control.mjs build/live-cron-control/test-deployment.json --cleanup`. It queries D1 through `cf` for up to 20 minutes, requiring actual scheduled writes from both implementations. Its `finally` block deletes both Workers and D1, including after query/test failure, and verifies 404s. Resource names and the database's actual name are checked before taking ownership. The explicit `--cleanup` flag is destructive: only pass a manifest for newly created diagnostic resources. If the process is killed externally, perform that cleanup manually. Local fake-CLI tests cover successful observation, cleanup after query failure and refusal to own a non-test database; those tests make no network calls.
+
 ## Recorded attempt (2026-10-13)
 
 - Worker: `libcf-cache-b97ca19200`
