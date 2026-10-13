@@ -4,4 +4,5 @@
 - All online test endpoints must be under `*.libcf.leostera.dev`. Do not use `workers.dev`, preview URLs, or another domain as a fallback. Disable `workersDev` and `previewUrls` in live configurations.
 - Keep default tests local. Live tests are opt-in, use isolated libcf resource names, and require cleanup evidence. Never touch unrelated resources or commit credentials.
 - Preserve distinctions between implemented, locally tested, and live verified. A successful upload or deploy dry-run is not a successful live runtime test.
-- Public C++ API: namespace `cf`, headers `<cf/...>`, CMake package `cf`, target `cf::cf`. Project branding remains libcf.
+- Public C++ API: namespace `cf`, headers `<cf/...>`. Project branding remains libcf.
+- Migrate builds, tests, CI and packaging to Bazel 9.3.0 with Bzlmod. Remove CMake support at cutover, including `find_package(cf)`; do not retain a compatibility build. Track migration verification in `docs/bazel-migration.md`.
