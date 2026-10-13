@@ -71,3 +71,15 @@ The first deployment's certificate subsequently disappeared from the certificate
 - Cleanup: Worker deletion succeeded, Worker lookup returned 404 / code 10007, and exact-name DNS listing returned `[]`. The certificate was `pending_deletion` at the initial post-cleanup check.
 - An unauthenticated dry-run (temporary empty HOME) also passed, demonstrating the prebuilt CI check does not need account credentials.
 - Full `npm test` passed after replacing the local Wrangler subprocess launcher with native Miniflare 5 configuration.
+- The retry certificate subsequently disappeared from the certificate-pack listing, completing Cache cleanup.
+
+## D1 live verification (2026-10-13)
+
+- Worker: `libcf-d1-4284f85ede`
+- Host: `libcf-d1-4284f85ede.libcf.leostera.dev`
+- Version: `43d3a6e9-e673-498f-b22b-f6f583ba933d`
+- Database: `libcf-d1-1fa5faabce`, UUID `275d544d-30af-4841-b2be-009e7e6fb956` (created in WEUR with replication disabled).
+- `cf deploy --prebuilt --dry-run` and deployment passed; 144.10 KiB uploaded, 43.87 KiB gzip; reported startup 3 ms (single observation, not a benchmark).
+- `node scripts/test-live-d1.mjs <host>` passed after certificate provisioning: setup/exec, binary CRUD, first/null/missing, batch commit, batch rollback and constraint errors. Rollback was verified by reading both attempted row IDs and observing 404s, not merely by checking the failed batch's response.
+- Cleanup: Worker and D1 deletion succeeded; subsequent reads returned 404 (Worker code 10007, D1 code 7404); exact-name DNS listing returned `[]`. Certificate cleanup was `pending_deletion` at the first check.
+- No live claim for sessions, raw queries, replication routing, arbitrary large results or operations absent from this probe.

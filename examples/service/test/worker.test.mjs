@@ -31,6 +31,13 @@ test('204 response remains bodyless through Wasm', async () => {
   assert.equal(await response.text(), '');
 });
 
+test('oversized upstream response rejects without poisoning later requests', async () => {
+  const response = await fetch(`${base}/oversized`);
+  assert.equal(response.status, 502);
+  assert.equal(await response.text(), 'service call failed');
+  assert.equal((await fetch(`${base}/empty`)).status, 204);
+});
+
 test('missing binding becomes a C++ Result error', async () => {
   const response = await fetch(`${base}/missing-binding`);
   assert.equal(response.status, 502);
