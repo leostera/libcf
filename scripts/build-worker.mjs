@@ -12,6 +12,7 @@ const targets = {
   'examples/service/wrangler.jsonc': 'service',
   'examples/durable/wrangler.jsonc': 'durable',
   'examples/events/wrangler.jsonc': 'events',
+  'examples/websocket/wrangler.jsonc': 'websocket',
   'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';

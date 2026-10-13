@@ -81,6 +81,7 @@ export async function startLocalWorker(config, { readyPath = '/', additionalConf
       scheduled: async options => (await runtime.getWorker()).scheduled(options),
       queue: async (name, messages) => (await runtime.getWorker()).queue(name, messages),
       durableStub: async (binding, name) => (await runtime.getBindings())[binding].getByName(name),
+      evictDurable: (className, options) => runtime.unsafeEvictDurableObject(workers[0].config.name, className, options),
     };
   } catch (error) {
     await dispose();

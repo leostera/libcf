@@ -1,0 +1,8 @@
+{
+  "name": "libcf-websocket-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}
