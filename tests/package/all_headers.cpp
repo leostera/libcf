@@ -26,6 +26,7 @@
 #include <cf/stream.hpp>
 #include <cf/subtle_crypto.hpp>
 #include <cf/task.hpp>
+#include <cf/timer.hpp>
 #include <cf/websocket.hpp>
 #include <cf/worker_loader.hpp>
 #include <cf/worker.hpp>
