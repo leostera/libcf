@@ -136,6 +136,13 @@ js_test(
     data = JS_TEST_DATA + [":benchmark", ":js_test_inputs"],
 )
 
+js_binary(
+    name = "prepare_live_worker",
+    entry_point = "scripts/build-live-worker.mjs",
+    data = JS_TEST_DATA + [":all_workers"],
+    tags = ["manual"],
+)
+
 test_suite(
     name = "local_tests",
     tests = [":" + name + "_local_test" for name in LOCAL_EXAMPLES] + [":benchmark_local_test"],

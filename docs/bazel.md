@@ -60,6 +60,11 @@ as did the actual core Worker integration suite and all 19 native suites.
 - First use downloads public build dependencies. Normal test execution uses
   local workerd and does not mutate a Cloudflare account. Aspect telemetry is
   disabled through `DO_NOT_TRACK` in `.bazelrc`.
+- CI is being switched to Ubuntu 24.04 with GCC **13.3.0** selected and checked,
+  a checksum-verified Bazel 9.3.0 binary, the default graph, explicit C++23 and
+  ASan/UBSan native runs. A `cf` CLI dry-run consumes Bazel-built modules through
+  `//:prepare_live_worker`; npm is used only to install that external CLI, not
+  to build or test libcf. The local dry-run passed; Linux CI results are pending.
 - **Native C++ currently uses the host toolchain**, unlike downloaded Emscripten
   and Node. The verified host is Apple clang **17.0.0 (clang-1700.6.3.2)** with
   macOS SDK **26.2**, arm64. Xcode/SDK installation is an external prerequisite;
