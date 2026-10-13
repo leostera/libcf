@@ -4,12 +4,18 @@
 #include "libcf/http.hpp"
 #include "libcf/router.hpp"
 #include "libcf/env.hpp"
+#include "libcf/context.hpp"
 #include "libcf/crypto.hpp"
 #include "libcf/detail/header_wire.hpp"
 #include "libcf/fetch.hpp"
 #include "libcf/task.hpp"
 
 int main() {
+  auto success = libcf::Result<int>::success(42);
+  assert(success && success.value() == 42);
+  auto failure = libcf::Result<int>::failure({libcf::ErrorCode::InvalidInput, "bad input"});
+  assert(!failure && failure.error().message == "bad input");
+
   libcf::Headers headers;
   headers.append("Content-Type", "text/plain");
   headers.append("content-type", "text/other");
@@ -34,6 +40,20 @@ int main() {
   bool rejected = false;
   try { (void)crypto.random_bytes(65537); } catch (const std::length_error&) { rejected = true; }
   assert(rejected);
+
+  std::optional<libcf::BackgroundWork> scheduled;
+  libcf::Context context([&](const libcf::BackgroundWork& work) { scheduled = work; });
+  context.wait_until(libcf::BackgroundWork::kv_put("STATE_KV", "key", "value"));
+  assert(scheduled && scheduled->kind == libcf::BackgroundWork::Kind::KvPut);
+  assert(scheduled->target == "STATE_KV" && scheduled->key == "key");
+
+  auto stream = libcf::Response::streaming([index = 0]() mutable -> std::optional<std::string> {
+    if (index++ == 0) return "first";
+    return std::nullopt;
+  });
+  auto& source = std::get<libcf::StreamSource>(stream.body);
+  assert(source.next() == "first");
+  assert(!source.next());
 
   libcf::Env env([](std::string_view name) -> std::optional<std::string> {
     return name == "TEST" ? std::optional<std::string>("value") : std::nullopt;
@@ -62,9 +82,9 @@ int main() {
   }));
 
   request.url = "https://example.test/users/me";
-  assert(router.dispatch(request).body == "static");
+  assert(std::get<std::string>(router.dispatch(request).body) == "static");
   request.url = "https://example.test/users/Alice";
-  assert(router.dispatch(request).body == "Alice");
+  assert(std::get<std::string>(router.dispatch(request).body) == "Alice");
   request.method = "POST";
   assert(router.dispatch(request).status == 405);
   request.url = "https://example.test/missing";
@@ -79,31 +99,31 @@ int main() {
       [](std::coroutine_handle<> handle) { handle.resume(); });
   auto handler = [&]() -> libcf::Task {
     auto result = co_await fetcher.get("https://example.test/asset");
-    co_return libcf::Response::text(result.body, result.status);
+    co_return libcf::Response::text(result.value().body, result.value().status);
   };
   auto coroutine = handler().take();
   coroutine.resume();
   assert(!coroutine.done());
-  complete({200, "async body", ""});
+  complete(libcf::FetchResult::success({200, "async body"}));
   assert(coroutine.done());
-  assert(coroutine.promise().response.body == "async body");
+  assert(std::get<std::string>(coroutine.promise().response.body) == "async body");
   coroutine.destroy();
 
   libcf::Fetcher inline_fetcher(
-      [](std::string, auto callback) { callback({200, "inline body", ""}); },
+      [](std::string, auto callback) { callback(libcf::FetchResult::success({200, "inline body"})); },
       [](std::coroutine_handle<>) { assert(false && "inline completion must not resume recursively"); });
   auto inline_handler = [&]() -> libcf::Task {
     auto result = co_await inline_fetcher.get("https://example.test");
-    co_return libcf::Response::text(result.body);
+    co_return libcf::Response::text(result.value().body);
   };
   auto inline_coroutine = inline_handler().take();
   inline_coroutine.resume();
   assert(inline_coroutine.done());
-  assert(inline_coroutine.promise().response.body == "inline body");
+  assert(std::get<std::string>(inline_coroutine.promise().response.body) == "inline body");
   inline_coroutine.destroy();
 
   auto cancelled = handler().take();
   cancelled.resume();
   cancelled.destroy();
-  complete({200, "ignored after cancellation", ""});
+  complete(libcf::FetchResult::success({200, "ignored after cancellation"}));
 }

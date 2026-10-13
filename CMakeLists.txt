@@ -8,6 +8,26 @@ target_include_directories(libcf INTERFACE
   $<INSTALL_INTERFACE:include>)
 target_compile_features(libcf INTERFACE cxx_std_20)
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+install(TARGETS libcf EXPORT libcfTargets)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES lib/runtime.mjs DESTINATION ${CMAKE_INSTALL_DATADIR}/libcf)
+install(EXPORT libcfTargets
+  FILE libcfTargets.cmake
+  NAMESPACE libcf::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libcf)
+configure_package_config_file(cmake/libcfConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/libcfConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libcf)
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/libcfConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion)
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/libcfConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/libcfConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libcf)
+
 include(CTest)
 if(BUILD_TESTING AND NOT EMSCRIPTEN)
   add_executable(libcf-native-test tests/native/core.cpp)

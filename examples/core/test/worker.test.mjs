@@ -47,6 +47,34 @@ test('rejects oversized request body at JS boundary before C++ is called', async
   assert.equal((await fetch(`${base}/hello/after-error`)).status, 200);
 });
 
+test('C++ Context attaches background KV write to waitUntil', async () => {
+  const response = await fetch(`${base}/background/libcf-core-check`, {
+    method: 'POST', body: 'persisted after response',
+  });
+  assert.equal(response.status, 202);
+  assert.equal(await response.text(), 'queued');
+  let value;
+  for (let i = 0; i < 20; i++) {
+    const readback = await fetch(`${base}/background-status?key=libcf-core-check`);
+    if (readback.ok) { value = await readback.text(); break; }
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  assert.equal(value, 'persisted after response');
+});
+
+test('C++ streaming response pulls each chunk and closes or cancels cleanly', async () => {
+  const response = await fetch(`${base}/stream/32`);
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), Array.from({ length: 32 }, (_, i) => `chunk-${i}\n`).join(''));
+  assert.equal((await fetch(`${base}/stream/129`)).status, 400);
+  assert.equal((await fetch(`${base}/stream/not-a-number`)).status, 400);
+  const cancelled = await fetch(`${base}/stream/128`);
+  const reader = cancelled.body.getReader();
+  assert.ok(new TextDecoder().decode((await reader.read()).value).startsWith('chunk-0\n'));
+  await reader.cancel();
+  assert.equal((await fetch(`${base}/hello/after-stream`)).status, 200);
+});
+
 test('C++ UUID uses host cryptographic randomness', async () => {
   const one = await (await fetch(`${base}/uuid`)).text();
   const two = await (await fetch(`${base}/uuid`)).text();

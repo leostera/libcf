@@ -7,15 +7,18 @@
 #include <string>
 #include <utility>
 
+#include "libcf/result.hpp"
+
 namespace libcf {
 
-struct FetchResult {
-  int status = 0;  // 0 means the binding/network operation failed.
+struct FetchedResponse {
+  int status;
   std::string body;
-  std::string error;
 
   [[nodiscard]] bool ok() const noexcept { return status >= 200 && status < 300; }
 };
+
+using FetchResult = Result<FetchedResponse>;
 
 class Fetcher {
  public:

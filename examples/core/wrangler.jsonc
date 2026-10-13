@@ -3,6 +3,7 @@
   "main": "worker.mjs",
   "compatibility_date": "2026-10-13",
   "vars": { "GREETING": "hello-from-env" },
+  "kv_namespaces": [{ "binding": "STATE_KV", "id": "libcf-core-local-only" }],
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
   "observability": { "enabled": true, "traces": { "enabled": true } }
 }

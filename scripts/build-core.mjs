@@ -12,7 +12,7 @@ const args = [
   '-sMODULARIZE=1', '-sEXPORT_ES6=1', '-sENVIRONMENT=web',
   '-sWASM_ASYNC_COMPILATION=1', '-sALLOW_MEMORY_GROWTH=1',
   '-sFILESYSTEM=0',
-  '-sEXPORTED_FUNCTIONS=["_libcf_http","_libcf_fetch_done","_libcf_cancel","_malloc","_free"]',
+  '-sEXPORTED_FUNCTIONS=["_libcf_http","_libcf_fetch_done","_libcf_cancel","_libcf_stream_pull","_libcf_stream_cancel","_malloc","_free"]',
   '-sEXPORTED_RUNTIME_METHODS=["HEAPU8"]',
   '--js-library', 'examples/core/src/host.js',
   '-o', 'build/core.mjs',

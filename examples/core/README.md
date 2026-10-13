@@ -1,6 +1,6 @@
 # Core C++ Worker example
 
-A bounded HTTP Worker built with the header-only `include/libcf/` types. Its C++ router serves `/hello/:name`, `/echo`, `/header`, `/env/:name` and `/uuid`; `/asset` awaits an Assets binding fetch in a C++ coroutine. The module entrypoint in `worker.mjs` adapts Worker request data into an owned C++ request over a length-prefixed C ABI, and turns the C++ response back into a JS `Response`.
+A bounded HTTP Worker built with the header-only `include/libcf/` types and reusable [`lib/runtime.mjs`](../../lib/runtime.mjs). Its C++ router serves `/hello/:name`, `/echo`, `/header`, `/env/:name`, `/uuid`, `/stream/:count` and `/background/:key`; `/asset` awaits an Assets binding fetch in a C++ coroutine. `worker.mjs` wires the generated Wasm module into the runtime shim, which converts Worker events into owned C++ request data over a length-prefixed ABI and turns C++ responses into JS `Response`s.
 
 ```sh
 npm ci
@@ -12,9 +12,10 @@ npx wrangler dev --config examples/core/wrangler.jsonc --local
 curl http://localhost:8787/hello/Ada
 curl http://localhost:8787/asset
 curl http://localhost:8787/uuid
+curl http://localhost:8787/stream/3
 curl -X POST --data-binary 'hello' http://localhost:8787/echo
 ```
 
-Requires Emscripten 6.0.12 and Node 26.11.1. `wrangler deploy --config examples/core/wrangler.jsonc --dry-run` checks packaging without deploying. Local tests verify routing, header and variable access, a binary echo, async asset fetch, invalid input, UUIDs, and concurrency. No remote parity is claimed.
+Requires Emscripten 6.0.12 and Node 26.11.1. `wrangler deploy --config examples/core/wrangler.jsonc --dry-run` checks packaging without deploying. Local tests verify routing, header and variable access, a binary echo, async asset fetch, streamed responses/cancellation, `waitUntil` KV writes, invalid input, UUIDs, and concurrency. No remote parity is claimed.
 
-**Boundary contracts:** JS copies request body and headers before entering C++ (1 MiB and 64 KiB limits); the C++ parser validates the header wire format before constructing `Headers`. C++ borrows ABI buffers only for the duration of each call. Coroutines own their request data and resume after the host fetch Promise settles; the adapter tracks in-flight invocations and cancels their C++ handles on request abort. Response bodies for this example are buffered; the separate [spike](../hello/README.md) proves a pull-based stream, not a finished streaming API. The current `Fetcher` example returns a bounded body and status only—header/streaming fetch response APIs are future work.
+**Boundary contracts:** JS copies request body and headers before entering C++ (1 MiB and 64 KiB limits); the C++ parser validates the header wire format before constructing `Headers`. C++ borrows ABI buffers only for the duration of each call. Coroutines own their request data and resume after the host fetch Promise settles; the adapter tracks in-flight invocations and cancels their C++ handles on request abort. Bounded responses use owned bytes; stream responses own a `StreamSource` that is pulled on demand and dropped on close/cancel. The current `Fetcher` example returns a bounded body and status only—streaming fetch and response-header APIs are future work. `Context::wait_until` currently supports typed KV-put and fetch work descriptions, not arbitrary C++ futures.

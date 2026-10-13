@@ -7,7 +7,10 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
+
+#include "libcf/stream.hpp"
 
 namespace libcf {
 
@@ -70,18 +73,26 @@ struct Request {
   }
 };
 
-// A complete body is appropriate for bounded responses; streaming responses
-// use the host adapter's pull protocol and never pass through this value.
+// Buffered and streamed bodies are mutually exclusive. The adapter calls the
+// StreamSource only in response to host demand and owns it until close/cancel.
 struct Response {
   int status = 200;
   Headers headers;
-  std::string body;
+  std::variant<std::string, StreamSource> body = std::string{};
 
   static Response text(std::string content, int code = 200) {
     Response response;
     response.status = code;
     response.headers.append("content-type", "text/plain; charset=utf-8");
     response.body = std::move(content);
+    return response;
+  }
+
+  static Response streaming(StreamSource::Next next, int code = 200) {
+    Response response;
+    response.status = code;
+    response.headers.append("content-type", "text/plain; charset=utf-8");
+    response.body = StreamSource(std::move(next));
     return response;
   }
 };
