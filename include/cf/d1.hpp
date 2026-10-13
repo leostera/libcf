@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -136,6 +137,25 @@ class D1Statement {
   }
   [[nodiscard]] AsyncResult<D1Result> all() const { return execute(Operation::D1All); }
   [[nodiscard]] AsyncResult<D1Result> run() const { return execute(Operation::D1Run); }
+  [[nodiscard]] AsyncResult<std::optional<SqlRow>> first() const {
+    auto bytes = detail::encode_sql_values(values_);
+    if (!bytes) {
+      return AsyncResult<std::optional<SqlRow>>([error = bytes.error()](auto done) {
+        done(Result<std::optional<SqlRow>>::failure(error));
+      }, [](std::coroutine_handle<>) {});
+    }
+    return runtime_.call<std::optional<SqlRow>>(
+        {Operation::D1First, binding_, sql_, std::move(bytes.value()), {}},
+        [](OperationReply reply) -> Result<std::optional<SqlRow>> {
+          auto result = detail::decode_d1(std::move(reply));
+          if (!result) return Result<std::optional<SqlRow>>::failure(result.error());
+          auto& rows = result.value().rows;
+          if (rows.empty()) return Result<std::optional<SqlRow>>::success(std::nullopt);
+          if (rows.size() != 1)
+            return Result<std::optional<SqlRow>>::failure({ErrorCode::InvalidInput, "first returned multiple rows"});
+          return Result<std::optional<SqlRow>>::success(std::move(rows.front()));
+        });
+  }
 
  private:
   AsyncResult<D1Result> execute(Operation method) const {

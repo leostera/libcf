@@ -11,6 +11,17 @@ Task handle(Request request, WorkerContext context) {
     auto result = co_await database.exec("CREATE TABLE IF NOT EXISTS records (id TEXT PRIMARY KEY, value BLOB NOT NULL)");
     co_return result ? Response::text("ready") : Response::text("setup failed", 502);
   }
+  if (path == "/first-null") {
+    auto result = co_await database.prepare("SELECT NULL AS value").first();
+    if (!result || !result.value()) co_return Response::text("expected a row", 500);
+    const bool is_null = std::holds_alternative<std::nullptr_t>(result.value()->at("value"));
+    co_return Response::text(is_null ? "SQL NULL" : "unexpected value", is_null ? 200 : 500);
+  }
+  if (path == "/first-missing") {
+    auto result = co_await database.prepare("SELECT NULL AS value WHERE 0").first();
+    if (!result) co_return Response::text("query failed", 502);
+    co_return result.value() ? Response::text("unexpected row", 500) : Response::text("no row", 404);
+  }
   if (path == "/constraint-probe" && request.method == "POST") {
     // Intentionally violate NOT NULL to demonstrate a rejected binding Promise
     // becoming a C++ Result, rather than terminating the Wasm instance.

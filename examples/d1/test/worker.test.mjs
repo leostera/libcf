@@ -44,6 +44,15 @@ test('parallel statements keep request parameters isolated', async () => {
   }));
 });
 
+test('first distinguishes SQL NULL from no row', async () => {
+  const row = await fetch(`${base}/first-null`);
+  assert.equal(row.status, 200);
+  assert.equal(await row.text(), 'SQL NULL');
+  const missing = await fetch(`${base}/first-missing`);
+  assert.equal(missing.status, 404);
+  assert.equal(await missing.text(), 'no row');
+});
+
 test('SQL constraints reject through the C++ Result boundary', async () => {
   const response = await fetch(`${base}/constraint-probe`, { method: 'POST' });
   assert.equal(response.status, 409);

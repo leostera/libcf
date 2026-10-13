@@ -24,6 +24,7 @@ enum class Operation : std::uint8_t {
   D1Run = 16,
   D1All = 17,
   D1Exec = 18,
+  D1First = 19,
   R2Get = 32,
   R2Head = 33,
   R2Put = 34,
