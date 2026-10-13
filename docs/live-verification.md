@@ -188,3 +188,10 @@ A transient CLI 401 occurred when the previous OAuth access token expired. `cf a
 - Telemetry queries must filter by `$workers.scriptName`; using the Worker name as a dataset selector returned no events even though fetch invocations existed. Raw telemetry (including request metadata) remains ignored and is not committed.
 - Cleanup commands succeeded for the exact consumer, Worker, queue and D1 database. Subsequent lookups returned Worker 404/code 10007, Queue 404/code 11000 and D1 404/code 7404; exact-host DNS listing returned `[]`. The certificate was initially `pending_deletion`; a subsequent complete 24-entry listing contained no libcf hosts, confirming its removal.
 - Full local tests passed, including 6 event integration cases and 7 DO cases. Linux CI passed through `b251da1`, including the new assertion that private DO dispatch cannot be invoked through RPC. That RPC rejection has not been re-probed live.
+
+### Follow-up: plain-JS versus C++ Cron control
+
+- Internal-only Workers: `libcf-cron-js-1247b784fe` (version `f577e6c9-3b08-4d33-b0cc-5857811207bc`) and `libcf-cron-cpp-1247b784fe` (version `4635db3c-82e5-4e97-8d13-2da43fa78a5b`). Both reported an every-minute trigger on deployment and had workers.dev/previews disabled with no custom domains.
+- Fresh D1: `libcf-cron-db-dc277df768`, ID `a26a5659-ec26-4c2d-b7a6-5d0c1402e8b5`. Both destination tables were created before deployment, removing schema creation from the plain-JS control handler.
+- The diagnostic's 20-minute D1 observation window reported neither implementation throughout (`observed: []`) and failed. The failure is reproducible without C++/Wasm, but its control-plane/scheduler/runtime cause remains unidentified; this is not evidence that Cron is generally unavailable.
+- Automatic cleanup completed with `cleanup: verified`, `failures: []`: both Worker lookups returned 404/code 10007 and D1 returned 404/code 7404. No DNS records or certificates were created by this internal-only experiment.
