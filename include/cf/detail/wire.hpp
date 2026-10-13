@@ -41,7 +41,8 @@ class WireReader {
     return true;
   }
 
-  [[nodiscard]] bool done() const noexcept { return offset_ == bytes_.size(); }
+  [[nodiscard]] std::size_t remaining() const noexcept { return bytes_.size() - offset_; }
+  [[nodiscard]] bool done() const noexcept { return remaining() == 0; }
 
  private:
   std::span<const std::uint8_t> bytes_;

@@ -96,13 +96,15 @@ class R2Bucket {
     const auto count = std::to_string(limit);
     return runtime_.call<R2ListPage>(
         {Operation::R2List, binding_, std::move(prefix), Bytes(count.begin(), count.end()), std::move(cursor)},
-        [](OperationReply reply) -> Result<R2ListPage> {
+        [limit](OperationReply reply) -> Result<R2ListPage> {
           const auto invalid = [] { return Result<R2ListPage>::failure({ErrorCode::InvalidInput, "malformed R2 list"}); };
+          if (reply.kind != ReplyKind::Value) return invalid();
           detail::WireReader reader(reply.bytes);
           std::uint32_t count = 0, truncated = 0;
           std::string cursor;
-          if (!reader.u32(count) || !reader.u32(truncated) || truncated > 1 ||
-              !reader.string(cursor) || count > reply.bytes.size() / 20) return invalid();
+          if (!reader.u32(count) || count > limit || count > 1000 ||
+              !reader.u32(truncated) || truncated > 1 || !reader.string(cursor) ||
+              count > reader.remaining() / 20) return invalid();
           R2ListPage page;
           for (std::uint32_t i = 0; i < count; ++i) {
             R2Object object;

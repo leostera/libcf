@@ -98,10 +98,10 @@ inline Result<SqlResult> decode_sql(OperationReply reply) {
   WireReader reader(reply.bytes);
   SqlResult result;
   std::uint32_t count = 0;
-  if (!reader.string(result.metadata_json) || !reader.u32(count) || count > reply.bytes.size() / 4) return invalid();
+  if (!reader.string(result.metadata_json) || !reader.u32(count) || count > reader.remaining() / 4) return invalid();
   for (std::uint32_t i = 0; i < count; ++i) {
     std::uint32_t columns = 0;
-    if (!reader.u32(columns) || columns > reply.bytes.size() / 8) return invalid();
+    if (!reader.u32(columns) || columns > reader.remaining() / 8) return invalid();
     SqlRow row;
     for (std::uint32_t column = 0; column < columns; ++column) {
       std::string name;

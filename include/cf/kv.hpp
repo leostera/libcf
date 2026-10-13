@@ -101,14 +101,20 @@ class KvNamespace {
                                              std::uint32_t limit = 1000) const {
     return runtime_.call<KvListPage>(
         {Operation::KvList, binding_, std::move(prefix), limit_bytes(limit), std::move(cursor)},
-        [](OperationReply reply) -> Result<KvListPage> {
+        [limit](OperationReply reply) -> Result<KvListPage> {
+          const auto invalid = [] {
+            return Result<KvListPage>::failure({ErrorCode::InvalidInput, "malformed KV list reply"});
+          };
+          if (reply.kind != ReplyKind::Value) return invalid();
           detail::WireReader reader(reply.bytes);
           std::uint32_t count = 0;
           std::uint32_t complete = 0;
           std::string cursor;
-          if (!reader.u32(count) || !reader.u32(complete) || complete > 1 ||
-              !reader.string(cursor) || count > reply.bytes.size() / 12)
-            return Result<KvListPage>::failure({ErrorCode::InvalidInput, "malformed KV list reply"});
+          // Bound allocation by both the requested page and the unread wire.
+          if (!reader.u32(count) || count > limit || count > 1000 ||
+              !reader.u32(complete) || complete > 1 || !reader.string(cursor) ||
+              count > reader.remaining() / 12 || (!complete && cursor.empty()))
+            return invalid();
           KvListPage page;
           page.keys.reserve(count);
           for (std::uint32_t i = 0; i < count; ++i) {

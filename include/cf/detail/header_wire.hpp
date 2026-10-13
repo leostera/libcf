@@ -28,10 +28,11 @@ inline std::optional<Headers> parse_headers(std::span<const std::uint8_t> wire) 
     std::uint32_t name_length = 0;
     std::uint32_t value_length = 0;
     if (!read_u32(name_length) || !read_u32(value_length)) return std::nullopt;
-    if (name_length == 0 || name_length > wire.size() - offset) return std::nullopt;
+    if (name_length == 0 || name_length > wire.size() - offset ||
+        value_length > wire.size() - offset - name_length)
+      return std::nullopt;
     std::string name(reinterpret_cast<const char*>(wire.data() + offset), name_length);
     offset += name_length;
-    if (value_length > wire.size() - offset) return std::nullopt;
     std::string value(reinterpret_cast<const char*>(wire.data() + offset), value_length);
     offset += value_length;
     result.append(std::move(name), std::move(value));
