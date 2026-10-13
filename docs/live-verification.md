@@ -134,3 +134,11 @@ Service verified POST/binary/header forwarding, upstream HTTP 503 preservation, 
 Cleanup: all three Worker lookups returned 404/code 10007; KV namespace lookup returned 404/code 10013; both exact-name DNS listings returned `[]`. The frontend was deleted before its upstream; no delete-with-references override was used. Certificate deletion is asynchronous and tracked separately.
 
 A transient CLI 401 occurred when the previous OAuth access token expired. `cf auth whoami` refreshed authentication successfully; the failed resource creation was retried only after that check. No credentials were read or copied into project files.
+
+## Named Cache live verification (2026-10-13)
+
+- Worker/host: `libcf-cache-e7cffe06ce` / `libcf-cache-e7cffe06ce.libcf.leostera.dev`.
+- Version: `7f0da291-cd56-487b-9246-b5d9d181d7c2`.
+- Extended Cache probe passed: miss, put, binary match, headers, delete/absent distinction, default/named isolation and an empty value in a named cache. Deleting the named entry did not delete the default-cache entry at the same URL.
+- Both test entries were deleted; Worker lookup subsequently returned 404/code 10007 and exact-name DNS lookup returned `[]`. The new certificate was `pending_deletion` at the initial cleanup check; the previous core/service certificates had disappeared.
+- This remains single-client/location evidence, not a global cache, TTL-expiry or eviction guarantee.
