@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "libcf/crypto.hpp"
 #include "libcf/detail/header_wire.hpp"
 #include "libcf/env.hpp"
 #include "libcf/fetch.hpp"
@@ -18,6 +19,7 @@ void libcf_host_header(int id, const char* name, int name_length,
                        const char* value, int value_length);
 void libcf_host_finish(int id, int status, const char* body, int length);
 void libcf_host_fetch(int operation, int invocation, const char* path, int length);
+void libcf_host_random(std::uint8_t* output, int length);
 }
 
 namespace {
@@ -61,6 +63,12 @@ libcf::Response handle(int id, const libcf::Request& request) {
   });
   router.route("GET", "/header", [](const auto& req, const auto&) {
     return libcf::Response::text(std::string(req.headers.get("x-greeting").value_or("absent")));
+  });
+  router.route("GET", "/uuid", [](const auto&, const auto&) {
+    libcf::Crypto crypto([](std::span<std::uint8_t> bytes) {
+      libcf_host_random(bytes.data(), static_cast<int>(bytes.size()));
+    });
+    return libcf::Response::text(crypto.random_uuid());
   });
   router.route("GET", "/env/:name", [&env](const auto&, const auto& params) {
     auto value = env.var(params.get("name"));

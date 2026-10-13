@@ -109,7 +109,16 @@ function getWorker() {
               if (active.has(invocation)) borrow(cppInstance, new Uint8Array(),
                 (ptr, length) => cppInstance._libcf_fetch_done(operation, 0, ptr, length));
             },
-          );
+          )
+          .catch(error => {
+            // A glue/ABI exception must not leave a coroutine or JS Promise
+            // pending forever. Preserve the error for the caller, not logs.
+            if (active.has(invocation)) {
+              cppInstance._libcf_cancel(invocation);
+              active.delete(invocation);
+              call.reject?.(error);
+            }
+          });
       },
     },
   }).then(instance => (cppInstance = instance), error => {
@@ -144,7 +153,10 @@ export default {
     };
     request.signal.addEventListener('abort', aborted, { once: true });
     try {
-      const completion = new Promise(resolve => { call.resolve = resolve; });
+      const completion = new Promise((resolve, reject) => {
+        call.resolve = resolve;
+        call.reject = reject;
+      });
       borrow(cpp, encoder.encode(request.method), (method, methodLength) =>
         borrow(cpp, encoder.encode(request.url), (url, urlLength) =>
           borrow(cpp, headers, (headerPtr, headerLength) =>

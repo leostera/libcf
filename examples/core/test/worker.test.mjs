@@ -47,6 +47,13 @@ test('rejects oversized request body at JS boundary before C++ is called', async
   assert.equal((await fetch(`${base}/hello/after-error`)).status, 200);
 });
 
+test('C++ UUID uses host cryptographic randomness', async () => {
+  const one = await (await fetch(`${base}/uuid`)).text();
+  const two = await (await fetch(`${base}/uuid`)).text();
+  assert.match(one, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.notEqual(one, two);
+});
+
 test('parallel requests do not share environment or response state', async () => {
   const names = Array.from({ length: 16 }, (_, index) => `user-${index}`);
   const result = await Promise.all(names.map(async name => (await fetch(`${base}/hello/${name}`)).text()));

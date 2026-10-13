@@ -4,6 +4,7 @@
 #include "libcf/http.hpp"
 #include "libcf/router.hpp"
 #include "libcf/env.hpp"
+#include "libcf/crypto.hpp"
 #include "libcf/detail/header_wire.hpp"
 #include "libcf/fetch.hpp"
 #include "libcf/task.hpp"
@@ -23,6 +24,16 @@ int main() {
   assert(!libcf::detail::parse_headers(std::span(encoded, 2)));
   const std::uint8_t zero_name[] = {0, 0, 0, 0, 0, 0, 0, 0};
   assert(!libcf::detail::parse_headers(zero_name));
+
+  libcf::Crypto crypto([](std::span<std::uint8_t> bytes) {
+    for (auto& byte : bytes) byte = 0;
+  });
+  const auto uuid = crypto.random_uuid();
+  assert(uuid.size() == 36 && uuid[14] == '4' && uuid[19] == '8');
+  assert(crypto.random_bytes(16).size() == 16);
+  bool rejected = false;
+  try { (void)crypto.random_bytes(65537); } catch (const std::length_error&) { rejected = true; }
+  assert(rejected);
 
   libcf::Env env([](std::string_view name) -> std::optional<std::string> {
     return name == "TEST" ? std::optional<std::string>("value") : std::nullopt;
