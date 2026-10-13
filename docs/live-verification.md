@@ -114,3 +114,23 @@ Both deployments and HTTPS probes passed. KV verified empty/missing, binary valu
 Cleanup verified: both Worker lookups returned 404/code 10007, KV namespace lookup returned 404/code 10013, R2 bucket lookup returned 404/code 10006, and both exact-name DNS listings returned `[]`. A subsequent full certificate-pack listing contained no libcf hosts, completing certificate cleanup for these runs and the preceding D1 run.
 
 During this work Linux CI exposed a transport race in the oversized-upload test (client `ECONNRESET` after early rejection). The test now sends only oversized Content-Length headers and requires 413 before providing a body; separate adapter tests prove both declared-length rejection and unknown-length stream cancellation return 413 before invoking any C++ export. No response-size limit was relaxed.
+
+## Core, Assets and service live verification (2026-10-13)
+
+| Resource | Identity |
+|---|---|
+| Core Worker/host | `libcf-core-2a399ebc8b` / `libcf-core-2a399ebc8b.libcf.leostera.dev` |
+| Core Worker version | `39c5eee8-641e-4f03-b8aa-0e258b9a5db3` |
+| Core KV namespace | `libcf-core-02da60d3f8` / `d3c4c37e7129475691d472a8b0464a31` |
+| Service frontend/host | `libcf-service-513761233e` / `libcf-service-513761233e.libcf.leostera.dev` |
+| Service frontend version | `ab3d0cf3-40e7-4560-b32d-06c0c5adb4e5` |
+| Internal service upstream | `libcf-service-513761233e-upstream` |
+| Upstream version | `5565eff4-1602-4964-bdaf-5242a499ae7b` |
+
+Both HTTPS probes passed. Core verified routing, headers/string vars, `Assets.fetch`, binary echo, stream contents, client cancellation plus subsequent-request recovery, UUID format/uniqueness, concurrent request isolation and `waitUntil` KV persistence. This does not establish transport backpressure, delivery of cancellation to upstream I/O, cryptographic entropy quality or geographical consistency.
+
+Service verified POST/binary/header forwarding, upstream HTTP 503 preservation, bodyless 204, oversized-response rejection, missing-binding errors and subsequent-request recovery. The upstream deployment reported **No targets deployed**; both workers.dev and previews were disabled. Only the frontend had a custom domain. RPC and end-to-end streaming remain unimplemented.
+
+Cleanup: all three Worker lookups returned 404/code 10007; KV namespace lookup returned 404/code 10013; both exact-name DNS listings returned `[]`. The frontend was deleted before its upstream; no delete-with-references override was used. Certificate deletion is asynchronous and tracked separately.
+
+A transient CLI 401 occurred when the previous OAuth access token expired. `cf auth whoami` refreshed authentication successfully; the failed resource creation was retried only after that check. No credentials were read or copied into project files.
