@@ -77,7 +77,10 @@ export async function startLocalWorker(config, { readyPath = '/', additionalConf
     const base = (await runtime.ready).origin;
     const ready = await fetch(`${base}${readyPath}`, { signal: AbortSignal.timeout(10000) });
     await ready.arrayBuffer();
-    return { base, dispose, scheduled: async options => (await runtime.getWorker()).scheduled(options) };
+    return { base, dispose,
+      scheduled: async options => (await runtime.getWorker()).scheduled(options),
+      queue: async (name, messages) => (await runtime.getWorker()).queue(name, messages),
+    };
   } catch (error) {
     await dispose();
     throw error;

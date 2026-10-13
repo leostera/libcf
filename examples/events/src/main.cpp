@@ -40,7 +40,7 @@ Task handle(Request request, WorkerContext context) {
     co_return sent ? Response::text("queued", 202) : Response::text("send failed", 502);
   }
   if (path == "/lookup" && request.method == "POST") {
-    auto statement = database.prepare("SELECT payload,attempts,format FROM messages WHERE payload=?")
+    auto statement = database.prepare("SELECT payload,attempts,format,COUNT(*) OVER() AS copies FROM messages WHERE payload=?")
         .bind({Bytes(request.body.begin(), request.body.end())});
     auto found = co_await statement.first();
     if (!found) co_return Response::text("lookup failed", 500);
@@ -50,6 +50,7 @@ Task handle(Request request, WorkerContext context) {
     Response response = Response::text(std::string(bytes.begin(), bytes.end()));
     response.headers.append("x-attempts", std::to_string(static_cast<int>(std::get<double>(row.at("attempts")))));
     response.headers.append("x-body-format", std::get<std::string>(row.at("format")));
+    response.headers.append("x-copies", std::to_string(static_cast<int>(std::get<double>(row.at("copies")))));
     co_return response;
   }
   if (path == "/scheduled-status") {

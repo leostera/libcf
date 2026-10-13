@@ -38,6 +38,25 @@ test('explicit retry redelivers before acknowledgement', async () => {
   assert.equal(await response.text(), text);
 });
 
+test('concurrent batch metadata stays isolated and duplicate message IDs are idempotent', async () => {
+  const messages = Array.from({ length: 16 }, () => ({
+    id: randomUUID(), body: randomUUID(), attempts: 1, timestamp: new Date(),
+  }));
+  const result = await worker.queue('libcf-events-local', messages);
+  assert.equal(result.outcome, 'ok');
+  assert.deepEqual(result.retryMessages, []);
+  for (const message of messages) {
+    const response = await delivered(message.body);
+    assert.equal(response.headers.get('x-copies'), '1');
+    assert.equal(await response.text(), message.body);
+  }
+  const duplicate = await worker.queue('libcf-events-local', [{ ...messages[0], attempts: 2 }]);
+  assert.equal(duplicate.outcome, 'ok');
+  const stored = await delivered(messages[0].body);
+  assert.equal(stored.headers.get('x-copies'), '1');
+  assert.equal(stored.headers.get('x-attempts'), '1');
+});
+
 test('scheduled controller metadata reaches C++ and durable storage', async () => {
   const scheduledTime = new Date('2026-10-13T12:00:00.000Z');
   const result = await worker.scheduled({ scheduledTime, cron: '* * * * *' });
