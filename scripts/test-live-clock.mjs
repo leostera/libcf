@@ -16,13 +16,18 @@ async function sample(path, count) {
     assert(Number.isSafeInteger(value) && Math.abs(value) <= 8640000000000000);
     assert(value >= before - 300000 && value <= after + 300000, 'five-minute plausibility window, not clock sync');
   }
-  const reference = response.headers.get('x-js-clock');
-  assert.match(reference ?? '', /^-?\d{1,17}$/);
-  assert.equal(values.at(-1), Number(reference));
+  const reference = ['x-js-clock-before', 'x-js-clock-after'].map(name => {
+    const text = response.headers.get(name);
+    assert.match(text ?? '', /^-?\d{1,17}$/);
+    const value = Number(text);
+    assert(Number.isSafeInteger(value));
+    return value;
+  });
+  for (const value of values) assert(value >= Math.min(...reference) && value <= Math.max(...reference));
 }
 await sample('/now', 1);
 await sample('/same-turn', 1);
 await sample('/after-sleep', 2);
 await Promise.all(Array.from({ length: 8 }, () => sample('/now', 1)));
 console.log(JSON.stringify({ host, passed: ['f64 Unix milliseconds', 'same-turn frozen clock',
-  'post-I/O sampling', 'same-invocation JS reference', 'concurrent requests'], precisionGuarantee: false, monotonicGuarantee: false }, null, 2));
+  'post-I/O sampling', 'same-invocation JS bracket', 'concurrent requests'], precisionGuarantee: false, monotonicGuarantee: false }, null, 2));

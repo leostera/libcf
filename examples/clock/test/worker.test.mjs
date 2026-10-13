@@ -11,7 +11,14 @@ async function sample(path, count) {
   const values = (await response.text()).split(' ').map(Number);
   const after = Date.now();
   assert.equal(values.length, count);
-  assert.equal(values.at(-1), Number(response.headers.get('x-js-clock')));
+  const reference = ['x-js-clock-before', 'x-js-clock-after'].map(name => {
+    const text = response.headers.get(name);
+    assert.match(text ?? '', /^-?\d+$/);
+    const value = Number(text);
+    assert(Number.isSafeInteger(value));
+    return value;
+  });
+  for (const value of values) assert(value >= Math.min(...reference) && value <= Math.max(...reference));
   for (const value of values) {
     assert(Number.isSafeInteger(value));
     // Same-machine plausibility, not a precision or remote clock-sync claim.
