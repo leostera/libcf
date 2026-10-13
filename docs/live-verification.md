@@ -217,3 +217,13 @@ Build the example, run `node scripts/build-live-worker.mjs rate-limit`, deploy f
 - Upload 93.30 KiB / gzip 29.19 KiB; reported startup 2 ms (not a benchmark).
 - Passed: allowed/exceeded outcomes, independent keys and namespaces, missing-binding errors, oversized-key rejection and later recovery after a bounded window wait. Three requests were allowed before the first exceeded result. The probe deliberately does not assert exact distributed counts or precise reset timing: these are approximate, location-scoped counters.
 - Cleanup: Worker lookup returned 404/code 10007; exact-host DNS listing returned `[]`. The certificate was initially pending deletion; a subsequent complete 24-entry listing had no libcf hosts. Numeric rate namespaces are binding-defined counters, not separately provisioned resource objects; no claim is made that internal counter deletion/expiration was inspected.
+
+## Version metadata live verification (2026-10-13)
+
+- Worker/host: `libcf-metadata-1bdade156c` / `libcf-metadata-1bdade156c.libcf.leostera.dev`.
+- Version `56302b17-3919-4d94-a4f7-3f16facc6a17`; observed timestamp `2026-10-13T14:15:40.700479Z`.
+- `node scripts/test-live-metadata.mjs <host> <uploaded-version-uuid>` passed: the C++ ID matched the deployed version across three requests, the tag was empty, the timestamp was stable and parseable, and a missing metadata binding returned an explicit failure.
+- Upload 109.31 KiB / gzip 32.56 KiB; reported startup 2 ms (not a benchmark).
+- Only `VERSION` was bound. No Secrets Store binding, live secret read, or secret mutation occurred. Live secret verification requires an approved store for a uniquely named synthetic fixture.
+- Worker deletion passed; lookup returned 404/code 10007 and exact-host DNS listing was empty. The managed certificate transitioned through pending deletion, then disappeared: the complete final listing had 24 entries and no libcf hosts.
+- Implementation CI `38411409853` passed, including native sanitizer checks. Local secret rotation/deletion is simulator evidence, not live Secrets Store evidence.
