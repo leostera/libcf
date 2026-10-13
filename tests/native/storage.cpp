@@ -52,7 +52,7 @@ int main() {
   complete(libcf::Result<libcf::OperationReply>::success({libcf::ReplyKind::Missing, {}}));
   assert(last.method == libcf::Operation::KvPut && last.key == "new");
   assert(std::string(last.body.begin(), last.body.end()) == "world");
-  assert(last.options == "{\"expirationTtl\":60}");
+  assert(last.options == "60\n\n");
   complete(libcf::Result<libcf::OperationReply>::success({libcf::ReplyKind::Value, {}}));
   assert(last.method == libcf::Operation::KvList && last.key == "prefix:");
   assert(last.options == "cursor-1");

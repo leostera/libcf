@@ -146,13 +146,11 @@ class KvNamespace {
   }
 
   static std::string put_options(const KvPutOptions& options) {
-    std::string json = "{";
-    if (options.expiration_ttl) json += "\"expirationTtl\":" + std::to_string(*options.expiration_ttl) + ",";
-    if (options.expiration) json += "\"expiration\":" + std::to_string(*options.expiration) + ",";
-    if (options.metadata_json) json += "\"metadata\":" + *options.metadata_json + ",";
-    if (json.back() == ',') json.pop_back();
-    json += '}';
-    return json;
+    // Only the first two lines are protocol delimiters. The remaining bytes
+    // are one independent JSON value, never interpolated into an options object.
+    return ttl_text(options.expiration_ttl) + "\n" +
+           (options.expiration ? std::to_string(*options.expiration) : std::string{}) + "\n" +
+           options.metadata_json.value_or("");
   }
 
   BindingRuntime runtime_;

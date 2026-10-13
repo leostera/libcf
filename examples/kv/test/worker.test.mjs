@@ -57,7 +57,11 @@ test('list follows cursors while retaining the prefix', async () => {
 });
 
 test('invalid metadata and TTL fail without writing the value', async () => {
-  for (const headers of [{ 'x-metadata': '{broken' }, { 'x-ttl': '1' }]) {
+  for (const headers of [
+    { 'x-metadata': '{broken' },
+    { 'x-metadata': 'null,"expirationTtl":60' },
+    { 'x-ttl': '1' },
+  ]) {
     const key = `invalid-${randomUUID()}`;
     const response = await fetch(`${base}/items/${key}`, { method: 'PUT', body: 'must-not-write', headers });
     assert.equal(response.status, 502);
