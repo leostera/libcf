@@ -9,7 +9,7 @@ const noCpp = () => new Proxy({}, { get(_, key) {
   if (key === 'then') return undefined;
   throw new Error(`C++ must not be entered: ${String(key)}`);
 } });
-function fixture(start, cancel = () => {}) {
+function fixture(start, cancel = () => {}, complete = () => {}) {
   let host;
   let pointer = 8;
   let completions = 0;
@@ -18,8 +18,8 @@ function fixture(start, cancel = () => {}) {
     _malloc(length) { const value = pointer; pointer += length; return value; },
     _free() {}, _libcf_cancel: cancel,
     _libcf_http(id) { start(host, id); },
-    _libcf_operation_done() { completions++; },
-    _libcf_fetch_done() { completions++; },
+    _libcf_operation_done() { completions++; complete(); },
+    _libcf_fetch_done() { completions++; complete(); },
   };
   return {
     worker: createWorker(async options => { host = options.libcfHost; return cpp; }, null),
@@ -132,6 +132,31 @@ for (const cleanupTrap of [false, true]) {
     assert.equal(cancelled, true);
     assert.equal(app.completions(), 0);
   });
+}
+
+for (const kind of ['binding', 'assets']) {
+  for (const cleanupTrap of [false, true]) {
+    test(`${kind} completion trap settles the request with cleanup trap=${cleanupTrap}`, { timeout: 5000 }, async () => {
+      let cleanups = 0;
+      let signal;
+      const app = fixture((host, id) => {
+        if (kind === 'binding') host.operation(1, id, 128, bytes('LIMITER'), bytes('fixture'), bytes(''), bytes(''));
+        else host.fetch(1, id, bytes('/asset'));
+      }, () => {
+        cleanups++;
+        if (cleanupTrap) throw new Error('cleanup trap');
+      }, () => { throw new Error('completion trap'); });
+      const pending = app.worker.fetch(new Request('https://example.test/'), {
+        LIMITER: { async limit() { return { success: true }; } },
+        ASSETS: { async fetch(request) { signal = request.signal; return new Response('fixture'); } },
+      }, {});
+      await assert.rejects(pending, cleanupTrap ? /cleanup trap/ : /completion trap/);
+      await tick();
+      assert.equal(cleanups, 1);
+      assert.equal(app.completions(), 1);
+      if (signal) assert.equal(signal.aborted, true);
+    });
+  }
 }
 
 test('C++ cancellation trap rejects the invocation without escaping the abort listener', async () => {
