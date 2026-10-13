@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
 import { after, before, test } from 'node:test';
 import { startLocalWorker } from '../../test/local-worker.mjs';
 
@@ -41,9 +42,22 @@ test('bounded binary request bytes and response headers survive round trip', asy
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), bytes);
 });
 
-test('rejects oversized request body at JS boundary before C++ is called', async () => {
-  const response = await fetch(`${base}/echo`, { method: 'POST', body: new Uint8Array(1024 * 1024 + 1) });
-  assert.equal(response.status, 413);
+test('rejects oversized declared body without waiting for its bytes', async () => {
+  // Sending a large upload concurrently with an early rejection can produce
+  // ECONNRESET on Linux. Flush only headers and require an actual 413 response.
+  const status = await new Promise((resolve, reject) => {
+    const request = httpRequest(`${base}/echo`, {
+      method: 'POST', headers: { 'content-length': String(1024 * 1024 + 1) },
+    }, response => {
+      response.resume();
+      response.once('end', () => { resolve(response.statusCode); request.destroy(); });
+      response.once('error', reject);
+    });
+    request.setTimeout(5000, () => request.destroy(new Error('early rejection timed out')));
+    request.once('error', reject);
+    request.flushHeaders();
+  });
+  assert.equal(status, 413);
   assert.equal((await fetch(`${base}/hello/after-error`)).status, 200);
 });
 
