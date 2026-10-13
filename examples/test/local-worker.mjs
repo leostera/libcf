@@ -80,6 +80,7 @@ export async function startLocalWorker(config, { readyPath = '/', additionalConf
     return { base, dispose,
       scheduled: async options => (await runtime.getWorker()).scheduled(options),
       queue: async (name, messages) => (await runtime.getWorker()).queue(name, messages),
+      durableStub: async (binding, name) => (await runtime.getBindings())[binding].getByName(name),
     };
   } catch (error) {
     await dispose();

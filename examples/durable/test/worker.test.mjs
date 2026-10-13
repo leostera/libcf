@@ -43,6 +43,13 @@ test('SQLite transaction rollback is visible through the stub', async () => {
   assert.deepEqual(await (await fetch(`${url}/value`)).json(), { value: 0 });
 });
 
+test('internal object dispatch is not exposed as a public RPC method', async () => {
+  const stub = await worker.durableStub('COUNTERS', randomUUID());
+  await assert.rejects(async () => {
+    await stub.invoke('alarm', new Request('https://example.test/alarm'));
+  }, /does not implement the method "invoke"/);
+});
+
 test('typed SQLite parameters preserve binary cells', async () => {
   const bytes = Uint8Array.of(0, 255, 128, 65);
   const response = await fetch(`${base}/objects/${randomUUID()}/sql-echo`, { method: 'POST', body: bytes });
