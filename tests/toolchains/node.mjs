@@ -8,8 +8,8 @@ assert.equal(process.versions.node, '26.11.1');
 assert.deepEqual(parse('{/* fixture */ "answer": 42}'), { answer: 42 });
 const compiled = await build({
   stdin: { resolveDir: process.cwd(), contents: `
-    import createModule from './toolchain_spike.js';
-    import compiledWasm from './toolchain_spike.wasm';
+    import createModule from './build/spike.mjs';
+    import compiledWasm from './build/spike.wasm';
     const module = createModule({ instantiateWasm(imports, receiveInstance) {
       const instance = new WebAssembly.Instance(compiledWasm, imports);
       receiveInstance(instance);
@@ -38,7 +38,7 @@ const runtime = new Miniflare({
       modulesRoot: '/libcf-toolchain-smoke',
       modules: {
         'worker.mjs': { type: 'esm', contents: compiled.outputFiles[0].text },
-        'toolchain_spike.wasm': { type: 'wasm', contents: await readFile('toolchain_spike.wasm') },
+        'build/spike.wasm': { type: 'wasm', contents: await readFile('build/spike.wasm') },
       },
     },
   } }],

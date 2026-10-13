@@ -1,7 +1,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_test")
-load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//tools:worker.bzl", "bridge_spike", "cf_worker")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -12,48 +12,85 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-cc_test(
-    name = "native_core_test",
-    srcs = ["tests/native/core.cpp"],
+cc_library(
+    name = "worker_runtime",
+    srcs = ["src/worker.cpp"],
+    copts = ["-O2", "-fexceptions", "-sDISABLE_EXCEPTION_CATCHING=1"],
     deps = [":cf"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "host_library",
+    srcs = ["lib/emscripten-host.js"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "runtime_modules",
+    srcs = glob(["lib/*.mjs", "lib/*.js"]),
+    visibility = ["//visibility:public"],
+)
+
+EXAMPLES = [
+    "core", "kv", "d1", "r2", "cache", "service", "durable", "events",
+    "websocket", "email", "rate-limit", "analytics", "metadata", "worker-loader",
+    "crypto", "benchmark", "http-client", "pipeline", "timer", "workflow",
+    "images", "clock", "rpc",
+]
+
+[cf_worker(name = name, srcs = ["examples/%s/src/main.cpp" % name]) for name in EXAMPLES]
+cf_worker(name = "durable-object", srcs = ["examples/durable/src/object.cpp"])
+bridge_spike(name = "spike")
+
+filegroup(
+    name = "all_workers",
+    srcs = [":" + name for name in EXAMPLES] + [":durable-object", ":spike"],
+)
+
+filegroup(
+    name = "example_sources",
+    srcs = glob(["examples/**/*.mjs", "examples/**/*.jsonc", "examples/**/public/**"]),
 )
 
 js_test(
-    name = "node_toolchain_test",
-    entry_point = "tests/toolchains/node.mjs",
+    name = "core_local_test",
+    entry_point = "examples/core/test/worker.test.mjs",
     data = [
-        ":emscripten_toolchain_smoke",
+        ":core",
+        ":runtime_modules",
+        ":example_sources",
         ":node_modules/esbuild",
         ":node_modules/jsonc-parser",
         ":node_modules/miniflare",
     ],
 )
 
-# Real bridge compilation checks the downloaded SDK and its system-library cache.
-cc_binary(
-    name = "toolchain_spike",
-    srcs = ["examples/hello/src/spike.cpp"],
-    additional_linker_inputs = ["examples/hello/src/host.js"],
-    copts = ["-O2"],
-    linkopts = [
-        "-O2",
-        "-sMODULARIZE=1",
-        "-sEXPORT_ES6=1",
-        "-sENVIRONMENT=web",
-        "-sWASM_ASYNC_COMPILATION=1",
-        "-sALLOW_MEMORY_GROWTH=1",
-        "-sFILESYSTEM=0",
-        "-sEXPORTED_FUNCTIONS=_cf_add,_cf_get,_cf_fetch_asset,_cf_resume,_cf_background_write,_cf_stream_chunk,_malloc,_free",
-        "-sEXPORTED_RUNTIME_METHODS=HEAPU8",
-        "--js-library",
-        "$(location examples/hello/src/host.js)",
-    ],
-    tags = ["manual"],
+NATIVE_SUITES = [
+    "core", "storage", "d1", "events", "websocket", "email", "rate_limit",
+    "analytics", "metadata", "worker_loader", "subtle_crypto", "http_client",
+    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc",
+]
+
+[cc_test(
+    name = "native_%s_test" % name,
+    srcs = ["tests/native/%s.cpp" % name],
+    deps = [":cf"],
+) for name in NATIVE_SUITES]
+
+test_suite(
+    name = "native_tests",
+    tests = [":native_%s_test" % name for name in NATIVE_SUITES],
 )
 
-wasm_cc_binary(
-    name = "emscripten_toolchain_smoke",
-    cc_target = ":toolchain_spike",
-    outputs = ["toolchain_spike.js", "toolchain_spike.wasm"],
-    threads = "off",
+js_test(
+    name = "node_toolchain_test",
+    entry_point = "tests/toolchains/node.mjs",
+    data = [
+        ":spike",
+        ":node_modules/esbuild",
+        ":node_modules/jsonc-parser",
+        ":node_modules/miniflare",
+    ],
 )

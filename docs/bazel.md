@@ -2,18 +2,34 @@
 
 Use Bazel **9.3.0** (`.bazelversion`). The public header target is `//:cf`;
 the Bzlmod module is named `cf`. Full examples, packaging and CI are still being
-migrated; these commands currently verify the toolchain foundation only:
+migrated; the following build/test paths are available:
 
 ```sh
-bazel test //:native_core_test //:node_toolchain_test
+bazel test //:native_tests //:node_toolchain_test //:core_local_test
 bazel test --config=cxx23 //:native_core_test
-bazel build //:emscripten_toolchain_smoke
+bazel build //:all_workers
+# Individual module, producing bazel-bin/build/rpc.mjs and rpc.wasm:
+bazel build //:rpc
 ```
 
 The JS test runs Node 26.11.1, parses JSONC, bundles the Bazel-generated hello
 bridge with esbuild, and executes C++ addition through Wasm in local workerd.
 It declares both generated JS/Wasm artifacts and npm dependencies. It does not
 read the old source `build/` artifacts, use Cloudflare credentials, or deploy.
+
+`//:all_workers` builds all 25 existing module pairs: 23 Worker examples,
+the separate Durable Object implementation and the hello bridge spike. The shared
+`src/worker.cpp` compiles once per configuration: action-graph inspection found
+26 C++ compilation actions, exactly one belonging to `//:worker_runtime`.
+`//tools:worker.bzl` provides the declared compile/link/extraction rule. Public
+runtime files are exposed through `//:runtime_modules` and `//:host_library`.
+
+The upstream Bazel Emscripten toolchain defaults to `-fno-exceptions`, unlike the
+previous direct em++ invocation. The rule explicitly allows throw expressions
+while retaining `DISABLE_EXCEPTION_CATCHING=1`, matching the previous non-catching
+Emscripten policy. It does not add C++ exception recovery or unwinding support.
+The first all-example build exposed this mismatch; the corrected build passed,
+as did the actual core Worker integration suite and all 19 native suites.
 
 ## Dependencies and host requirements
 
@@ -57,6 +73,8 @@ it had no `node_modules/`, source `build/`, or untracked formatter helper. No so
 `build/` directory was created. Downloads could use Bazel's repository cache;
 this proves clean-source/input separation, not an empty-download-cache build.
 
-This does not replace the remaining
-native suites, all-header consumer checks, integration tests, live verification
+The later all-example build and 19-suite native run passed in the working tree;
+clean-source verification of that expanded graph is still pending.
+
+This does not replace all-header consumer checks, remaining integration tests, live verification
 or release reproducibility checks. See [the migration checklist](bazel-migration.md).
