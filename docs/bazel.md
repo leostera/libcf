@@ -87,8 +87,12 @@ this proves clean-source/input separation, not an empty-download-cache build.
 A clean archive of `867fa75` then built all 25 module pairs and passed all 21
 selected test targets (19 native suites, core local integration and the toolchain
 smoke), using the same locked/system-only-PATH procedure. No source `build/`
-directory was created. The 29-bundle inventory/runtime test also passes in the
-working tree; independent clean-output bundle comparison is pending.
+directory was created. Two further independent archives of `27dc3bf`, with separate
+fresh output bases and the same locked/system-only-PATH procedure, passed the
+29-bundle inventory/runtime test. All **83 bundle files were byte-identical**;
+[the recorded hashes](builds/bazel-2026-10-13.json) identify the artifacts.
+This is same-host repeatability with a shared download cache, not cross-host or
+empty-download-cache reproducibility.
 
 This does not replace all-header consumer checks, remaining integration tests, live verification
 or release reproducibility checks. See [the migration checklist](bazel-migration.md).

@@ -1,7 +1,9 @@
 # Bazel 9.3.0 migration
 
-Status: build-path audit complete; initial native/Node/Emscripten foundation
-verified on macOS arm64. Full build/test/package/CI migration remains pending.
+Status: build-path audit and declared artifact graph complete on macOS arm64:
+25 Wasm module pairs, 29 JS/Wasm bundles, 19 native suites and initial workerd checks.
+Two independent clean builds produced byte-identical bundle files. Full local-test,
+packaging, CI and documented-command cutover remain pending.
 See [current Bazel commands and limitations](bazel.md).
 
 The agreed destination is **Bazel-only**, including tests, CI and packaging.
