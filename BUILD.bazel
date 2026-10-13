@@ -1,0 +1,59 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+npm_link_all_packages(name = "node_modules")
+
+cc_library(
+    name = "cf",
+    hdrs = glob(["include/cf/**/*.hpp"]),
+    includes = ["include"],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "native_core_test",
+    srcs = ["tests/native/core.cpp"],
+    deps = [":cf"],
+)
+
+js_test(
+    name = "node_toolchain_test",
+    entry_point = "tests/toolchains/node.mjs",
+    data = [
+        ":emscripten_toolchain_smoke",
+        ":node_modules/esbuild",
+        ":node_modules/jsonc-parser",
+        ":node_modules/miniflare",
+    ],
+)
+
+# Real bridge compilation checks the downloaded SDK and its system-library cache.
+cc_binary(
+    name = "toolchain_spike",
+    srcs = ["examples/hello/src/spike.cpp"],
+    additional_linker_inputs = ["examples/hello/src/host.js"],
+    copts = ["-O2"],
+    linkopts = [
+        "-O2",
+        "-sMODULARIZE=1",
+        "-sEXPORT_ES6=1",
+        "-sENVIRONMENT=web",
+        "-sWASM_ASYNC_COMPILATION=1",
+        "-sALLOW_MEMORY_GROWTH=1",
+        "-sFILESYSTEM=0",
+        "-sEXPORTED_FUNCTIONS=_cf_add,_cf_get,_cf_fetch_asset,_cf_resume,_cf_background_write,_cf_stream_chunk,_malloc,_free",
+        "-sEXPORTED_RUNTIME_METHODS=HEAPU8",
+        "--js-library",
+        "$(location examples/hello/src/host.js)",
+    ],
+    tags = ["manual"],
+)
+
+wasm_cc_binary(
+    name = "emscripten_toolchain_smoke",
+    cc_target = ":toolchain_spike",
+    outputs = ["toolchain_spike.js", "toolchain_spike.wasm"],
+    threads = "off",
+)

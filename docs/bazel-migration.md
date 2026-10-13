@@ -1,11 +1,14 @@
 # Bazel 9.3.0 migration
 
-Status: build-path audit complete; migration implementation pending.
+Status: build-path audit complete; initial native/Node/Emscripten foundation
+verified on macOS arm64. Full build/test/package/CI migration remains pending.
+See [current Bazel commands and limitations](bazel.md).
 
 The agreed destination is **Bazel-only**, including tests, CI and packaging.
 CMake exports and `find_package(cf)` compatibility are intentionally removed at
 cutover. The C++ namespace `cf`, `<cf/...>` headers and libcf branding remain.
-This document is a migration checklist, not evidence that Bazel builds pass.
+This document is the migration checklist; individual verification evidence is
+recorded separately. Initial smoke tests do not establish full migration parity.
 
 ## Audited baseline
 

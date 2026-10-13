@@ -1,0 +1,4 @@
+# Native esbuild/workerd/sharp binaries come from integrity-locked optional
+# packages. Do not run downloaded packages' install scripts during the build.
+onlyBuiltDependencies: []
+hoist: false
