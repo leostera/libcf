@@ -48,6 +48,15 @@ deleted: it contains retained live-test ownership records and evidence.
 
 On 2026-10-13, the two toolchain tests passed with
 `--nocache_test_results`, including the real Wasm/esbuild/workerd path. The native
-core test also passed in explicit C++23 mode. This does not replace the remaining
+core test also passed in explicit C++23 mode.
+
+A separate `git archive` of commit `674ceb3`, with a fresh Bazel output base,
+passed both tests with `--lockfile_mode=error --nocache_test_results`. Its PATH
+contained only system directories (no Homebrew Node/CMake or local emsdk), and
+it had no `node_modules/`, source `build/`, or untracked formatter helper. No source
+`build/` directory was created. Downloads could use Bazel's repository cache;
+this proves clean-source/input separation, not an empty-download-cache build.
+
+This does not replace the remaining
 native suites, all-header consumer checks, integration tests, live verification
 or release reproducibility checks. See [the migration checklist](bazel-migration.md).
