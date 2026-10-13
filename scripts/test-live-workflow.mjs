@@ -49,7 +49,9 @@ try {
   await state(active, ['running', 'waiting']);
   for (const id of ids) {
     assert.equal((await call(`/delete/${id}`, 'DELETE')).status, 200);
-    assert.equal((await call(`/state/${id}`)).status, 502);
+    const afterDelete = await call(`/state/${id}`);
+    console.log(JSON.stringify({ phase: 'post-delete-state', id, ...afterDelete }));
+    assert.equal(afterDelete.status, 502, JSON.stringify(afterDelete));
     outstanding.delete(id);
   }
   assert.equal((await call('/create/-invalid', 'POST', '{}')).status, 502);

@@ -21,7 +21,7 @@ Four real local workerd cases verify C++ creation, lifecycle-state reads, JS ref
 
 The diagnostic routes are `POST /create/<id>`, `GET /state/<id>`, `DELETE /delete/<id>`, `POST /event/<id>` (event type `continue`) and `POST /missing/<id>`. `/fixture-output?id=<id>` is JS-only test readback, not a C++ API. These routes provide **no production authorization** and must not be used to expose arbitrary instance management publicly.
 
-Live verification remains pending after DNS recovery. No live workflow or instance was created. Already-started creation/event delivery/deletion may finish after caller cancellation; ambiguous results are not automatically retried. There is no transaction or exactly-once side-effect promise.
+The 2026-10-13 live probe reached creation/parameter readback, duplicate rejection, lifecycle reads and event-driven completion with exact payload readback. It then failed its immediate post-deletion absence assertion: the state endpoint returned HTTP 200 rather than the expected 502. That response body was not recorded, so no particular state or root cause is asserted. The full live probe remains unverified; instances, definition, Worker, DNS and certificate were cleaned up. See [dated evidence](../../docs/live-verification.md). Already-started creation/event delivery/deletion may finish after caller cancellation; ambiguous results are not automatically retried. There is no transaction or exactly-once side-effect promise.
 
 Not implemented: generated IDs, retention settings, batch operations, pause/resume/restart/terminate, event subscriptions, C++ output/error retrieval, C++ workflow execution, steps, replay, sleep or rollback handlers.
 
