@@ -1,4 +1,4 @@
-load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//tools:worker.bzl", "bridge_spike", "cf_worker")
@@ -47,6 +47,49 @@ bridge_spike(name = "spike")
 filegroup(
     name = "all_workers",
     srcs = [":" + name for name in EXAMPLES] + [":durable-object", ":spike"],
+)
+
+js_binary(
+    name = "bundle_tool",
+    entry_point = "scripts/bundle-worker.mjs",
+    data = [":node_modules/esbuild"],
+)
+
+[js_run_binary(
+    name = name + "_bundle",
+    tool = ":bundle_tool",
+    srcs = ["examples/%s/worker.mjs" % name, ":runtime_modules", ":" + name] +
+           ([":durable-object"] if name == "durable" else []),
+    args = ["examples/%s/worker.mjs" % name, "bundles/" + name],
+    out_dirs = ["bundles/" + name],
+) for name in EXAMPLES]
+
+JS_ENTRIES = {
+    "hello": "examples/hello/worker.mjs",
+    "hello-js": "examples/hello/plain.mjs",
+    "benchmark-js": "examples/benchmark/plain.mjs",
+    "service-upstream": "examples/service/upstream/worker.mjs",
+    "http-upstream": "examples/http-client/upstream/worker.mjs",
+    "rpc-reference": "examples/rpc/reference/worker.mjs",
+}
+
+[js_run_binary(
+    name = name + "_bundle",
+    tool = ":bundle_tool",
+    srcs = [entry] + ([":spike"] if name == "hello" else []),
+    args = [entry, "bundles/" + name],
+    out_dirs = ["bundles/" + name],
+) for name, entry in JS_ENTRIES.items()]
+
+filegroup(
+    name = "all_bundles",
+    srcs = [":" + name + "_bundle" for name in EXAMPLES + JS_ENTRIES.keys()],
+)
+
+js_test(
+    name = "bundles_test",
+    entry_point = "tests/toolchains/bundles.mjs",
+    data = [":all_bundles", ":node_modules/miniflare"],
 )
 
 filegroup(

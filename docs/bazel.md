@@ -7,7 +7,8 @@ migrated; the following build/test paths are available:
 ```sh
 bazel test //:native_tests //:node_toolchain_test //:core_local_test
 bazel test --config=cxx23 //:native_core_test
-bazel build //:all_workers
+bazel build //:all_workers //:all_bundles
+bazel test //:bundles_test
 # Individual module, producing bazel-bin/build/rpc.mjs and rpc.wasm:
 bazel build //:rpc
 ```
@@ -23,6 +24,16 @@ the separate Durable Object implementation and the hello bridge spike. The share
 26 C++ compilation actions, exactly one belonging to `//:worker_runtime`.
 `//tools:worker.bzl` provides the declared compile/link/extraction rule. Public
 runtime files are exposed through `//:runtime_modules` and `//:host_library`.
+
+`//:all_bundles` emits 29 JS/Wasm module bundles, including the private upstreams
+and plain-JS baselines. Each `bazel-bin/bundles/<name>/` contains `worker.mjs`, a
+versioned `bundle.json` inventory and content-addressed static Wasm imports.
+For example, `bazel build //:rpc_bundle` builds only that bundle's dependencies.
+The bundler is a declared Node action with no deployment, account access or random
+resource identity. Bindings, assets and ownership manifests are separate deployment
+inputs; these module bundles are not complete prebuilt `cf deploy` directories.
+`//:bundles_test` validates all 29 inventories, Wasm hashes/validity and static
+imports, then executes the emitted C++ and JS benchmark bundles in workerd.
 
 The upstream Bazel Emscripten toolchain defaults to `-fno-exceptions`, unlike the
 previous direct em++ invocation. The rule explicitly allows throw expressions
@@ -73,8 +84,11 @@ it had no `node_modules/`, source `build/`, or untracked formatter helper. No so
 `build/` directory was created. Downloads could use Bazel's repository cache;
 this proves clean-source/input separation, not an empty-download-cache build.
 
-The later all-example build and 19-suite native run passed in the working tree;
-clean-source verification of that expanded graph is still pending.
+A clean archive of `867fa75` then built all 25 module pairs and passed all 21
+selected test targets (19 native suites, core local integration and the toolchain
+smoke), using the same locked/system-only-PATH procedure. No source `build/`
+directory was created. The 29-bundle inventory/runtime test also passes in the
+working tree; independent clean-output bundle comparison is pending.
 
 This does not replace all-header consumer checks, remaining integration tests, live verification
 or release reproducibility checks. See [the migration checklist](bazel-migration.md).
