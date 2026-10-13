@@ -18,6 +18,7 @@ void libcf_host_header(int id, const char* name, int name_length,
 void libcf_host_finish(int id, int status, const char* body, int length);
 void libcf_host_fetch(int operation, int invocation, const char* path, int length);
 void libcf_host_random(std::uint8_t* output, int length);
+double libcf_host_now();
 void libcf_host_background(int id, int kind, const char* target, int target_length,
                            const char* key, int key_length, const char* value, int value_length);
 void libcf_host_stream_begin(int id, int status);
@@ -125,8 +126,9 @@ cf::WorkerContext make_context(int id) {
   cf::Crypto crypto([](std::span<std::uint8_t> bytes) {
     libcf_host_random(bytes.data(), static_cast<int>(bytes.size()));
   });
+  cf::WallClock clock([] { return libcf_host_now(); });
   return {std::move(env), std::move(execution), std::move(assets),
-          std::move(bindings), std::move(crypto)};
+          std::move(bindings), std::move(crypto), std::move(clock)};
 }
 
 }  // namespace

@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "cf/clock.hpp"
 #include "cf/context.hpp"
 #include "cf/crypto.hpp"
 #include "cf/env.hpp"
@@ -20,6 +21,7 @@ struct WorkerContext {
   Fetcher assets;
   BindingRuntime bindings;
   Crypto crypto;
+  WallClock clock;
 };
 
 // Define this function once in the application's C++ translation unit. It is
