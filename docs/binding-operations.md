@@ -2,7 +2,7 @@
 
 Snapshot: 2026-10-13. This ledger enumerates every numeric `cf::Operation` in the version-1 C++/JS binding protocol. It does **not** imply complete product coverage. The broader [capability ledger](coverage.md) also covers entrypoints, direct host imports, streams, event delivery and unimplemented APIs that are outside this enum.
 
-`L` means a real local workerd fixture exercises the operation. `A` means workerd accepts dispatch but its pinned provider is a no-op: not persistence or ingestion evidence. `V` means the named subset passed an isolated live probe; consult [dated deployment and cleanup evidence](live-verification.md). `Pending` and `Approval` are not passes or verified platform limitations. Workflows remains Pending for its full live probe: creation/parameter readback, duplicate rejection, lifecycle reads and event completion/readback passed on 2026-10-13, but immediate post-delete state returned HTTP 200 rather than expected 502; its body was not captured. All probe resources were cleaned up. Live results are single-client/location observations, not global consistency, exactly-once delivery or full production parity.
+`L` means a real local workerd fixture exercises the operation. `A` means workerd accepts dispatch but its pinned provider is a no-op: not persistence or ingestion evidence. `V` means the named subset passed an isolated live probe; consult [dated deployment and cleanup evidence](live-verification.md). `Pending` and `Approval` are not passes or verified platform limitations. The Workflow retry verified deletion through independent instance-list readback; immediate binding lookups returned `terminated`, not absence. The earlier incomplete run is retained separately. Live results are single-client/location observations, not global consistency, exactly-once delivery or full production parity.
 
 Every row below is implemented; its fixture links to local runtime tests. Native codecs and adapter boundary tests supplement those fixtures, but a row does not claim every possible failure or parameter combination is tested.
 
@@ -43,10 +43,10 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 224 | `HttpFetch` | [HTTP](../examples/http-client/test/worker.test.mjs) | L | V | Live binary/status/headers, credential non-forwarding, manual/follow/error redirects, bounds/recovery, 204/503; connection-drop failure is local-only. |
 | 240 | `PipelineSend` | [Pipelines](../examples/pipeline/test/worker.test.mjs) | A | Pending | Bounded JSON batch dispatch; live ingestion acknowledgement plus sink readback still needed. |
 | 256 | `Sleep` | [Timer](../examples/timer/test/worker.test.mjs) | L | V | Zero/nonzero waits, 12 concurrent owned URLs, invalid durations and recovery; no precision guarantee. |
-| 272 | `WorkflowCreate` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | Pending | Owned JSON params, JS reference-side readback and duplicate-ID rejection. |
-| 273 | `WorkflowStateGet` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | Pending | Runtime running/complete and missing; ten state tags have codec tests, not ten observed transitions. |
-| 274 | `WorkflowDelete` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | Pending | Completed/active deletion and API absence, not physical erasure or rollback. |
-| 275 | `WorkflowSendEvent` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | Pending | Null/array payload readback and JS workflow completion; no C++ durable replay. |
+| 272 | `WorkflowCreate` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Owned JSON params, JS reference-side readback and duplicate-ID rejection. |
+| 273 | `WorkflowStateGet` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Running-or-waiting/complete reads; post-delete terminated observed live, while missing-after-delete is local-only. Ten tags have codec tests, not ten observed transitions. |
+| 274 | `WorkflowDelete` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Completed/active deletion acknowledged; independent instance list empty before administrative cleanup. Not physical erasure or rollback. |
+| 275 | `WorkflowSendEvent` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Null/array payload readback and JS workflow completion; no C++ durable replay. |
 | 288 | `ImageInfoGet` | [Images](../examples/images/test/worker.test.mjs) | L | V | PNG dimensions/size, SVG category, invalid/empty/missing/oversized failures and recovery; no transforms/uploads. |
 
 ## Scope not represented by binding-operation numbers
