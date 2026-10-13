@@ -227,3 +227,13 @@ Build the example, run `node scripts/build-live-worker.mjs rate-limit`, deploy f
 - Only `VERSION` was bound. No Secrets Store binding, live secret read, or secret mutation occurred. Live secret verification requires an approved store for a uniquely named synthetic fixture.
 - Worker deletion passed; lookup returned 404/code 10007 and exact-host DNS listing was empty. The managed certificate transitioned through pending deletion, then disappeared: the complete final listing had 24 entries and no libcf hosts.
 - Implementation CI `38411409853` passed, including native sanitizer checks. Local secret rotation/deletion is simulator evidence, not live Secrets Store evidence.
+
+## Web Crypto live attempts (2026-10-13): DNS blocked
+
+- First Worker/host: `libcf-crypto-0c6391db31` / `libcf-crypto-0c6391db31.libcf.leostera.dev`; version `c04e95ed-8906-4afc-8316-b09026b95562`.
+- Deployment succeeded without resource bindings. The bounded 15-minute HTTPS readiness loop ended with Node `getaddrinfo ENOTFOUND`; no digest assertions ran.
+- Fresh diagnostic Worker/host: `libcf-crypto-c7e8207ab0` / `libcf-crypto-c7e8207ab0.libcf.leostera.dev`; version `e3f86775-695f-4028-b34c-6362b0121554`.
+- During the second deployment, the DNS API showed its read-only, proxied AAAA record (`100::`), ID `4bf68c68968a233d454855252297886a`. DNS queries sent through the system resolver and to public/authoritative addresses still returned `NXDOMAIN`, with a negative SOA TTL initially 1800 seconds. A read-only HTTPS DNS diagnostic could not establish TLS (`SSL_ERROR_ZERO_RETURN`). No TLS bypass, IP-based Worker request, DNS-setting change or alternate test domain was used.
+- Root cause remains unresolved: this does not establish a Crypto runtime limitation or distinguish provisioning from resolver-path/caching issues. Live digest coverage remains pending. The opt-in probe is `node scripts/test-live-crypto.mjs <host>`.
+- Upload 122.92 KiB / gzip 34.35 KiB; reported startup 3 ms then 4 ms (not benchmarks). Implementation CI `38416367551` passed, including native sanitizers; full local tests passed.
+- Both Workers were deleted and lookup returned 404/code 10007; both exact-host DNS listings became empty. Certificates transitioned through pending deletion and disappeared. Each final complete listing contained 24 entries and no libcf hosts. No active test deployment remains.
