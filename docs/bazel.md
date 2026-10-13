@@ -1,6 +1,7 @@
 # Bazel development (migration in progress)
 
-Use Bazel **9.3.0** (`.bazelversion`). The public header target is `//:cf`;
+Use the **official Bazel 9.3.0 release binary**, directly or through Bazelisk
+(`.bazelversion`). The public header target is `//:cf`;
 the Bzlmod module is named `cf`. Packaging, CI and final command cleanup are still being migrated. The declared
 local test graph is available:
 
@@ -92,6 +93,17 @@ Compiler-spawning integration wrapper files still exist pending command cleanup,
 but their example tests run directly through Bazel. Linux CI and sanitizer results
 are not yet established for this graph. Live-policy/readiness/artifact tests are
 local simulations; their names do not imply account access or new live evidence.
+
+## Bazel distribution and lockfile
+
+The first Linux CI attempt stopped during analysis: its official Bazel binary
+computed a different Emscripten extension digest from the local binary reporting
+`9.3.0 Homebrew`. The official macOS binary reproduced the same strict-lock error.
+Regeneration with the official binary changed exactly one `bzlTransitiveDigest`,
+without changing dependency versions, repository definitions or archive hashes.
+All 79 tests then passed, and the native/C++23 suite passed with
+`--lockfile_mode=error`. Use the official distribution to avoid rewriting this
+version-dependent digest; strict lock checking remains enabled in CI.
 
 ## Current evidence
 
