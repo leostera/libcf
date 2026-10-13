@@ -21,4 +21,10 @@ Routes are diagnostic only: `/sum`, `POST /echo` (body is the argument array), `
 
 Not implemented: C++ RPC exports/server methods, arbitrary JS interop, getters, capability forwarding, functions/streams, generated stubs or retry/exactly-once semantics. Reflection assumes ordinary native by-value results, not adversarial in-process Proxies or modified JS intrinsics. See [wire boundaries](../../docs/wire-boundaries.md).
 
+## Opt-in live probe
+
+Build the C++ example, then run `node scripts/build-live-worker.mjs rpc`. Retain `build/live-rpc/test-deployment.json`; verify both Worker identities and the frontend's exact DNS name are unused. The reference has no public domain, workers.dev or previews. From `build/live-rpc`, dry-run both named Workers with `cf deploy --prebuilt --dry-run --worker <name>`. Deploy the reference (`upstreamName`) first, then the frontend (`name`), using `cf deploy --prebuilt --worker <name>`.
+
+Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-rpc.mjs <hostname>` from the repository root. It checks JSON, an exact 1-MiB argument body, concurrency, errors and recovery. No C++ RPC exports or server-disposer timing are verified. On success or failure, delete **both** owned Workers independently, verify their absence, and verify frontend DNS/certificate cleanup. Do not rebuild the manifest while either resource remains active. Build/dry-run success is not live runtime verification.
+
 Sources accessed 2026-10-13: [RPC lifecycle](https://developers.cloudflare.com/workers/runtime-apis/rpc/lifecycle/) (updated 2026-10-08), [reserved methods](https://developers.cloudflare.com/workers/runtime-apis/rpc/reserved-methods/) (updated 2026-10-13). Compatibility is pinned to 2026-10-13.

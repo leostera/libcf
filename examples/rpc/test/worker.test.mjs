@@ -12,6 +12,9 @@ test('C++ RPC calls preserve JSON values across a real service binding', async (
       assert.equal(response.status, 200);
       assert.deepEqual(await response.json(), value);
     }
+    const exact = 'x'.repeat(1048572);
+    const large = await fetch(`${worker.base}/echo`, { method: 'POST', body: JSON.stringify([exact]) });
+    assert.equal(large.status, 200); assert.equal(await large.json(), exact);
     const responses = await Promise.all(Array.from({ length: 8 }, () => fetch(`${worker.base}/sum`)));
     for (const response of responses) { assert.equal(response.status, 200); assert.equal(await response.text(), '42'); }
   } finally { await worker.dispose(); }

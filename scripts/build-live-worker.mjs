@@ -9,19 +9,19 @@ const example = process.argv[2];
 const bindingId = process.argv[3];
 const queueName = process.argv[4];
 if (process.argv.length > 5 || (example !== 'events' && queueName !== undefined)) throw new Error('Unexpected build arguments');
-if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow', 'clock'].includes(example))
-  throw new Error('Choose cache, d1, kv, r2, core, service, durable, events, websocket, rate-limit, metadata, crypto, timer, images, http-client, workflow or clock');
+if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow', 'clock', 'rpc'].includes(example))
+  throw new Error('Choose cache, d1, kv, r2, core, service, durable, events, websocket, rate-limit, metadata, crypto, timer, images, http-client, workflow, clock or rpc');
 if (['d1', 'events'].includes(example) && !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(bindingId ?? ''))
   throw new Error('D1 requires the UUID of an isolated test database');
 if (['kv', 'core'].includes(example) && !/^[a-f0-9]{32}$/.test(bindingId ?? ''))
   throw new Error('KV requires the ID of an isolated test namespace');
 if (example === 'r2' && !/^libcf-r2-[a-f0-9]{10}$/.test(bindingId ?? ''))
   throw new Error('R2 requires an isolated libcf test bucket name');
-if (['cache', 'service', 'durable', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow', 'clock'].includes(example) && bindingId) throw new Error('No resource binding ID is required');
+if (['cache', 'service', 'durable', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow', 'clock', 'rpc'].includes(example) && bindingId !== undefined) throw new Error('No resource binding ID is required');
 if (example === 'events' && !/^libcf-events-[a-f0-9]{10}$/.test(queueName ?? ''))
   throw new Error('Events requires an isolated libcf test queue name');
 const name = `libcf-${example}-${randomBytes(5).toString('hex')}`;
-const upstreamName = example === 'service' ? `${name}-upstream`
+const upstreamName = ['service', 'rpc'].includes(example) ? `${name}-upstream`
   : example === 'http-client' ? name.replace('http-client', 'http-upstream') : undefined;
 const upstreamHostname = example === 'http-client' ? `${upstreamName}.libcf.leostera.dev` : undefined;
 const workflowName = example === 'workflow' ? name : undefined;
@@ -34,6 +34,7 @@ const env = {
   crypto: {},
   timer: {},
   clock: {},
+  rpc: { REFERENCE: { type: 'worker', worker: upstreamName } },
   workflow: { FLOW: { type: 'workflow', name: workflowName, worker: name, exportName: 'FixtureWorkflow' } },
   images: { IMAGES: { type: 'images' } },
   'http-client': { UPSTREAM_URL: { type: 'text', value: `https://${upstreamHostname}` } },
@@ -90,13 +91,14 @@ if (upstreamName) {
   if (example === 'http-client') {
     await build({ entryPoints: ['examples/http-client/upstream/worker.mjs'],
       outfile: `${upstream}/bundle/worker.mjs`, bundle: true, format: 'esm', platform: 'browser' });
-  } else await copyFile('examples/service/upstream/worker.mjs', `${upstream}/bundle/worker.mjs`);
+  } else await copyFile(example === 'rpc' ? 'examples/rpc/reference/worker.mjs' : 'examples/service/upstream/worker.mjs', `${upstream}/bundle/worker.mjs`);
   await writeFile(`${upstream}/worker.config.json`, JSON.stringify({
     name: upstreamName,
     compatibilityDate: '2026-10-13',
     workersDev: false,
     previewUrls: false,
     domains: upstreamHostname ? [upstreamHostname] : [],
+    ...(example === 'rpc' ? { exports: { default: { type: 'worker' } } } : {}),
     observability: { enabled: true, traces: { enabled: true } },
     manifest: { type: 'complete', mainModule: 'worker.mjs', modules: { 'worker.mjs': { type: 'esm' } } },
   }, null, 2));
