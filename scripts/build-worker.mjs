@@ -18,6 +18,7 @@ const targets = {
   'examples/analytics/wrangler.jsonc': 'analytics',
   'examples/metadata/wrangler.jsonc': 'metadata',
   'examples/worker-loader/wrangler.jsonc': 'worker-loader',
+  'examples/crypto/wrangler.jsonc': 'crypto',
   'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
