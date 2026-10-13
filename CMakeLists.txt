@@ -13,6 +13,7 @@ include(CMakePackageConfigHelpers)
 install(TARGETS libcf EXPORT libcfTargets)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES lib/runtime.mjs lib/emscripten-host.js DESTINATION ${CMAKE_INSTALL_DATADIR}/libcf)
+install(FILES src/worker.cpp DESTINATION ${CMAKE_INSTALL_DATADIR}/libcf/src)
 install(EXPORT libcfTargets
   FILE libcfTargets.cmake
   NAMESPACE libcf::

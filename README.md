@@ -8,12 +8,12 @@ Use Emscripten **6.0.12** (`em++` on `PATH`) and Node **26.11.1** (`.node-versio
 
 ```sh
 npm ci
-npm test            # C++ unit + installed-package + both local Worker suites
+npm test            # C++ unit + installed-package + all local Worker suites
 npm run test:spike   # proof of KV, assets, streaming and waitUntil
 npm run test:core    # HTTP/router/Env/coroutine fetch/stream/crypto
 npm run bench:spike  # optional rough local comparison to plain JS
 ```
 
-[Core example](examples/core/README.md) · [bridge spike](examples/hello/README.md).
+[Core example](examples/core/README.md) · [KV example](examples/kv/README.md) · [bridge spike](examples/hello/README.md).
 
 The reusable [JS runtime shim](lib/runtime.mjs) adapts Worker events and bindings; C++ runs as an imported `CompiledWasm` module. The C++ headers are installable via CMake (`libcf::libcf`); the package test installs them and compiles an independent consumer. No account, login, remote binding or live deployment is used by these default tests. Live tests and more binding families are planned, and every supported method must have its own verification level before a release claim. Do not use the proof-of-concept KV namespace ID for deployment.

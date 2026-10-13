@@ -4,11 +4,13 @@
   "type": "module",
   "scripts": {
     "build:spike": "node scripts/build-spike.mjs",
-    "build:core": "node scripts/build-core.mjs",
+    "build:core": "node scripts/build-worker.mjs",
+    "build:kv": "node scripts/build-worker.mjs examples/kv/wrangler.jsonc",
+    "test:kv": "npm run build:kv && node --test examples/kv/test/*.test.mjs",
     "test:native": "cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Debug && cmake --build build/native && ctest --test-dir build/native --output-on-failure",
     "test:package": "cmake --install build/native --prefix build/install && cmake -S tests/package -B build/consumer -DCMAKE_PREFIX_PATH=\"$(pwd)/build/install\" && cmake --build build/consumer && build/consumer/libcf-consumer && test -f build/install/share/libcf/runtime.mjs && test -f build/install/share/libcf/emscripten-host.js",
     "test:core": "npm run build:core && node --test examples/core/test/*.test.mjs",
-    "test": "npm run test:native && npm run test:package && npm run test:spike && npm run test:core",
+    "test": "npm run test:native && npm run test:package && npm run test:spike && npm run test:core && npm run test:kv",
     "test:spike": "npm run build:spike && node --test examples/hello/test/*.test.mjs",
     "bench:spike": "npm run build:spike && node scripts/bench-spike.mjs"
   },

@@ -1,0 +1,7 @@
+{
+  "name": "libcf-kv-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "kv_namespaces": [{ "binding": "DEMO_KV", "id": "libcf-kv-local-only" }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}
