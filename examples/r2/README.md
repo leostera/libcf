@@ -4,7 +4,7 @@
 npm ci
 npm run test:r2
 npm run build:r2
-npx wrangler dev --config examples/r2/wrangler.jsonc --local
+node scripts/dev-example.mjs r2
 ```
 
 `cf::R2Bucket` exposes get/head/put/erase/list. Metadata is typed (key, size, ETag, HTTP ETag and content type); binary bodies are not decoded as text. The example provides `PUT/GET/HEAD/DELETE /objects/:key` and `GET /list` for the `listed-` prefix. A GET with `x-offset` demonstrates a two-byte range (this is a demo control, not standard HTTP Range handling).

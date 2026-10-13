@@ -8,7 +8,7 @@ npm run test:native
 npm run test:core
 # or inspect manually:
 npm run build:core
-npx wrangler dev --config examples/core/wrangler.jsonc --local
+node scripts/dev-example.mjs core
 curl http://localhost:8787/hello/Ada
 curl http://localhost:8787/asset
 curl http://localhost:8787/uuid
@@ -16,6 +16,6 @@ curl http://localhost:8787/stream/3
 curl -X POST --data-binary 'hello' http://localhost:8787/echo
 ```
 
-Requires Emscripten 6.0.12 and Node 26.11.1. `wrangler deploy --config examples/core/wrangler.jsonc --dry-run` checks packaging without deploying. Local tests verify routing, header and variable access, a binary echo, async asset fetch, streamed responses/cancellation, `waitUntil` KV writes, invalid input, UUIDs, and concurrency. No remote parity is claimed.
+Requires Emscripten 6.0.12 and Node 26.11.1. See [cf deployment checks](../../docs/live-verification.md) for the prebuilt packaging path. Local tests verify routing, header and variable access, a binary echo, async asset fetch, streamed responses/cancellation, `waitUntil` KV writes, invalid input, UUIDs, and concurrency. No remote parity is claimed.
 
 **Boundary contracts:** JS copies request body and headers before entering C++ (1 MiB and 64 KiB limits); the C++ parser validates the header wire format before constructing `Headers`. C++ borrows ABI buffers only for the duration of each call. Coroutines own their request data and resume after the host fetch Promise settles; the adapter tracks in-flight invocations and cancels their C++ handles on request abort. Bounded responses use owned bytes; stream responses own a `StreamSource` that is pulled on demand and dropped on close/cancel. The current `Fetcher` example returns a bounded body and status only—streaming fetch and response-header APIs are future work. `Context::wait_until` currently supports typed KV-put and fetch work descriptions, not arbitrary C++ futures.

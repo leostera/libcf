@@ -6,7 +6,7 @@ The application implements `cf::handle(Request, WorkerContext)` and uses `KvName
 npm ci
 npm run test:kv
 npm run build:kv
-npx wrangler dev --config examples/kv/wrangler.jsonc --local
+node scripts/dev-example.mjs kv
 ```
 
 Requires the pinned Emscripten 6.0.12 toolchain. Routes:
@@ -16,7 +16,7 @@ Requires the pinned Emscripten 6.0.12 toolchain. Routes:
 - `GET /metadata/:key`: value and metadata.
 - `GET /list`: lists the `item:` prefix, following cursors with a one-key page size.
 
-Five local integration tests cover empty vs missing values, binary round trips, metadata/TTL forwarding, cursor pagination and invalid input. Native tests exercise wire parsing. **Not live verified**: Wrangler authentication is currently unavailable. The namespace ID in this config is local-only; provision a separate test namespace before deployment.
+Five local integration tests cover empty vs missing values, binary round trips, metadata/TTL forwarding, cursor pagination and invalid input. Native tests exercise wire parsing. **Not live verified yet**; cf CLI authentication is available. The namespace ID in this config is local-only; provision a separate test namespace before deployment.
 
 This is a bounded bridge: values are limited to 1 MiB, operation results to 4 MiB, and options to 64 KiB. These are library limits, not Cloudflare limits. KV stream reads, bulk reads, JSON decoding into domain types and complete cache-status metadata are not implemented. Absolute expiration and cache-TTL options are exposed but not yet integration-tested. Local immediate read-after-write behavior does not establish production consistency: KV is eventually consistent, including cached misses. Do not use these test sequences as a production consistency guarantee.
 

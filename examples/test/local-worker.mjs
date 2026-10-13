@@ -1,49 +1,69 @@
-import { spawn } from 'node:child_process';
-import { once } from 'node:events';
-import { createServer } from 'node:net';
+import { build } from 'esbuild';
+import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { basename, dirname, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { Miniflare } from 'miniflare';
 
-async function freePort() {
-  const server = createServer();
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const { port } = server.address();
-  server.close();
-  await once(server, 'close');
-  return port;
+async function workerOptions(configPath, root) {
+  // Repository-owned fixtures intentionally use the JSON subset of JSONC.
+  const config = JSON.parse(await readFile(configPath, 'utf8'));
+  const directory = dirname(resolve(configPath));
+  const moduleRoot = resolve(root, config.name);
+  const wasm = [];
+  const output = await build({
+    entryPoints: [resolve(directory, config.main)],
+    outfile: resolve(moduleRoot, 'worker.mjs'),
+    bundle: true, write: false, format: 'esm', platform: 'browser',
+    plugins: [{
+      name: 'wasm-modules',
+      setup(builder) {
+        builder.onResolve({ filter: /\.wasm$/ }, async args => {
+          const name = `${wasm.length}-${basename(args.path)}`;
+          wasm.push({ type: 'CompiledWasm', path: resolve(moduleRoot, name), contents: await readFile(resolve(args.resolveDir, args.path)) });
+          return { path: `./${name}`, external: true };
+        });
+      },
+    }],
+  });
+  return { config: {
+    name: config.name,
+    compatibilityDate: config.compatibility_date,
+    compatibilityFlags: config.compatibility_flags ?? [],
+    manifest: {
+      mainModule: 'worker.mjs', modulesRoot: moduleRoot,
+      modules: {
+        'worker.mjs': { type: 'esm', contents: output.outputFiles[0].text },
+        ...Object.fromEntries(wasm.map(x => [basename(x.path), { type: 'wasm', contents: x.contents }])),
+      },
+    },
+    env: {
+      ...Object.fromEntries(Object.entries(config.vars ?? {}).map(([name, value]) => [name, { type: 'text', value }])),
+      ...Object.fromEntries((config.kv_namespaces ?? []).map(x => [x.binding, { type: 'kv', id: x.id }])),
+      ...Object.fromEntries((config.d1_databases ?? []).map(x => [x.binding, { type: 'd1', id: x.database_id }])),
+      ...Object.fromEntries((config.r2_buckets ?? []).map(x => [x.binding, { type: 'r2', name: x.bucket_name }])),
+      ...Object.fromEntries((config.services ?? []).map(x => [x.binding, { type: 'worker', worker: x.service }])),
+      ...(config.assets ? { [config.assets.binding]: { type: 'assets' } } : {}),
+    },
+    ...(config.assets ? { assets: { directory: resolve(directory, config.assets.directory), hasUserWorker: true, runWorkerFirst: config.assets.run_worker_first } } : {}),
+  } };
 }
 
-export async function startLocalWorker(config, readyPath = '/') {
-  const port = await freePort();
-  const base = `http://127.0.0.1:${port}`;
-  const worker = spawn('node', ['node_modules/wrangler/bin/wrangler.js', 'dev',
-    '--config', config, '--local', '--ip', '127.0.0.1', '--port', String(port)],
-  { stdio: ['ignore', 'pipe', 'pipe'] });
-  let output = '';
-  worker.stdout.on('data', chunk => { output += chunk; });
-  worker.stderr.on('data', chunk => { output += chunk; });
+export async function startLocalWorker(config, readyPath = '/', additionalConfigs = []) {
+  const root = await mkdtemp(resolve(tmpdir(), 'libcf-local-'));
+  let runtime;
   async function dispose() {
-    if (worker.exitCode !== null || worker.signalCode !== null) return;
-    worker.kill('SIGTERM');
-    let timer;
-    try {
-      await Promise.race([
-        once(worker, 'exit'),
-        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`Worker did not stop: ${output}`)), 5000); }),
-      ]);
-    } finally { clearTimeout(timer); }
+    try { await runtime?.dispose(); }
+    finally { await rm(root, { recursive: true, force: true }); }
   }
   try {
-    for (let attempt = 0; attempt < 60; ++attempt) {
-      if (worker.exitCode !== null || worker.signalCode !== null) throw new Error(`Worker exited before readiness: ${output}`);
-      try {
-        // Readiness only requires a response from the Worker, not a specific
-        // route status. This lets tests exercise missing routes intentionally.
-        await fetch(`${base}${readyPath}`);
-        return { base, dispose };
-      } catch { /* Worker not listening yet. */ }
-      await new Promise(resolve => setTimeout(resolve, 250));
-    }
-    throw new Error(`Worker readiness timed out: ${output}`);
+    const workers = await Promise.all([config, ...additionalConfigs].map(path => workerOptions(path, root)));
+    // All bindings are local workerd resources; no CLI, credentials, persistent
+    // state, or remote binding fallback is involved in the default test suite.
+    runtime = new Miniflare({ host: '127.0.0.1', port: 0, workers });
+    const base = (await runtime.ready).origin;
+    const ready = await fetch(`${base}${readyPath}`, { signal: AbortSignal.timeout(10000) });
+    await ready.arrayBuffer();
+    return { base, dispose };
   } catch (error) {
     await dispose();
     throw error;

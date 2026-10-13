@@ -11,7 +11,7 @@ async function request(path, init = {}) {
 // Custom-domain certificate activation may lag deployment. Never disable TLS
 // verification or fall back to workers.dev to make a live check pass.
 let ready = false;
-for (let attempt = 0; attempt < 12; attempt++) {
+for (let attempt = 0; attempt < 90; attempt++) {
   try {
     const response = await request('/entries/readiness');
     assert.equal(response.status, 404);
@@ -19,7 +19,7 @@ for (let attempt = 0; attempt < 12; attempt++) {
     ready = true;
     break;
   } catch (error) {
-    if (attempt === 11) throw error;
+    if (attempt === 89) throw error;
     await new Promise(resolve => setTimeout(resolve, 10000));
   }
 }

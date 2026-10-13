@@ -1,15 +1,13 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { startLocalWorker } from '../../test/local-worker.mjs';
-let upstream;
 let worker;
 let base;
 before(async () => {
-  upstream = await startLocalWorker('examples/service/upstream/wrangler.jsonc');
-  worker = await startLocalWorker('examples/service/wrangler.jsonc');
+  worker = await startLocalWorker('examples/service/wrangler.jsonc', '/', ['examples/service/upstream/wrangler.jsonc']);
   base = worker.base;
 });
-after(async () => { await worker?.dispose(); await upstream?.dispose(); });
+after(async () => { await worker?.dispose(); });
 
 test('C++ service binding forwards method, headers and binary body to a local Worker', async () => {
   const body = Uint8Array.of(0, 255, 128, 65);

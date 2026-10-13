@@ -4,7 +4,7 @@
 npm ci
 npm run test:d1
 npm run build:d1
-npx wrangler dev --config examples/d1/wrangler.jsonc --local
+node scripts/dev-example.mjs d1
 ```
 
 The C++ handler uses `cf::D1Database`, `prepare().bind().run()`, `all()`, `first()`, `batch()`, and `exec()` through the shared Wasm bridge. `POST /setup` creates a local table; `PUT/GET/DELETE /records/:id` stores binary values. `POST /constraint-probe` deliberately violates NOT NULL to demonstrate error handling.
