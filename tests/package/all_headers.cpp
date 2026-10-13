@@ -15,6 +15,7 @@
 #include <cf/kv.hpp>
 #include <cf/metadata.hpp>
 #include <cf/operation.hpp>
+#include <cf/pipeline.hpp>
 #include <cf/queue.hpp>
 #include <cf/r2.hpp>
 #include <cf/rate_limit.hpp>

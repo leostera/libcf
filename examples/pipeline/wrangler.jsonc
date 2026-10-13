@@ -1,0 +1,7 @@
+{
+  "name": "libcf-pipeline-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "pipelines": [{ "binding": "EVENTS", "pipeline": "libcf-local-stream" }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}
