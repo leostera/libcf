@@ -39,8 +39,9 @@ int main() {
   bool host_called = false;
   BindingRuntime runtime([&](auto, auto) { host_called = true; }, [](auto) {});
   D1Database database(runtime, "DB");
+  const auto statement = database.prepare("SELECT ?").bind({std::int64_t{9007199254740992LL}});
   auto handler = [&]() -> Task {
-    auto invalid = co_await database.prepare("SELECT ?").bind({std::int64_t{9007199254740992LL}}).all();
+    auto invalid = co_await statement.all();
     assert(!invalid && invalid.error().code == ErrorCode::InvalidInput);
     co_return Response::text("rejected");
   };
