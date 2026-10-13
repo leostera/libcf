@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.24)
+project(libcf VERSION 0.1.0 LANGUAGES CXX)
+
+add_library(libcf INTERFACE)
+add_library(libcf::libcf ALIAS libcf)
+target_include_directories(libcf INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(libcf INTERFACE cxx_std_20)
+
+include(CTest)
+if(BUILD_TESTING AND NOT EMSCRIPTEN)
+  add_executable(libcf-native-test tests/native/core.cpp)
+  target_link_libraries(libcf-native-test PRIVATE libcf::libcf)
+  add_test(NAME libcf-native-test COMMAND libcf-native-test)
+endif()

@@ -1,0 +1,9 @@
+{
+  "name": "libcf-hello-spike",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "vars": { "GREETING": "C++" },
+  "kv_namespaces": [{ "binding": "STATE_KV", "id": "libcf-hello-local-only" }],
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}
