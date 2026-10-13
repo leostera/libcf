@@ -53,6 +53,7 @@ enum class Operation : std::uint32_t {
   WorkflowCreate = 272,
   WorkflowStateGet = 273,
   WorkflowDelete = 274,
+  ImageInfoGet = 288,
 };
 
 struct OperationCall {

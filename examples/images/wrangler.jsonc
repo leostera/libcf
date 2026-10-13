@@ -1,0 +1,7 @@
+{
+  "name": "libcf-images-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "images": { "binding": "IMAGES" },
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}

@@ -49,6 +49,7 @@ async function workerOptions(configPath, root) {
       ...Object.fromEntries((config.workflows ?? []).map(x => [x.class_name, { type: 'workflow', name: x.name }])),
     },
     env: {
+      ...(config.images ? { [config.images.binding]: { type: 'images' } } : {}),
       ...Object.fromEntries((config.workflows ?? []).map(x => [x.binding, {
         type: 'workflow', name: x.name, worker: config.name, exportName: x.class_name,
       }])),
