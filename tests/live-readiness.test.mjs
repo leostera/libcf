@@ -5,15 +5,46 @@ import { awaitCertificate, liveHttp } from '../scripts/live-http.mjs';
 
 test('readiness retries transport failures and consumes the successful response', async () => {
   let calls = 0;
-  let consumed = false;
+  let response;
   await awaitCertificate(async (path, options) => {
     assert.equal(path, '/libcf-readiness-missing-route');
     assert(options.signal instanceof AbortSignal);
     if (++calls < 3) throw new Error('DNS not ready');
-    return { status: 404, async arrayBuffer() { consumed = true; } };
+    response = new Response('ready', { status: 404 });
+    return response;
   }, 404, { timeoutMs: 1000, retryMs: 1 });
   assert.equal(calls, 3);
-  assert.equal(consumed, true);
+  assert.equal(response.bodyUsed, true);
+});
+
+test('readiness drains unexpected status bodies and caps their size', async () => {
+  const wrong = new Response('not ready', { status: 503 });
+  let calls = 0;
+  await awaitCertificate(async () => ++calls === 1 ? wrong : new Response(null, { status: 404 }),
+    404, { timeoutMs: 1000, retryMs: 1 });
+  assert.equal(wrong.bodyUsed, true);
+  assert.equal(wrong.body.locked, false);
+  let cancelled = false;
+  const body = new ReadableStream({
+    start(controller) { controller.enqueue(new Uint8Array(65537)); },
+    cancel() { cancelled = true; return new Promise(() => {}); },
+  });
+  await assert.rejects(awaitCertificate(async () => new Response(body, { status: 404 }),
+    404, { timeoutMs: 30, retryMs: 10000 }), RangeError);
+  assert.equal(cancelled, true);
+  assert.equal(body.locked, false);
+});
+
+test('readiness deadline interrupts a stalled body even when cancellation never settles', async () => {
+  let cancelled = false;
+  const body = new ReadableStream({ cancel() { cancelled = true; return new Promise(() => {}); } });
+  const keepAlive = setTimeout(() => {}, 2000);
+  try {
+    await assert.rejects(awaitCertificate(async () => new Response(body, { status: 404 }),
+      404, { timeoutMs: 30, retryMs: 1 }), { name: 'TimeoutError' });
+    assert.equal(cancelled, true);
+    assert.equal(body.locked, false);
+  } finally { clearTimeout(keepAlive); }
 });
 
 test('readiness deadline bounds retry sleeps and retains the last failure', { timeout: 2000 }, async () => {

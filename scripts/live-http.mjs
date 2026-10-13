@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
+import { readBounded } from '../lib/body.mjs';
 
 export function liveHttp(host, family) {
   if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'http-upstream'].includes(family) ||
@@ -37,8 +38,10 @@ export async function awaitCertificate(request, expectedStatus = 404, {
   while (true) {
     try {
       const response = await request('/libcf-readiness-missing-route', { signal: deadline });
+      // Drain error responses too, without unbounded allocation or trusting
+      // the request adapter to interrupt a stalled response body.
+      await readBounded(response.body, 65536, deadline);
       assert.equal(response.status, expectedStatus);
-      await response.arrayBuffer();
       deadline.throwIfAborted();
       return;
     } catch (error) {
