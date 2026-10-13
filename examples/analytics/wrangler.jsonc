@@ -1,0 +1,7 @@
+{
+  "name": "libcf-analytics-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "analytics_engine_datasets": [{ "binding": "DATASET", "dataset": "libcf_analytics_local" }],
+  "observability": { "enabled": true, "traces": { "enabled": true } },
+}

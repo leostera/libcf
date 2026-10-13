@@ -14,7 +14,7 @@ using Bytes = std::vector<std::uint8_t>;
 
 // Version 1 of the C++/JS operation protocol. Numeric values are shared with
 // lib/runtime.mjs; add new values, never silently reinterpret existing ones.
-enum class Operation : std::uint8_t {
+enum class Operation : std::uint32_t {
   KvGetText = 1,
   KvPut = 2,
   KvDelete = 3,
@@ -42,6 +42,7 @@ enum class Operation : std::uint8_t {
   QueueSendText = 112,
   QueueSendBytes = 113,
   RateLimit = 128,
+  AnalyticsWriteDataPoint = 144,
 };
 
 struct OperationCall {

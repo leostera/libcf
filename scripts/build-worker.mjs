@@ -15,6 +15,7 @@ const targets = {
   'examples/websocket/wrangler.jsonc': 'websocket',
   'examples/email/wrangler.jsonc': 'email',
   'examples/rate-limit/wrangler.jsonc': 'rate-limit',
+  'examples/analytics/wrangler.jsonc': 'analytics',
   'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';

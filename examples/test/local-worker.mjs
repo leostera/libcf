@@ -49,6 +49,7 @@ async function workerOptions(configPath, root) {
       ...Object.fromEntries(Object.entries(config.vars ?? {}).map(([name, value]) => [name, { type: 'text', value }])),
       ...Object.fromEntries((config.kv_namespaces ?? []).map(x => [x.binding, { type: 'kv', id: x.id }])),
       ...Object.fromEntries((config.d1_databases ?? []).map(x => [x.binding, { type: 'd1', id: x.database_id }])),
+      ...Object.fromEntries((config.analytics_engine_datasets ?? []).map(x => [x.binding, { type: 'analytics-engine-dataset', name: x.dataset }])),
       ...Object.fromEntries((config.ratelimits ?? []).map(x => [x.name, { type: 'rate-limit', namespace: x.namespace_id, simple: x.simple }])),
       ...Object.fromEntries((config.queues?.producers ?? []).map(x => [x.binding, { type: 'queue', name: x.queue }])),
       ...Object.fromEntries((config.r2_buckets ?? []).map(x => [x.binding, { type: 'r2', name: x.bucket_name }])),
