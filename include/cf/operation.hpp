@@ -24,6 +24,11 @@ enum class Operation : std::uint8_t {
   D1Run = 16,
   D1All = 17,
   D1Exec = 18,
+  R2Get = 32,
+  R2Head = 33,
+  R2Put = 34,
+  R2Delete = 35,
+  R2List = 36,
 };
 
 struct OperationCall {

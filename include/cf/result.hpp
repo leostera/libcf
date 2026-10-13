@@ -6,6 +6,8 @@
 
 namespace cf {
 
+struct Unit {};
+
 enum class ErrorCode { InvalidInput, MissingBinding, Aborted, HostFailure, ResourceLimit };
 
 struct Error {

@@ -1,0 +1,16 @@
+# D1 prepared statements from C++
+
+```sh
+npm ci
+npm run test:d1
+npm run build:d1
+npx wrangler dev --config examples/d1/wrangler.jsonc --local
+```
+
+The C++ handler uses `cf::D1Database`, `prepare().bind().run()`, `all()`, and `exec()` through the shared Wasm bridge. `POST /setup` creates a local table; `PUT/GET/DELETE /records/:id` stores binary values. `POST /constraint-probe` deliberately violates NOT NULL to demonstrate error handling.
+
+Bound parameters are `cf::SqlValue`: null, finite double, signed integer, string, or bytes. Parameters cross a tagged binary protocol separately from SQL text. Integers outside JavaScript's exact range are rejected before dispatch. Results are named typed cells; evolving platform metadata is retained as JSON. Read large SQL integers using an explicit SQL cast to TEXT; unsafe numeric results are rejected.
+
+Five local integration cases cover CRUD/binary/empty values, SQL-looking data, concurrent statements, constraint rejection, and invalid routes. Native tests check parameter precision, row decoding and malformed wire data. Not live verified: the checked-in database ID is local-only. Batch, sessions, first, raw, streaming results and arbitrary large result sets remain unimplemented. Request/parameter payloads are bounded to 1 MiB and result payloads to 4 MiB; these are library limits, not D1 limits.
+
+Sources: [prepared statements](https://developers.cloudflare.com/d1/worker-api/prepared-statements/), [D1 database API](https://developers.cloudflare.com/d1/worker-api/d1-database/).

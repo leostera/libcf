@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "cf/kv.hpp"
+#include "cf/r2.hpp"
 #include "cf/task.hpp"
 
 namespace {
@@ -17,6 +18,17 @@ void append_string(cf::Bytes& bytes, const std::string& value) {
 }
 
 int main() {
+  cf::Bytes metadata;
+  for (const auto& field : {"object", "4", "etag", "\"etag\"", "application/octet-stream"})
+    append_string(metadata, field);
+  auto head = cf::detail::decode_r2_head({cf::ReplyKind::Value, metadata});
+  assert(head && head.value() && head.value()->key == "object" && head.value()->size == 4);
+  metadata.push_back(0);
+  assert(!cf::detail::decode_r2_head({cf::ReplyKind::Value, metadata}));
+  assert(!cf::detail::decode_r2_head({cf::ReplyKind::Value, {1, 2}}));
+  auto missing_head = cf::detail::decode_r2_head({cf::ReplyKind::Missing, {}});
+  assert(missing_head && !missing_head.value());
+
   cf::OperationCall last{};
   cf::BindingRuntime::Completion complete;
   cf::BindingRuntime runtime([&](cf::OperationCall call, auto callback) {

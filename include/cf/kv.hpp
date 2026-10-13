@@ -13,8 +13,6 @@
 
 namespace cf {
 
-struct Unit {};
-
 struct KvPutOptions {
   std::optional<std::uint32_t> expiration_ttl;
   std::optional<std::uint64_t> expiration;
