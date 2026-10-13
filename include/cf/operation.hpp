@@ -45,6 +45,7 @@ enum class Operation : std::uint32_t {
   AnalyticsWriteDataPoint = 144,
   VersionMetadataGet = 160,
   SecretsStoreGet = 176,
+  WorkerLoaderFetch = 192,
 };
 
 struct OperationCall {

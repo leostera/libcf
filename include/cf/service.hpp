@@ -22,6 +22,7 @@ class ServiceBinding {
 
  private:
   friend class DurableObjectStub;
+  friend class WorkerLoader;
   AsyncResult<Response> fetch(Request request, Operation operation, std::string options) const {
     if (request.body.size() > 1024 * 1024 || request.method.empty() || request.method.size() > 32)
       return invalid("invalid binding request size");

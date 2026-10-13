@@ -1,0 +1,8 @@
+{
+  "name": "libcf-worker-loader-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "worker_loaders": [{ "binding": "LOADER" }],
+  "vars": { "PARENT_ONLY": "must-not-be-inherited" },
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}

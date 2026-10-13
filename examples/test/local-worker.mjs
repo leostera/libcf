@@ -46,6 +46,7 @@ async function workerOptions(configPath, root) {
     exports: Object.fromEntries((config.migrations ?? []).flatMap(migration =>
       (migration.new_sqlite_classes ?? []).map(name => [name, { type: 'durable-object', storage: 'sqlite' }]))),
     env: {
+      ...Object.fromEntries((config.worker_loaders ?? []).map(x => [x.binding, { type: 'worker-loader' }])),
       ...(config.version_metadata ? { [config.version_metadata.binding]: { type: 'version-metadata' } } : {}),
       ...Object.fromEntries((config.secrets_store_secrets ?? []).map(x => [x.binding, {
         type: 'secrets-store-secret', storeId: x.store_id, secretName: x.secret_name,
