@@ -11,6 +11,7 @@
 #include <cf/events.hpp>
 #include <cf/fetch.hpp>
 #include <cf/http.hpp>
+#include <cf/http_client.hpp>
 #include <cf/kv.hpp>
 #include <cf/metadata.hpp>
 #include <cf/operation.hpp>

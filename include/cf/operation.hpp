@@ -47,6 +47,7 @@ enum class Operation : std::uint32_t {
   SecretsStoreGet = 176,
   WorkerLoaderFetch = 192,
   CryptoDigest = 208,
+  HttpFetch = 224,
 };
 
 struct OperationCall {

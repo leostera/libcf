@@ -20,6 +20,7 @@ const targets = {
   'examples/worker-loader/wrangler.jsonc': 'worker-loader',
   'examples/crypto/wrangler.jsonc': 'crypto',
   'examples/benchmark/wrangler.jsonc': 'benchmark',
+  'examples/http-client/wrangler.jsonc': 'http-client',
   'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
