@@ -13,7 +13,7 @@ target_compile_features(cf INTERFACE cxx_std_20)
 include(CMakePackageConfigHelpers)
 install(TARGETS cf EXPORT cfTargets)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES lib/runtime.mjs lib/header-wire.mjs lib/body.mjs lib/email.mjs lib/rate-limit.mjs lib/analytics.mjs lib/metadata.mjs lib/worker-loader.mjs lib/subtle-crypto.mjs lib/http-client.mjs lib/pipeline.mjs lib/timer.mjs lib/json.mjs lib/workflow.mjs lib/images.mjs lib/d1.mjs lib/queue.mjs lib/events.mjs lib/sql.mjs lib/durable-storage.mjs lib/durable-object.mjs lib/websocket.mjs lib/r2.mjs lib/cache.mjs lib/service.mjs lib/emscripten-host.js DESTINATION ${CMAKE_INSTALL_DATADIR}/cf)
+install(FILES lib/runtime.mjs lib/header-wire.mjs lib/body.mjs lib/email.mjs lib/rate-limit.mjs lib/analytics.mjs lib/metadata.mjs lib/worker-loader.mjs lib/subtle-crypto.mjs lib/http-client.mjs lib/pipeline.mjs lib/timer.mjs lib/json.mjs lib/workflow.mjs lib/images.mjs lib/rpc.mjs lib/d1.mjs lib/queue.mjs lib/events.mjs lib/sql.mjs lib/durable-storage.mjs lib/durable-object.mjs lib/websocket.mjs lib/r2.mjs lib/cache.mjs lib/service.mjs lib/emscripten-host.js DESTINATION ${CMAKE_INSTALL_DATADIR}/cf)
 install(FILES src/worker.cpp DESTINATION ${CMAKE_INSTALL_DATADIR}/cf/src)
 install(EXPORT cfTargets
   FILE cfTargets.cmake
