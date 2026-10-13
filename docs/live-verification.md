@@ -237,3 +237,11 @@ Build the example, run `node scripts/build-live-worker.mjs rate-limit`, deploy f
 - Root cause remains unresolved: this does not establish a Crypto runtime limitation or distinguish provisioning from resolver-path/caching issues. Live digest coverage remains pending. The opt-in probe is `node scripts/test-live-crypto.mjs <host>`.
 - Upload 122.92 KiB / gzip 34.35 KiB; reported startup 3 ms then 4 ms (not benchmarks). Implementation CI `38416367551` passed, including native sanitizers; full local tests passed.
 - Both Workers were deleted and lookup returned 404/code 10007; both exact-host DNS listings became empty. Certificates transitioned through pending deletion and disappeared. Each final complete listing contained 24 entries and no libcf hosts. No active test deployment remains.
+
+## Independent TXT diagnostic (2026-10-13, 16:45 UTC)
+
+- The zone API reported active/full/unpaused status; assigned nameservers matched the public apex NS answer. A shadowing-NS query returned none. The test parent returned NXDOMAIN before probe creation.
+- Created only `dns-probe-0a5577b14b97.libcf.leostera.dev`, unproxied TXT, TTL 60; record ID `5dccb4d938a25f83d30e8df4a4d3d9b4`. Exact-name API readback matched its synthetic content and identity.
+- System/public resolver queries and queries addressed to both assigned nameservers returned NXDOMAIN, including nonrecursive TCP queries and a retry after 30 seconds. Negative SOA TTL was 1800, then 1770 seconds. Address-directed answers advertised AA and RA; these are not independent proof of the actual answering path.
+- This reproduces the symptom without any Worker, but does not identify its cause: the short probe did not outlast the negative TTL. Caching, publication delay and resolver-path mediation remain unresolved. No runtime capability was marked live-verified.
+- Deleted the owned TXT record; the exact-name API listing was empty at 16:45:37 UTC. No Worker/certificate, delegation change, TLS bypass or unrelated resource mutation occurred. No active test resource remains. Further diagnosis should outlast the negative TTL and use an independently verified resolver path before redeploying fixtures.
