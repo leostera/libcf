@@ -23,6 +23,7 @@
     "bench:spike": "npm run build:spike && node scripts/bench-spike.mjs"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "miniflare": "5.20261006.1-alpha",
     "wrangler": "4.149.0"
   }
