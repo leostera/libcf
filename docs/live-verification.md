@@ -167,3 +167,16 @@ A transient CLI 401 occurred when the previous OAuth access token expired. `cf a
 - No forced live eviction or alarm retry was performed. Full runtime restart recovery was tested locally; alarm handling uses an idempotent armed-state update but the probe does not prove exactly-once platform delivery.
 - Cleanup: Worker lookup returned 404/code 10007, exact-name DNS listing returned `[]`, and a complete namespace listing contained 32 entries (below the requested 100-entry page size) with neither the recorded namespace ID nor the deleted Worker script. Before deletion the listing contained 33 entries including that namespace.
 - Linux CI for the C++ object implementation (`838c34d`) passed, including native sanitizer checks. A subsequent complete 24-entry certificate-pack listing contained no libcf hosts, confirming certificate cleanup for the DO and preceding runs.
+
+## Queue live success and unresolved Cron probe (2026-10-13)
+
+- Worker/host: `libcf-events-f098048113` / `libcf-events-f098048113.libcf.leostera.dev`.
+- Version: `b52acb99-0e66-469c-aa6f-33e8561015fa`; upload 145.01 KiB / gzip 44.75 KiB; reported startup 1 ms (not a benchmark).
+- Queue: `libcf-events-6b9e2c5f37`, ID `2f0ef6b631544e0eaba18a425742857e`; consumer `9660e48ffc764f3190da25e113c1e8d5`.
+- D1: `libcf-events-db-7f0024723b`, ID `a9af1abd-f820-4c92-a8c0-4b2adc2be5e4`.
+- Consumer listing confirmed this Worker, batch size 1, 1000 ms batch timeout, 3 retries and a 1-second retry delay. Deployment reported an every-minute Cron trigger.
+- **Queue passed:** text/binary producer-to-consumer delivery with D1 readback, explicit retry before redelivery, and 128-KiB producer rejection. The live byte send used a copied Uint8Array. This is not proof of exactly-once delivery or forced duplicate delivery; a 16-message concurrent batch and duplicate-ID replay passed locally.
+- **Cron unresolved:** `scripts/test-live-events.mjs` failed with `No real Cron invocation observed within 20 minutes`. HTTP status remained 404 for the scheduled readback; a direct D1 query also returned no scheduled row. An ad-hoc `cf observability telemetry query` filtered to this script and `$workers.eventType = cron` returned zero matching events. These observations do not identify the root cause or establish that Cron is unavailable. Do not mark live scheduling verified. A future isolated retry should inspect trigger application and compare a plain-JS scheduled control if necessary.
+- Telemetry queries must filter by `$workers.scriptName`; using the Worker name as a dataset selector returned no events even though fetch invocations existed. Raw telemetry (including request metadata) remains ignored and is not committed.
+- Cleanup commands succeeded for the exact consumer, Worker, queue and D1 database. Subsequent lookups returned Worker 404/code 10007, Queue 404/code 11000 and D1 404/code 7404; exact-host DNS listing returned `[]`. The certificate was initially `pending_deletion`; a subsequent complete 24-entry listing contained no libcf hosts, confirming its removal.
+- Full local tests passed, including 6 event integration cases and 7 DO cases. Linux CI passed through `b251da1`, including the new assertion that private DO dispatch cannot be invoked through RPC. That RPC rejection has not been re-probed live.
