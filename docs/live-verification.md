@@ -195,3 +195,15 @@ A transient CLI 401 occurred when the previous OAuth access token expired. `cf a
 - Fresh D1: `libcf-cron-db-dc277df768`, ID `a26a5659-ec26-4c2d-b7a6-5d0c1402e8b5`. Both destination tables were created before deployment, removing schema creation from the plain-JS control handler.
 - The diagnostic's 20-minute D1 observation window reported neither implementation throughout (`observed: []`) and failed. The failure is reproducible without C++/Wasm, but its control-plane/scheduler/runtime cause remains unidentified; this is not evidence that Cron is generally unavailable.
 - Automatic cleanup completed with `cleanup: verified`, `failures: []`: both Worker lookups returned 404/code 10007 and D1 returned 404/code 7404. No DNS records or certificates were created by this internal-only experiment.
+
+## C++ WebSocket live verification (2026-10-13)
+
+Build with `node scripts/build-worker.mjs examples/websocket/wrangler.jsonc`, then `node scripts/build-live-worker.mjs websocket`. Deploy from `build/live-websocket` after checking the generated hostname for collisions. Run the opt-in `node scripts/test-live-websocket.mjs <hostname>`; all sockets use WSS under the approved namespace, with bounded waits and socket cleanup on failure.
+
+- Worker/host: `libcf-websocket-b97ef07352` / `libcf-websocket-b97ef07352.libcf.leostera.dev`.
+- Version: `fcc76296-97d5-4338-8316-3ffc3f3ea8f3`; SQLite namespace `93a50f4a341a43789f9420d3aa8750e1`, `libcf-websocket-b97ef07352_Room`.
+- Upload: 141.43 KiB / gzip 44.64 KiB; reported startup 2 ms (not a benchmark).
+- Passed: secure text/binary exchange, committed SQLite effects, client-initiated close and persisted close code, server close, handler failure (1011), oversized-frame rejection (1009) before C++ message effects, and HTTP upgrade guards.
+- After 15 seconds idle, the same socket remained usable and the durable initialization counter advanced from 1 to 2. This demonstrates live object/Wasm reconstruction with connection continuity, not a forced live eviction test. Local tests additionally force hibernating eviction through Miniflare and verify the same properties.
+- Cleanup: Worker lookup returned 404/code 10007; complete namespace listing decreased 33→32 with no matching namespace ID/script; exact-host DNS listing returned `[]`. Certificate removal was initially pending, then a complete 24-entry listing contained no libcf hosts.
+- Implementation CI for `41c1ba4` passed, including native sanitizer checks and the new default-suite WebSocket tests. Outbound sockets, tags/attachments, broadcast, subprotocol negotiation and buffered C++ stub upgrade forwarding remain unsupported.
