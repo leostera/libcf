@@ -27,4 +27,9 @@ jobs:
           cmake --version
       - run: npm ci
       - run: npm test
+      - name: Native memory and UB checks
+        run: |
+          cmake -S . -B build/sanitized -DCMAKE_BUILD_TYPE=Debug -DLIBCF_SANITIZERS=ON
+          cmake --build build/sanitized
+          ctest --test-dir build/sanitized --output-on-failure --timeout 60
       - run: npx wrangler deploy --config examples/core/wrangler.jsonc --dry-run

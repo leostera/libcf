@@ -30,6 +30,11 @@ install(FILES
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libcf)
 
 include(CTest)
+option(LIBCF_SANITIZERS "Enable address/undefined-behavior sanitizers for native tests" OFF)
+if(LIBCF_SANITIZERS AND NOT EMSCRIPTEN)
+  add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=address,undefined)
+endif()
 if(BUILD_TESTING AND NOT EMSCRIPTEN)
   add_executable(libcf-native-test tests/native/core.cpp)
   target_link_libraries(libcf-native-test PRIVATE libcf::libcf)

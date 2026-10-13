@@ -35,7 +35,10 @@ class AsyncResult {
     std::weak_ptr<State> weak_state = state;
     auto resume = resume_;
     start_([weak_state, resume = std::move(resume)](Result<T> result) {
-      if (auto current = weak_state.lock(); current && current->active) {
+      if (auto current = weak_state.lock(); current && current->active && !current->completed) {
+        // Claim completion before resuming: resume may synchronously start a
+        // second operation or destroy this awaitable's coroutine frame.
+        current->completed = true;
         current->result = std::move(result);
         if (!current->suspending) resume(current->handle);
       }
@@ -50,6 +53,7 @@ class AsyncResult {
  private:
   struct State {
     bool active = true;
+    bool completed = false;
     bool suspending = true;
     std::coroutine_handle<> handle;
     std::optional<Result<T>> result;

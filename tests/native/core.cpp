@@ -108,9 +108,13 @@ int main() {
   assert(coroutine.done());
   assert(std::get<std::string>(coroutine.promise().response.body) == "async body");
   coroutine.destroy();
+  complete(libcf::FetchResult::success({200, "late duplicate"}));
 
   libcf::Fetcher inline_fetcher(
-      [](std::string, auto callback) { callback(libcf::FetchResult::success({200, "inline body"})); },
+      [](std::string, auto callback) {
+        callback(libcf::FetchResult::success({200, "inline body"}));
+        callback(libcf::FetchResult::success({200, "duplicate must be ignored"}));
+      },
       [](std::coroutine_handle<>) { assert(false && "inline completion must not resume recursively"); });
   auto inline_handler = [&]() -> libcf::Task {
     auto result = co_await inline_fetcher.get("https://example.test");
