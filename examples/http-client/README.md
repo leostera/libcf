@@ -16,7 +16,7 @@ The incoming request signal is passed to native fetch and bounded response readi
 
 Three workerd cases verify binary POST/status/selected headers, credential non-forwarding by the fixture, manual/follow/error redirects, empty 204 responses, network failures, response limits and recovery. Native tests check operation/redirect encoding and invalid inputs; JS tests check schemes/credentials/wire rejection before network dispatch and cancellation.
 
-Live verification is pending. The opt-in fixture deliberately tests public Worker-to-Worker fetch with `global_fetch_strictly_public`; service bindings remain the preferred internal mechanism.
+Live verification passed for binary/status/header forwarding, credential non-forwarding, manual/follow/error redirects, body bounds/recovery and 204/503 responses. Both Workers, DNS records and certificate identities were cleaned up; see [live evidence](../../docs/live-verification.md). Connection-drop failure remains local-only. The opt-in fixture deliberately tests public Worker-to-Worker fetch with `global_fetch_strictly_public`; service bindings remain the preferred internal mechanism.
 
 ## Opt-in live probe
 

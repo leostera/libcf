@@ -40,7 +40,7 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 176 | `SecretsStoreGet` | [Metadata](../examples/metadata/test/worker.test.mjs) | L | Approval | Uncached reads, local rotation/deletion and redacted failures; approved synthetic secret needed. |
 | 192 | `WorkerLoaderFetch` | [Loader](../examples/worker-loader/test/worker.test.mjs) | L | Approval | Restricted single-module child, no HTTP/TCP egress; live creation fees need approval. |
 | 208 | `CryptoDigest` | [Crypto](../examples/crypto/test/worker.test.mjs) | L | V | SHA-256/384/512 empty/binary/1-MiB input, concurrency and rejection/recovery. |
-| 224 | `HttpFetch` | [HTTP](../examples/http-client/test/worker.test.mjs) | L | Pending | Loopback binary/status/headers, redirects, disconnect and bounds; live pair is build/dry-run only. |
+| 224 | `HttpFetch` | [HTTP](../examples/http-client/test/worker.test.mjs) | L | V | Live binary/status/headers, credential non-forwarding, manual/follow/error redirects, bounds/recovery, 204/503; connection-drop failure is local-only. |
 | 240 | `PipelineSend` | [Pipelines](../examples/pipeline/test/worker.test.mjs) | A | Pending | Bounded JSON batch dispatch; live ingestion acknowledgement plus sink readback still needed. |
 | 256 | `Sleep` | [Timer](../examples/timer/test/worker.test.mjs) | L | V | Zero/nonzero waits, 12 concurrent owned URLs, invalid durations and recovery; no precision guarantee. |
 | 272 | `WorkflowCreate` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | Pending | Owned JSON params, JS reference-side readback and duplicate-ID rejection. |
