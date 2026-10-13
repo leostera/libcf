@@ -29,6 +29,9 @@ enum class Operation : std::uint8_t {
   R2Put = 34,
   R2Delete = 35,
   R2List = 36,
+  CacheMatch = 48,
+  CachePut = 49,
+  CacheDelete = 50,
 };
 
 struct OperationCall {

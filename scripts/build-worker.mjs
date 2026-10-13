@@ -8,6 +8,7 @@ const targets = {
   'examples/kv/wrangler.jsonc': 'kv',
   'examples/d1/wrangler.jsonc': 'd1',
   'examples/r2/wrangler.jsonc': 'r2',
+  'examples/cache/wrangler.jsonc': 'cache',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
 const target = targets[config];

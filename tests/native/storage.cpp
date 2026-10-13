@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 
+#include "cf/cache.hpp"
 #include "cf/kv.hpp"
 #include "cf/r2.hpp"
 #include "cf/task.hpp"
@@ -89,4 +90,25 @@ int main() {
   deliver({cf::ReplyKind::Value, {1, 2}});
   assert(bad.done());
   bad.destroy();
+
+  cf::Cache cache(runtime);
+  auto cache_handler = [&]() -> cf::Task {
+    cf::CachedResponse invalid;
+    invalid.status = 99;
+    auto rejected = co_await cache.put("https://example.test/key", std::move(invalid));
+    assert(!rejected && rejected.error().code == cf::ErrorCode::InvalidInput);
+    auto entry = co_await cache.match("https://example.test/key");
+    assert(!entry && entry.error().code == cf::ErrorCode::InvalidInput);
+    auto erased = co_await cache.erase("https://example.test/key");
+    assert(erased && !erased.value());
+    co_return cf::Response::text("cache checked");
+  };
+  auto cache_task = cache_handler().take();
+  cache_task.resume();
+  assert(last.method == cf::Operation::CacheMatch);
+  deliver({cf::ReplyKind::Value, {1, 2}});
+  assert(last.method == cf::Operation::CacheDelete);
+  deliver({cf::ReplyKind::Value, {0}});
+  assert(cache_task.done());
+  cache_task.destroy();
 }
