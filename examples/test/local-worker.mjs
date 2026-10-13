@@ -46,6 +46,10 @@ async function workerOptions(configPath, root) {
     exports: Object.fromEntries((config.migrations ?? []).flatMap(migration =>
       (migration.new_sqlite_classes ?? []).map(name => [name, { type: 'durable-object', storage: 'sqlite' }]))),
     env: {
+      ...(config.version_metadata ? { [config.version_metadata.binding]: { type: 'version-metadata' } } : {}),
+      ...Object.fromEntries((config.secrets_store_secrets ?? []).map(x => [x.binding, {
+        type: 'secrets-store-secret', storeId: x.store_id, secretName: x.secret_name,
+      }])),
       ...Object.fromEntries(Object.entries(config.vars ?? {}).map(([name, value]) => [name, { type: 'text', value }])),
       ...Object.fromEntries((config.kv_namespaces ?? []).map(x => [x.binding, { type: 'kv', id: x.id }])),
       ...Object.fromEntries((config.d1_databases ?? []).map(x => [x.binding, { type: 'd1', id: x.database_id }])),
@@ -83,6 +87,7 @@ export async function startLocalWorker(config, { readyPath = '/', additionalConf
       scheduled: async options => (await runtime.getWorker()).scheduled(options),
       queue: async (name, messages) => (await runtime.getWorker()).queue(name, messages),
       durableStub: async (binding, name) => (await runtime.getBindings())[binding].getByName(name),
+      secretAdmin: async binding => (await runtime.getSecretsStoreSecretAPI(binding))(),
       evictDurable: (className, options) => runtime.unsafeEvictDurableObject(workers[0].config.name, className, options),
     };
   } catch (error) {

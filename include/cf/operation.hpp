@@ -43,6 +43,8 @@ enum class Operation : std::uint32_t {
   QueueSendBytes = 113,
   RateLimit = 128,
   AnalyticsWriteDataPoint = 144,
+  VersionMetadataGet = 160,
+  SecretsStoreGet = 176,
 };
 
 struct OperationCall {

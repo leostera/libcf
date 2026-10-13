@@ -1,0 +1,8 @@
+{
+  "name": "libcf-metadata-local",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "version_metadata": { "binding": "VERSION" },
+  "secrets_store_secrets": [{ "binding": "SECRET", "store_id": "libcf-local-store", "secret_name": "libcf-local-secret" }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}
