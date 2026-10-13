@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { spawnSync } from 'node:child_process';
 import { liveHttp } from '../scripts/live-http.mjs';
 
 test('live probes reject other namespaces before making a request', () => {
@@ -11,6 +12,24 @@ test('live probes reject other namespaces before making a request', () => {
     assert.throws(() => liveHttp(host, 'cache'), /isolated test hostname/);
   }
   assert.throws(() => liveHttp('anything', '.*'), /isolated test hostname/);
+});
+
+test('each supported family is confined to its own isolated hostname pattern', () => {
+  for (const family of ['cache', 'd1', 'kv', 'r2', 'core', 'service']) {
+    assert.equal(typeof liveHttp(`libcf-${family}-0123456789.libcf.leostera.dev`, family), 'function');
+    assert.throws(() => liveHttp('libcf-other-0123456789.libcf.leostera.dev', family));
+  }
+});
+
+test('build-only adapter rejects invalid resources before producing artifacts', () => {
+  for (const args of [
+    ['unknown'], ['core'], ['kv', 'bad-id'], ['d1', 'bad-id'],
+    ['r2', 'existing-production-bucket'], ['service', 'unexpected-binding-id'],
+  ]) {
+    const child = spawnSync(process.execPath, ['scripts/build-live-worker.mjs', ...args], { encoding: 'utf8' });
+    assert.equal(child.status, 1, child.stdout);
+    assert.match(child.stderr, /Choose|requires|required/);
+  }
 });
 
 test('live requests enforce HTTPS, redirect rejection and a bounded timeout', async () => {

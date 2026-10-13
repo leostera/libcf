@@ -56,6 +56,12 @@ Run `node scripts/test-live-kv.mjs <kv-host>` and `node scripts/test-live-r2.mjs
 
 Cleanup order: probe deletes test keys/objects, `cf workers delete <worker-name> --force`, then `cf kv namespaces delete <namespace-id> --force` / `cf r2 buckets delete <bucket-name> --force`. Verify Worker/resource absence and exact-name DNS removal. Do not enable R2's public bucket domain.
 
+## Core/Assets and service-binding probes
+
+Core needs a dedicated KV namespace for `waitUntil` readback. After `npm run build:core`, run `node scripts/build-live-worker.mjs core <isolated-namespace-id>` and deploy from `build/live-core`. Static files are copied into Build Output's assets directory. Probe with `node scripts/test-live-core.mjs <host>`; delete the Worker and namespace afterward (the background-write key is intentionally retained until namespace deletion).
+
+After `npm run build:service`, run `node scripts/build-live-worker.mjs service`. In `build/live-service`, deploy the **upstream first** with `cf deploy --prebuilt --worker <upstreamName-from-test-deployment.json>`, then deploy the default Worker with `cf deploy --prebuilt`. The upstream has no domains, workers.dev route or preview URL; access is through a native service binding only. Probe with `node scripts/test-live-service.mjs <frontend-host>`. Delete the frontend before its upstream, without forcing deletion of referenced resources, and verify both are absent.
+
 ## Recorded attempt (2026-10-13)
 
 - Worker: `libcf-cache-b97ca19200`
