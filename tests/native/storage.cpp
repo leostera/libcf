@@ -6,6 +6,7 @@
 #include "cf/cache.hpp"
 #include "cf/kv.hpp"
 #include "cf/r2.hpp"
+#include "cf/service.hpp"
 #include "cf/task.hpp"
 
 namespace {
@@ -111,4 +112,18 @@ int main() {
   deliver({cf::ReplyKind::Value, {0}});
   assert(cache_task.done());
   cache_task.destroy();
+
+  cf::ServiceBinding service(runtime, "UPSTREAM");
+  auto service_handler = [&]() -> cf::Task {
+    cf::Request request{"POST", "https://example.test", {}, "payload"};
+    auto response = co_await service.fetch(std::move(request));
+    assert(!response && response.error().code == cf::ErrorCode::InvalidInput);
+    co_return cf::Response::text("service checked");
+  };
+  auto service_task = service_handler().take();
+  service_task.resume();
+  assert(last.method == cf::Operation::ServiceFetch && last.binding == "UPSTREAM");
+  deliver({cf::ReplyKind::Value, {1, 2}});
+  assert(service_task.done());
+  service_task.destroy();
 }

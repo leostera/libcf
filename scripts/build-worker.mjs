@@ -9,6 +9,7 @@ const targets = {
   'examples/d1/wrangler.jsonc': 'd1',
   'examples/r2/wrangler.jsonc': 'r2',
   'examples/cache/wrangler.jsonc': 'cache',
+  'examples/service/wrangler.jsonc': 'service',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
 const target = targets[config];
