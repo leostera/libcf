@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { waitForInstanceReadback } from './workflow-instance-readback.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { liveHttp, awaitCertificate } from './live-http.mjs';
 const host = process.argv[2];
 const request = liveHttp(host, 'workflow');
+const workflowName = host.slice(0, -'.libcf.leostera.dev'.length);
+const exec = promisify(execFile);
+async function instanceReadback(ids, phase) {
+  const observed = await waitForInstanceReadback(async signal => {
+    const result = await exec('cf', ['workflows', 'instances', 'list', '--workflow-name', workflowName,
+      '--per-page', '100'], { signal, timeout: 10000, maxBuffer: 1024 * 1024 });
+    return result.stdout;
+  }, ids, { phase, signal: AbortSignal.timeout(45000) });
+  console.log(JSON.stringify({ phase: `instance-list-${phase}`, workflowName, ids: observed }));
+}
 await awaitCertificate(request);
 const ids = Array.from({ length: 3 }, () => `fixture-${randomUUID()}`);
 // Record caller-selected identities before any potentially ambiguous mutation.
@@ -47,18 +60,22 @@ try {
   outstanding.add(active);
   assert.equal((await call(`/create/${active}`, 'POST', '{"wait":true}')).status, 201);
   await state(active, ['running', 'waiting']);
+  await instanceReadback(ids, 'present');
   for (const id of ids) {
     assert.equal((await call(`/delete/${id}`, 'DELETE')).status, 200);
     const afterDelete = await call(`/state/${id}`);
     console.log(JSON.stringify({ phase: 'post-delete-state', id, ...afterDelete }));
-    assert.equal(afterDelete.status, 502, JSON.stringify(afterDelete));
-    outstanding.delete(id);
+    // Binding status is diagnostic, not the absence oracle. Keep the body:
+    // the first live run returned 200 here, unlike the local emulator.
+    assert([200, 502].includes(afterDelete.status), JSON.stringify(afterDelete));
   }
+  await instanceReadback(ids, 'absent');
+  outstanding.clear();
   assert.equal((await call('/create/-invalid', 'POST', '{}')).status, 502);
   assert.equal((await call('/create/invalid-params', 'POST', 'null')).status, 502);
   assert.equal((await call('/missing/absent', 'POST', '{}')).status, 502);
   console.log(JSON.stringify({ host, ids, passed: ['params readback', 'duplicate rejection', 'lifecycle state',
-    'event payload and completion', 'completed/active deletion', 'invalid/missing failures'], cppReplay: false }, null, 2));
+    'event payload and completion', 'completed/active deletion acknowledgement and independent API absence', 'invalid/missing failures'], cppReplay: false }, null, 2));
 } finally {
   // Best-effort instance cleanup is not final resource cleanup: the deployment
   // owner must remove/verify the isolated Workflow definition and Worker too.
