@@ -3,10 +3,10 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { Miniflare } from 'miniflare';
+import { parseFixtureConfig } from './jsonc.mjs';
 
 async function workerOptions(configPath, root) {
-  // Repository-owned fixtures intentionally use the JSON subset of JSONC.
-  const config = JSON.parse(await readFile(configPath, 'utf8'));
+  const config = parseFixtureConfig(await readFile(configPath, 'utf8'));
   const directory = dirname(resolve(configPath));
   const moduleRoot = resolve(root, config.name);
   const wasm = [];
