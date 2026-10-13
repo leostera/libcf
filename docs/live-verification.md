@@ -207,3 +207,13 @@ Build with `node scripts/build-worker.mjs examples/websocket/wrangler.jsonc`, th
 - After 15 seconds idle, the same socket remained usable and the durable initialization counter advanced from 1 to 2. This demonstrates live object/Wasm reconstruction with connection continuity, not a forced live eviction test. Local tests additionally force hibernating eviction through Miniflare and verify the same properties.
 - Cleanup: Worker lookup returned 404/code 10007; complete namespace listing decreased 33→32 with no matching namespace ID/script; exact-host DNS listing returned `[]`. Certificate removal was initially pending, then a complete 24-entry listing contained no libcf hosts.
 - Implementation CI for `41c1ba4` passed, including native sanitizer checks and the new default-suite WebSocket tests. Outbound sockets, tags/attachments, broadcast, subprotocol negotiation and buffered C++ stub upgrade forwarding remain unsupported.
+
+## Rate-limit live verification (2026-10-13)
+
+Build the example, run `node scripts/build-live-worker.mjs rate-limit`, deploy from `build/live-rate-limit` after the hostname collision check, then run `node scripts/test-live-rate-limit.mjs <host>`. The builder generates fresh numeric namespaces rather than using local fixture IDs, and records them in `test-deployment.json`.
+
+- Worker/host: `libcf-rate-limit-029c7d471b` / `libcf-rate-limit-029c7d471b.libcf.leostera.dev`.
+- Version: `0666203d-a4a8-42d4-bdf6-a9173999aad7`; namespaces `7123489905606445` and `7123489905606446`, each configured for 2 requests/10 seconds.
+- Upload 93.30 KiB / gzip 29.19 KiB; reported startup 2 ms (not a benchmark).
+- Passed: allowed/exceeded outcomes, independent keys and namespaces, missing-binding errors, oversized-key rejection and later recovery after a bounded window wait. Three requests were allowed before the first exceeded result. The probe deliberately does not assert exact distributed counts or precise reset timing: these are approximate, location-scoped counters.
+- Cleanup: Worker lookup returned 404/code 10007; exact-host DNS listing returned `[]`. The certificate was initially pending deletion; a subsequent complete 24-entry listing had no libcf hosts. Numeric rate namespaces are binding-defined counters, not separately provisioned resource objects; no claim is made that internal counter deletion/expiration was inspected.
