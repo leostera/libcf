@@ -9,21 +9,22 @@ const example = process.argv[2];
 const bindingId = process.argv[3];
 const queueName = process.argv[4];
 if (process.argv.length > 5 || (example !== 'events' && queueName !== undefined)) throw new Error('Unexpected build arguments');
-if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client'].includes(example))
-  throw new Error('Choose cache, d1, kv, r2, core, service, durable, events, websocket, rate-limit, metadata, crypto, timer, images or http-client');
+if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow'].includes(example))
+  throw new Error('Choose cache, d1, kv, r2, core, service, durable, events, websocket, rate-limit, metadata, crypto, timer, images, http-client or workflow');
 if (['d1', 'events'].includes(example) && !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(bindingId ?? ''))
   throw new Error('D1 requires the UUID of an isolated test database');
 if (['kv', 'core'].includes(example) && !/^[a-f0-9]{32}$/.test(bindingId ?? ''))
   throw new Error('KV requires the ID of an isolated test namespace');
 if (example === 'r2' && !/^libcf-r2-[a-f0-9]{10}$/.test(bindingId ?? ''))
   throw new Error('R2 requires an isolated libcf test bucket name');
-if (['cache', 'service', 'durable', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client'].includes(example) && bindingId) throw new Error('No resource binding ID is required');
+if (['cache', 'service', 'durable', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow'].includes(example) && bindingId) throw new Error('No resource binding ID is required');
 if (example === 'events' && !/^libcf-events-[a-f0-9]{10}$/.test(queueName ?? ''))
   throw new Error('Events requires an isolated libcf test queue name');
 const name = `libcf-${example}-${randomBytes(5).toString('hex')}`;
 const upstreamName = example === 'service' ? `${name}-upstream`
   : example === 'http-client' ? name.replace('http-client', 'http-upstream') : undefined;
 const upstreamHostname = example === 'http-client' ? `${upstreamName}.libcf.leostera.dev` : undefined;
+const workflowName = example === 'workflow' ? name : undefined;
 // Numeric namespaces are caller-defined, not separately provisioned objects.
 // Use fresh safe-integer IDs plus probe-specific keys, never local fixture IDs.
 const rateBase = 7000000000000000n + BigInt(`0x${randomBytes(6).toString('hex')}`);
@@ -32,6 +33,7 @@ const env = {
   cache: {},
   crypto: {},
   timer: {},
+  workflow: { FLOW: { type: 'workflow', name: workflowName, worker: name, exportName: 'FixtureWorkflow' } },
   images: { IMAGES: { type: 'images' } },
   'http-client': { UPSTREAM_URL: { type: 'text', value: `https://${upstreamHostname}` } },
   metadata: { VERSION: { type: 'version-metadata' } }, // No live secret binding.
@@ -109,6 +111,9 @@ await writeFile(`${worker}/worker.config.json`, JSON.stringify({
   env,
   ...(example === 'durable' ? { exports: { Counter: { type: 'durable-object', storage: 'sqlite' } } } : {}),
   ...(example === 'websocket' ? { exports: { Room: { type: 'durable-object', storage: 'sqlite' } } } : {}),
+  ...(example === 'workflow'
+    ? { exports: { FixtureWorkflow: { type: 'workflow', name: workflowName } } }
+    : {}),
   ...(example === 'core' ? { assets: { runWorkerFirst: true } } : {}),
   ...(example === 'events' ? { triggers: [
     { type: 'scheduled', schedule: '* * * * *' },
@@ -121,5 +126,5 @@ await writeFile(`${worker}/worker.config.json`, JSON.stringify({
     modules: { 'worker.mjs': { type: 'esm' }, ...Object.fromEntries([...wasmModules.keys()].map(name => [name, { type: 'wasm' }])) },
   },
 }, null, 2));
-await writeFile(`${root}/test-deployment.json`, JSON.stringify({ name, hostname, root, example, bindingId, upstreamName, upstreamHostname, queueName, rateNamespaces }, null, 2));
+await writeFile(`${root}/test-deployment.json`, JSON.stringify({ name, hostname, root, example, bindingId, upstreamName, upstreamHostname, workflowName, queueName, rateNamespaces }, null, 2));
 console.log(JSON.stringify({ name, hostname, root, note: 'Built only; no resources deployed.' }, null, 2));

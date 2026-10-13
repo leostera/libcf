@@ -15,7 +15,7 @@ test('live probes reject other namespaces before making a request', () => {
 });
 
 test('each supported family is confined to its own isolated hostname pattern', () => {
-  for (const family of ['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'http-upstream']) {
+  for (const family of ['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'http-upstream', 'workflow']) {
     assert.equal(typeof liveHttp(`libcf-${family}-0123456789.libcf.leostera.dev`, family), 'function');
     assert.throws(() => liveHttp('libcf-other-0123456789.libcf.leostera.dev', family));
   }
@@ -24,7 +24,7 @@ test('each supported family is confined to its own isolated hostname pattern', (
 test('build-only adapter rejects invalid resources before producing artifacts', () => {
   for (const args of [
     ['unknown'], ['core'], ['kv', 'bad-id'], ['d1', 'bad-id'],
-    ['r2', 'existing-production-bucket'], ['service', 'unexpected-binding-id'], ['rate-limit', '1001'], ['metadata', 'existing-secret-store'], ['crypto', 'unexpected-binding'], ['timer', 'unexpected-binding'], ['images', 'unexpected-binding'], ['http-client', 'unexpected-binding'],
+    ['r2', 'existing-production-bucket'], ['service', 'unexpected-binding-id'], ['rate-limit', '1001'], ['metadata', 'existing-secret-store'], ['crypto', 'unexpected-binding'], ['timer', 'unexpected-binding'], ['images', 'unexpected-binding'], ['http-client', 'unexpected-binding'], ['workflow', 'existing-workflow'],
     ['events', '00000000-0000-0000-0000-000000000002', 'existing-production-queue'],
   ]) {
     const child = spawnSync(process.execPath, ['scripts/build-live-worker.mjs', ...args], { encoding: 'utf8' });

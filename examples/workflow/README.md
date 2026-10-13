@@ -25,4 +25,12 @@ Live verification remains pending after DNS recovery. No live workflow or instan
 
 Not implemented: generated IDs, retention settings, batch operations, pause/resume/restart/terminate, event subscriptions, C++ output/error retrieval, C++ workflow execution, steps, replay, sleep or rollback handlers.
 
+## Opt-in live probe
+
+Build the example, then run `node scripts/build-live-worker.mjs workflow`. Retain `build/live-workflow/test-deployment.json` and verify the generated Worker, exact hostname **and Workflow definition name** are unused. From `build/live-workflow`, dry-run and deploy with `cf deploy --prebuilt`. This creates a same-worker JS Workflow definition plus the C++ client, with workers.dev/previews disabled and no Cron schedule.
+
+Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-workflow.mjs <host>` from the repository root. The probe records caller-selected instance IDs before mutation, checks parameter readback, event-driven completion, lifecycle state, duplicate rejection and completed/active deletion. Each state wait has a separate 45-second elapsed budget; readiness has the configured budget. It uses only small synthetic payloads and does not retry ambiguous creation/event delivery.
+
+After success **or failure**, inspect instances only in the newly owned Workflow and delete any leftovers with `cf workflows instances delete <id> --workflow-name <workflowName> --force`. Verify the owned instance listing is empty before `cf workflows delete <workflowName> --force`, then delete the Worker. Workflow deletion does not delete its associated Worker. Verify the Workflow and Worker are absent, exact-host DNS is empty and its certificate (including wildcard SANs) has disappeared. The probe's best-effort instance finalizer does not replace this resource cleanup. A dry-run/deployment is not a live runtime pass.
+
 Source retrieved 2026-10-13: [Workflows Workers API](https://developers.cloudflare.com/workflows/build/workers-api/) (updated 2026-10-12), pinned Worker types and Miniflare workflow implementation. This uses the Worker binding's deletion method, not an account-administration REST substitute.

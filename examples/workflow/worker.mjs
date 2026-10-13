@@ -15,7 +15,7 @@ export class FixtureWorkflow extends WorkflowEntrypoint {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    // Local reference-side readback proves params reached the JS workflow.
+    // Reference-side readback proves params/events reached the JS workflow.
     // This is not a C++ output/replay API and is not production authorization.
     if (url.pathname === '/fixture-output') {
       const instance = await env.FLOW.get(url.searchParams.get('id'));
