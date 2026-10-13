@@ -1,6 +1,6 @@
 # libcf
 
-Experimental C++20/Wasm bindings for authoring Cloudflare Workers. **libcf** is the project name; the C++ library is **`cf`** (namespace `cf`, headers `<cf/...>`, CMake `find_package(cf)` and target `cf::cf`). **Work in progress:** this is not a complete or production-ready platform SDK. The current code proves a C++/Emscripten module Worker, introduces a small header-only HTTP/router/fetch/crypto API and exercises a subset of bindings locally. See [INVENTORY.md](INVENTORY.md) and [the operation ledger](docs/coverage.md) for planned vs verified scope.
+Experimental C++20/Wasm bindings for authoring Cloudflare Workers. **libcf** is the project name; the C++ library is **`cf`** (namespace `cf`, headers `<cf/...>`, CMake `find_package(cf)` and target `cf::cf`). **Work in progress:** this is not a complete or production-ready platform SDK. The current code proves a C++/Emscripten module Worker, introduces a small header-only HTTP/router/fetch/crypto API and exercises a subset of bindings locally. See [INVENTORY.md](INVENTORY.md) and [the operation ledger](docs/coverage.md) for planned vs verified scope. Local performance results and methodology are in [benchmarks](docs/benchmarks.md).
 
 ## Try the working examples
 
@@ -12,6 +12,7 @@ npm test            # C++ unit + installed-package + all local Worker suites
 npm run test:spike   # proof of KV, assets, streaming and waitUntil
 npm run test:core    # HTTP/router/Env/coroutine fetch/stream/crypto
 npm run bench:spike  # optional rough local comparison to plain JS
+node scripts/bench-sdk.mjs # matched local latency, setup and bundle comparison
 ```
 
 [Core](examples/core/README.md) · [KV](examples/kv/README.md) · [D1](examples/d1/README.md) · [R2](examples/r2/README.md) · [Cache](examples/cache/README.md) · [Service bindings](examples/service/README.md) · [Durable Objects](examples/durable/README.md) · [Queues/scheduling](examples/events/README.md) · [bridge spike](examples/hello/README.md).

@@ -1,0 +1,16 @@
+# Matched C++ / plain-JS local benchmark
+
+```sh
+npm ci
+node scripts/bench-sdk.mjs
+# Short diagnostic run, not a replacement for the recorded baseline:
+node scripts/bench-sdk.mjs --rounds 2 --samples 5 --warmups 0
+```
+
+The runner builds the C++ fixture, starts and disposes both local Workers in alternating order, verifies every response, and writes `build/benchmark/report.json`. No Cloudflare credentials or network deployments are involved. The default suite separately verifies matching successful responses without timing thresholds.
+
+Both fixtures expose hello, binary echo and one/16 SHA-256 operations with the same request data, body bound, response bytes and content type. C++ uses the normal libcf coroutine/operation bridge. JS uses native Web Crypto directly and the same bounded body reader. All buffering, copies, allocations and client HTTP work remain in the latency measurements.
+
+Default: six rounds, 10 warmups and 80 measured sequential requests per scenario/variant/round. Each round starts a fresh local runtime; startup includes bundling and the harness's first response. This is not an edge cold-start measurement. Inputs must remain unchanged throughout the run or the runner refuses to emit mixed measurements.
+
+See [methodology, results and limitations](../../docs/benchmarks.md). Raw samples, toolchain/host details, source and artifact hashes are included in the report. The incremental digest estimate is not a direct measurement of individual ABI instructions, and no throughput, memory or statistical-significance claim is made.

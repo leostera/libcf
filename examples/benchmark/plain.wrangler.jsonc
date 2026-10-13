@@ -1,0 +1,5 @@
+{
+  "name": "libcf-benchmark-js-local",
+  "main": "plain.mjs",
+  "compatibility_date": "2026-10-13"
+}
