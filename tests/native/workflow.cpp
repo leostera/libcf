@@ -8,10 +8,15 @@ int main() {
   OperationReply reply{ReplyKind::Value, {}};
   BindingRuntime runtime([&](OperationCall call, BindingRuntime::Completion done) {
     ++calls;
-    assert(call.method == expected && call.binding == "FLOW" && call.key == "fixture" && call.options.empty());
-    if (expected == Operation::WorkflowCreate)
-      assert(std::string(call.body.begin(), call.body.end()) == "{}");
-    else assert(call.body.empty());
+    assert(call.method == expected && call.binding == "FLOW" && call.key == "fixture");
+    if (expected == Operation::WorkflowSendEvent) {
+      assert(call.options == "continue" && std::string(call.body.begin(), call.body.end()) == "null");
+    } else {
+      assert(call.options.empty());
+      if (expected == Operation::WorkflowCreate)
+        assert(std::string(call.body.begin(), call.body.end()) == "{}");
+      else assert(call.body.empty());
+    }
     done(Result<OperationReply>::success(reply));
   }, [](auto) {});
   Workflow workflow(runtime, "FLOW");
@@ -33,6 +38,11 @@ int main() {
     assert(!(co_await workflow.state("fixture")));
     reply.bytes.clear();
     assert(!(co_await workflow.state("fixture")));
+    expected = Operation::WorkflowSendEvent;
+    assert((co_await workflow.send_event_json("fixture", "continue", "null")));
+    reply.bytes = {1};
+    assert(!(co_await workflow.send_event_json("fixture", "continue", "null")));
+    reply.bytes.clear();
     expected = Operation::WorkflowDelete;
     assert((co_await workflow.erase("fixture")));
     reply.kind = ReplyKind::Missing;
@@ -42,7 +52,11 @@ int main() {
       assert(!(co_await workflow.create(id, "{}")));
       assert(!(co_await workflow.state(id)));
       assert(!(co_await workflow.erase(id)));
+      assert(!(co_await workflow.send_event_json(id, "continue", "null")));
+      assert(!(co_await workflow.send_event_json("fixture", id, "null")));
     }
+    assert(!(co_await workflow.send_event_json("fixture", "continue", "")));
+    assert(!(co_await workflow.send_event_json("fixture", "continue", std::string(1048577, ' '))));
     assert(!(co_await workflow.state(std::string(101, 'a'))));
     assert(!(co_await workflow.create("fixture", "")));
     assert(!(co_await workflow.create("fixture", std::string(1048577, ' '))));

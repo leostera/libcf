@@ -53,6 +53,7 @@ enum class Operation : std::uint32_t {
   WorkflowCreate = 272,
   WorkflowStateGet = 273,
   WorkflowDelete = 274,
+  WorkflowSendEvent = 275,
   ImageInfoGet = 288,
 };
 

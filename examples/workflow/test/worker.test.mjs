@@ -36,6 +36,22 @@ test('deleting an active instance removes its stored state', async () => {
   assert.equal((await call('/delete/waiting', 'DELETE')).status, 200);
   assert.equal((await call('/state/waiting')).status, 502);
 });
+test('C++ event delivery resumes the JS workflow with exact JSON payloads', async () => {
+  for (const [index, payload] of [null, [true, '☁', { value: 1.25 }]].entries()) {
+    const id = `event-${index}`;
+    const initial = { wait: true, fixture: index };
+    assert.equal((await call(`/create/${id}`, 'POST', JSON.stringify(initial))).status, 201);
+    await awaitState(id, 'running');
+    assert.equal((await call(`/event/${id}`, 'POST', JSON.stringify(payload))).status, 202);
+    await awaitState(id, 'complete');
+    const output = await call(`/fixture-output?id=${id}`);
+    assert.deepEqual(JSON.parse(output.text), { initial, received: payload });
+    assert.equal((await call(`/delete/${id}`, 'DELETE')).status, 200);
+    assert.equal((await call(`/state/${id}`)).status, 502);
+  }
+  assert.equal((await call('/event/absent', 'POST', 'null')).status, 502);
+});
+
 test('invalid IDs/params, missing bindings and missing instances fail without creation', async () => {
   for (const id of ['-bad', 'a'.repeat(101)])
     assert.equal((await call(`/create/${id}`, 'POST', '{}')).status, 502);

@@ -42,6 +42,46 @@ test('erase awaits deletion; missing instances and provider failures propagate',
   await assert.rejects(run(274, { async get(id) { return { id, async delete() { throw new Error('delete failed'); } }; } }), /delete failed/);
 });
 
+test('event delivery owns JSON payloads and awaits provider acknowledgement', async () => {
+  let finish, started, captured;
+  let done = false;
+  const ready = new Promise(resolve => { started = resolve; });
+  const input = bytes('[null,true,"☁",1.25]');
+  const pending = run(275, { async get(id) { return { id, sendEvent(event) {
+    captured = event; started();
+    return new Promise(resolve => { finish = resolve; });
+  } }; } }, 'fixture', input, 'continue').then(value => { done = true; return value; });
+  input.fill(0);
+  await ready;
+  assert.deepEqual(captured, { type: 'continue', payload: [null, true, '☁', 1.25] });
+  assert.equal(done, false);
+  finish();
+  assert.deepEqual(await pending, { status: 0, bytes: empty });
+  for (const payload of [null, true, 42, 'text', {}]) {
+    await run(275, { async get(id) { return { id, async sendEvent(event) {
+      assert.deepEqual(event, { type: 'continue', payload });
+    } }; } }, 'fixture', bytes(JSON.stringify(payload)), 'continue');
+  }
+  const type = 'a'.repeat(100);
+  const payload = 'x'.repeat(1048574);
+  await run(275, { async get(id) { return { id, async sendEvent(event) {
+    assert.deepEqual(event, { type, payload });
+  } }; } }, 'fixture', bytes(JSON.stringify(payload)), type);
+  await assert.rejects(run(275, { async get() { return { id: 'other' }; } }, 'fixture', bytes('null'), 'continue'), /unexpected ID/);
+  await assert.rejects(run(275, { async get(id) { return { id, async sendEvent() { throw new Error('send failed'); } }; } }, 'fixture', bytes('null'), 'continue'), /send failed/);
+});
+
+test('event boundaries reject before lookup', async () => {
+  let calls = 0;
+  const binding = { get() { calls++; } };
+  for (const type of ['', '-bad', 'bad space', 'bad\n', '☁', 'a'.repeat(101), null])
+    await assert.rejects(run(275, binding, 'fixture', bytes('null'), type));
+  for (const body of [empty, bytes('invalid'), bytes('1e400'), new Uint8Array([255]), new Uint8Array(1048577)])
+    await assert.rejects(run(275, binding, 'fixture', body, 'continue'));
+  await assert.rejects(run(275, binding, '-bad', bytes('null'), 'continue'));
+  assert.equal(calls, 0);
+});
+
 test('invalid command boundaries fail before creation or lookup', async () => {
   let calls = 0;
   const binding = { create() { calls++; }, get() { calls++; } };

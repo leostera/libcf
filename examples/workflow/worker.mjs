@@ -5,7 +5,10 @@ import { createWorker } from '../../lib/runtime.mjs';
 const cpp = createWorker(factory, wasm);
 export class FixtureWorkflow extends WorkflowEntrypoint {
   async run(event, step) {
-    if (event.payload.wait) await step.waitForEvent('gate', { type: 'continue', timeout: '1 minute' });
+    if (event.payload.wait) {
+      const received = await step.waitForEvent('gate', { type: 'continue', timeout: '1 minute' });
+      return step.do('echo', () => ({ initial: event.payload, received: received.payload }));
+    }
     return step.do('echo', () => event.payload);
   }
 }

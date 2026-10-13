@@ -13,6 +13,10 @@ Task handle(Request request, WorkerContext context) {
     auto result = co_await workflow.create(id, std::move(request.body));
     co_return Response::text(result ? "created" : "create failed", result ? 201 : 502);
   }
+  if (action == "event" && request.method == "POST") {
+    auto result = co_await workflow.send_event_json(id, "continue", std::move(request.body));
+    co_return Response::text(result ? "event sent" : "event failed", result ? 202 : 502);
+  }
   if (action == "state" && request.method == "GET") {
     auto result = co_await workflow.state(id);
     if (!result) co_return Response::text("state failed", 502);

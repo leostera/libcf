@@ -14,6 +14,13 @@ class Workflow {
     return runtime_.call<Unit>({Operation::WorkflowCreate, binding_, std::move(id),
         Bytes(params_json.begin(), params_json.end()), {}}, decode_unit);
   }
+  [[nodiscard]] AsyncResult<Unit> send_event_json(std::string id, std::string event_type,
+                                                 std::string payload_json) const {
+    if (!valid_id(id) || !valid_id(event_type) || payload_json.empty() || payload_json.size() > 1048576)
+      return invalid<Unit>();
+    return runtime_.call<Unit>({Operation::WorkflowSendEvent, binding_, std::move(id),
+        Bytes(payload_json.begin(), payload_json.end()), std::move(event_type)}, decode_unit);
+  }
   // Reports only lifecycle state, not output or error details.
   [[nodiscard]] AsyncResult<WorkflowState> state(std::string id) const {
     if (!valid_id(id)) return invalid<WorkflowState>();
@@ -38,7 +45,7 @@ class Workflow {
   }
   template<class T> static AsyncResult<T> invalid() {
     return AsyncResult<T>([](auto complete) {
-      complete(Result<T>::failure({ErrorCode::InvalidInput, "invalid workflow ID or JSON input size"}));
+      complete(Result<T>::failure({ErrorCode::InvalidInput, "invalid workflow ID, event type or JSON input size"}));
     }, [](std::coroutine_handle<>) {});
   }
   static Result<Unit> decode_unit(OperationReply reply) {
