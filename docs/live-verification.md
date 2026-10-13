@@ -23,7 +23,7 @@ cf dns records list --zone leostera.dev --name <generated-hostname>
 cf workers get <generated-worker-name> # should report not found
 ```
 
-The builder only emits artifacts; it neither deploys nor creates resources. Do not regenerate artifacts while a previous deployment still needs cleanup: retain its identity from `test-deployment.json`. The probe checks a single client/location, not global cache consistency, TTL or eviction. Its readiness phase allows roughly fifteen minutes for custom-domain certificate activation; that window is not a promise of certificate provisioning time.
+The builder only emits artifacts; it neither deploys nor creates resources. Do not regenerate artifacts while a previous deployment still needs cleanup: retain its identity from `test-deployment.json`. The probe checks a single client/location, not global cache consistency, TTL or eviction. Readiness defaults to a fifteen-minute elapsed budget covering HTTPS requests, response bodies and retry sleeps. For an explicitly longer DNS/certificate wait, set `LIBCF_LIVE_READY_TIMEOUT_MS=2400000` (40 minutes); values must be positive integer milliseconds, capped at 2700000 (45 minutes). Individual requests still have a ten-second cap, caller cancellation is preserved, redirects are rejected and paths cannot escape the isolated HTTPS origin. These budgets are not promises of provisioning time. Keep the same owned hostname through the wait and verify cleanup afterwards.
 
 ## D1 deployment probe
 
@@ -252,3 +252,11 @@ Build the example, run `node scripts/build-live-worker.mjs rate-limit`, deploy f
 - At 17:42 UTC the API still returned the same record and synthetic content. System/public, nameserver-addressed UDP and nonrecursive TCP queries then all returned NOERROR with the exact expected TXT value.
 - This establishes recovery for this isolated record after outlasting the negative TTL. It is consistent with caching/publication delay, not proof of a unique cause, a guaranteed propagation deadline or independent resolver paths. Earlier digest attempts remain unverified.
 - The background diagnostic deleted the exact owned record and verified an empty exact-name API listing at 17:42:31 UTC. No Worker/certificate or zone-setting change was involved; no active test resource remains. Future live retries should retain one hostname through a bounded wait long enough to accommodate the observed negative TTL rather than repeatedly deploying fresh hosts.
+
+## Web Crypto successful retry (2026-10-13, 17:55–17:57 UTC)
+
+- Worker/host: `libcf-crypto-09d51398ce` / `libcf-crypto-09d51398ce.libcf.leostera.dev`; version `f4436046-1801-42b5-b965-0ab6b7ad5763`. Worker 404/code10007 and an empty exact-host DNS listing established ownership before deployment. No resource bindings were provisioned.
+- `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-crypto.mjs <host>` passed over verified HTTPS. SHA-256/384/512 matched Node for empty, binary and 1-MiB input; six concurrent SHA-256 requests stayed isolated; oversized input rejected and a subsequent request succeeded. RNG outputs differed and UUID v4 format passed; this is not an entropy audit.
+- The whole probe/cleanup run finished within two minutes; the 40-minute readiness allowance was not exhausted. This confirms this retry, not a retroactive pass for the earlier DNS failures or a universal provisioning time.
+- Upload 131.29 KiB / gzip 36.33 KiB; reported startup 2 ms, not a benchmark.
+- Worker deletion and 404/code10007 verification passed. Exact-host DNS became empty. The complete final certificate listing contained 24 entries and no libcf hosts; cleanup finished at 17:57:22 UTC. No active live test resources remain.
