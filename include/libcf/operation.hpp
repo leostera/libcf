@@ -21,6 +21,9 @@ enum class Operation : std::uint8_t {
   KvList = 4,
   KvGetBytes = 5,
   KvGetMetadata = 6,
+  D1Run = 16,
+  D1All = 17,
+  D1Exec = 18,
 };
 
 struct OperationCall {

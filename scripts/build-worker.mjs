@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 const targets = {
   'examples/core/wrangler.jsonc': 'core',
   'examples/kv/wrangler.jsonc': 'kv',
+  'examples/d1/wrangler.jsonc': 'd1',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
 const target = targets[config];
