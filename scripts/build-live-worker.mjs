@@ -9,15 +9,15 @@ const example = process.argv[2];
 const bindingId = process.argv[3];
 const queueName = process.argv[4];
 if (process.argv.length > 5 || (example !== 'events' && queueName !== undefined)) throw new Error('Unexpected build arguments');
-if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow'].includes(example))
-  throw new Error('Choose cache, d1, kv, r2, core, service, durable, events, websocket, rate-limit, metadata, crypto, timer, images, http-client or workflow');
+if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow', 'clock'].includes(example))
+  throw new Error('Choose cache, d1, kv, r2, core, service, durable, events, websocket, rate-limit, metadata, crypto, timer, images, http-client, workflow or clock');
 if (['d1', 'events'].includes(example) && !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(bindingId ?? ''))
   throw new Error('D1 requires the UUID of an isolated test database');
 if (['kv', 'core'].includes(example) && !/^[a-f0-9]{32}$/.test(bindingId ?? ''))
   throw new Error('KV requires the ID of an isolated test namespace');
 if (example === 'r2' && !/^libcf-r2-[a-f0-9]{10}$/.test(bindingId ?? ''))
   throw new Error('R2 requires an isolated libcf test bucket name');
-if (['cache', 'service', 'durable', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow'].includes(example) && bindingId) throw new Error('No resource binding ID is required');
+if (['cache', 'service', 'durable', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'workflow', 'clock'].includes(example) && bindingId) throw new Error('No resource binding ID is required');
 if (example === 'events' && !/^libcf-events-[a-f0-9]{10}$/.test(queueName ?? ''))
   throw new Error('Events requires an isolated libcf test queue name');
 const name = `libcf-${example}-${randomBytes(5).toString('hex')}`;
@@ -33,6 +33,7 @@ const env = {
   cache: {},
   crypto: {},
   timer: {},
+  clock: {},
   workflow: { FLOW: { type: 'workflow', name: workflowName, worker: name, exportName: 'FixtureWorkflow' } },
   images: { IMAGES: { type: 'images' } },
   'http-client': { UPSTREAM_URL: { type: 'text', value: `https://${upstreamHostname}` } },

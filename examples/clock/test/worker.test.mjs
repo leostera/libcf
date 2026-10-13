@@ -11,6 +11,7 @@ async function sample(path, count) {
   const values = (await response.text()).split(' ').map(Number);
   const after = Date.now();
   assert.equal(values.length, count);
+  assert.equal(values.at(-1), Number(response.headers.get('x-js-clock')));
   for (const value of values) {
     assert(Number.isSafeInteger(value));
     // Same-machine plausibility, not a precision or remote clock-sync claim.
