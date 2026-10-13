@@ -60,7 +60,7 @@ async function workerOptions(configPath, root) {
   } };
 }
 
-export async function startLocalWorker(config, { readyPath = '/', additionalConfigs = [], persistencePath } = {}) {
+export async function startLocalWorker(config, { readyPath = '/', additionalConfigs = [], persistencePath, triggerHandlers = false } = {}) {
   const root = await mkdtemp(resolve(tmpdir(), 'libcf-local-'));
   let runtime;
   async function dispose() {
@@ -71,7 +71,7 @@ export async function startLocalWorker(config, { readyPath = '/', additionalConf
     const workers = await Promise.all([config, ...additionalConfigs].map(path => workerOptions(path, root)));
     // All bindings are local workerd resources; no CLI, credentials or remote
     // binding fallback. Restart tests may opt into caller-owned temporary state.
-    runtime = new Miniflare({ host: '127.0.0.1', port: 0, workers,
+    runtime = new Miniflare({ host: '127.0.0.1', port: 0, workers, unsafeTriggerHandlers: triggerHandlers,
       ...(persistencePath ? { resourcePersistencePath: persistencePath } : {}),
     });
     const base = (await runtime.ready).origin;

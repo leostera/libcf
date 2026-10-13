@@ -13,6 +13,7 @@ const targets = {
   'examples/durable/wrangler.jsonc': 'durable',
   'examples/events/wrangler.jsonc': 'events',
   'examples/websocket/wrangler.jsonc': 'websocket',
+  'examples/email/wrangler.jsonc': 'email',
   'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
