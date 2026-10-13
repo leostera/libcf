@@ -49,6 +49,8 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 275 | `WorkflowSendEvent` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Null/array payload readback and JS workflow completion; no C++ durable replay. |
 | 288 | `ImageInfoGet` | [Images](../examples/images/test/worker.test.mjs) | L | V | PNG dimensions/size, SVG category, invalid/empty/missing/oversized failures and recovery; no transforms/uploads. |
 
+| 304 | `RpcCallJson` | [JSON service RPC](../examples/rpc/test/worker.test.mjs) | L | Pending | Owned bounded JSON arguments/results, concurrent calls, errors and recovery. Separate JS workerd tests verify rejected/late capability disposal; no C++ RPC exports. |
+
 ## Scope not represented by binding-operation numbers
 
 - HTTP entry/response, environment variables, RNG/UUID and the streaming C ABI have separate tests and live records. The synchronous `libcf_host_now` f64 import is outside this enum: [wall-clock example](../examples/clock/README.md), native and host tests plus two workerd cases; corrected live probe verified f64 samples, same-turn reads, post-I/O sampling, JS brackets and concurrency, followed by cleanup. No clock precision or monotonicity guarantee. RNG smoke is not an entropy audit. Stream bytes/client cancellation are not a verified transport-backpressure claim.

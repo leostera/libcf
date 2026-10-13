@@ -55,6 +55,7 @@ enum class Operation : std::uint32_t {
   WorkflowDelete = 274,
   WorkflowSendEvent = 275,
   ImageInfoGet = 288,
+  RpcCallJson = 304,
 };
 
 struct OperationCall {

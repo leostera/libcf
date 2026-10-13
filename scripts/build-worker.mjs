@@ -26,6 +26,7 @@ const targets = {
   'examples/workflow/wrangler.jsonc': 'workflow',
   'examples/images/wrangler.jsonc': 'images',
   'examples/clock/wrangler.jsonc': 'clock',
+  'examples/rpc/wrangler.jsonc': 'rpc',
   'examples/durable/object': 'durable-object',
 };
 const config = process.argv[2] ?? 'examples/core/wrangler.jsonc';
