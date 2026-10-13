@@ -14,6 +14,6 @@ The timer observes the invocation-owned signal, rejects on cancellation and clea
 
 Two workerd cases exercise zero/nonzero sleeps, 12 concurrent owned request URLs, invalid durations and subsequent recovery. These also exercise operation ID 256 across the Wasm ABI. Native tests check duration encoding, bounds and completion decoding. Controlled JS timer tests check asynchronous completion, maximum duration without waiting a minute, handle zero, pre-abort, pending abort/late callback and setup-failure cleanup. No wall-clock precision assertion or new live transport cancellation claim is made.
 
-Live verification remains pending after the documented DNS blocker; no resource or endpoint was created. Date/time access, repeating timers and per-operation cancellation handles remain outside this API.
+Opt-in live probe: build the example, run `node scripts/build-live-worker.mjs timer`, establish ownership of the generated Worker/hostname, deploy with `cf deploy --prebuilt` from `build/live-timer`, then run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-timer.mjs <host>`. Verify Worker, DNS and certificate cleanup afterwards. No resource binding is needed. See [live evidence](../../docs/live-verification.md) for verification status. Date/time access, repeating timers and per-operation cancellation handles remain outside this API.
 
 Source retrieved 2026-10-13: [Workers web standards: timers and clocks](https://developers.cloudflare.com/workers/runtime-apis/web-standards/).

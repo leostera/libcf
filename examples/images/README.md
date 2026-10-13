@@ -14,7 +14,7 @@ The JS adapter copies the input view into a Blob before awaiting the native `inf
 
 Two workerd cases use the real pinned local Images binding (Sharp-backed): a generated 2×3 PNG with exact byte-size readback, SVG categorization, invalid/empty images, missing binding, SDK overflow and recovery. Direct adapter tests cover owned bytes, golden metadata wire, malformed results and stream cleanup; native tests cover variant decoding and bounds. The local implementation is a lower-fidelity emulator, not proof of production decoder parity.
 
-`POST /info` accepts bytes; `/missing` and `/oversized` are failure fixtures. No upload or hosted image is created. Live verification remains pending after DNS recovery. Current documentation says `.info()` calls are free; transformations have separate billing, and no transformation was invoked.
+`POST /info` accepts bytes; `/missing` and `/oversized` are failure fixtures. No upload or hosted image is created. For an opt-in live probe, build the example, run `node scripts/build-live-worker.mjs images`, establish ownership of the generated Worker/hostname, deploy with `cf deploy --prebuilt` from `build/live-images`, then run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-images.mjs <host>`. Verify Worker, DNS and certificate cleanup afterwards. See [live evidence](../../docs/live-verification.md) for verification status. Current documentation says `.info()` calls are free; transformations have separate billing, and no transformation was invoked.
 
 Not implemented: input options, transformations/drawing, text rasterization, hosted-image CRUD, direct upload, caching policy or native Images error-code preservation. Provider failures remain SDK errors rather than metadata values.
 
