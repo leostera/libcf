@@ -49,4 +49,41 @@ int main() {
   coroutine.resume();
   assert(coroutine.done() && !host_called);
   coroutine.destroy();
+
+  std::vector<D1Statement> wrong_binding;
+  wrong_binding.push_back(D1Database(runtime, "OTHER").prepare("SELECT 1"));
+  std::vector<D1Statement> unsafe_parameter;
+  unsafe_parameter.push_back(statement);
+  auto rejected_batch = [&]() -> Task {
+    auto empty = co_await database.batch(std::vector<D1Statement>{});
+    assert(!empty);
+    auto foreign = co_await database.batch(wrong_binding);
+    assert(!foreign);
+    auto unsafe = co_await database.batch(unsafe_parameter);
+    assert(!unsafe);
+    co_return Response::text("batches rejected");
+  };
+  auto rejected = rejected_batch().take();
+  rejected.resume();
+  assert(rejected.done() && !host_called);
+  rejected.destroy();
+
+  BindingRuntime::Completion complete;
+  OperationCall last;
+  BindingRuntime batch_runtime([&](auto call, auto done) { last = std::move(call); complete = std::move(done); }, [](auto task) { task.resume(); });
+  D1Database batch_database(batch_runtime, "DB");
+  std::vector<D1Statement> valid_batch;
+  valid_batch.push_back(batch_database.prepare("SELECT 1"));
+  auto malformed_batch = [&]() -> Task {
+    auto result = co_await batch_database.batch(valid_batch);
+    assert(!result && result.error().code == ErrorCode::InvalidInput);
+    co_return Response::text("malformed batch rejected");
+  };
+  auto malformed = malformed_batch().take();
+  malformed.resume();
+  assert(last.method == Operation::D1Batch && last.binding == "DB");
+  auto deliver = std::move(complete);
+  deliver(Result<OperationReply>::success({ReplyKind::Value, Bytes{0, 0, 0, 0}}));
+  assert(malformed.done());
+  malformed.destroy();
 }

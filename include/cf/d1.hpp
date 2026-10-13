@@ -158,6 +158,7 @@ class D1Statement {
   }
 
  private:
+  friend class D1Database;
   AsyncResult<D1Result> execute(Operation method) const {
     auto bytes = detail::encode_sql_values(values_);
     if (!bytes) {
@@ -180,6 +181,50 @@ class D1Database {
   [[nodiscard]] D1Statement prepare(std::string sql) const {
     return D1Statement(runtime_, binding_, std::move(sql));
   }
+  [[nodiscard]] AsyncResult<std::vector<D1Result>> batch(std::vector<D1Statement> statements) const {
+    const auto reject = [](Error error) {
+      return AsyncResult<std::vector<D1Result>>([error = std::move(error)](auto done) {
+        done(Result<std::vector<D1Result>>::failure(error));
+      }, [](std::coroutine_handle<>) {});
+    };
+    if (statements.empty() || statements.size() > 100)
+      return reject({ErrorCode::InvalidInput, "batch requires 1 to 100 statements"});
+    Bytes wire;
+    detail::append_u32(wire, static_cast<std::uint32_t>(statements.size()));
+    for (const auto& statement : statements) {
+      if (statement.binding_ != binding_)
+        return reject({ErrorCode::InvalidInput, "batch statements must belong to the same D1 binding"});
+      if (statement.sql_.size() > 65536)
+        return reject({ErrorCode::ResourceLimit, "batch SQL exceeds bridge limit"});
+      auto values = detail::encode_sql_values(statement.values_);
+      if (!values) return reject(values.error());
+      if (wire.size() + statement.sql_.size() + values.value().size() + 8 > 1024 * 1024)
+        return reject({ErrorCode::ResourceLimit, "batch exceeds bridge limit"});
+      detail::append_field(wire, statement.sql_);
+      detail::append_u32(wire, static_cast<std::uint32_t>(values.value().size()));
+      wire.insert(wire.end(), values.value().begin(), values.value().end());
+    }
+    return runtime_.call<std::vector<D1Result>>(
+        {Operation::D1Batch, binding_, {}, std::move(wire), {}},
+        [expected = statements.size()](OperationReply reply) -> Result<std::vector<D1Result>> {
+          const auto invalid = [] { return Result<std::vector<D1Result>>::failure({ErrorCode::InvalidInput, "malformed D1 batch reply"}); };
+          if (reply.kind != ReplyKind::Value) return invalid();
+          detail::WireReader reader(reply.bytes);
+          std::uint32_t count = 0;
+          if (!reader.u32(count) || count != expected) return invalid();
+          std::vector<D1Result> results;
+          for (std::uint32_t i = 0; i < count; ++i) {
+            Bytes encoded;
+            if (!reader.bytes(encoded)) return invalid();
+            auto result = detail::decode_d1({ReplyKind::Value, std::move(encoded)});
+            if (!result) return Result<std::vector<D1Result>>::failure(result.error());
+            results.push_back(std::move(result.value()));
+          }
+          if (!reader.done()) return invalid();
+          return Result<std::vector<D1Result>>::success(std::move(results));
+        });
+  }
+
   // exec is for application-controlled schema/setup SQL, not interpolation of
   // request data. Use prepare().bind() for all user-supplied values.
   [[nodiscard]] AsyncResult<D1Result> exec(std::string sql) const {

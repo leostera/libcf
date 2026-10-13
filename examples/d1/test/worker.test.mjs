@@ -44,6 +44,26 @@ test('parallel statements keep request parameters isolated', async () => {
   }));
 });
 
+test('batch commits both statements and returns ordered results', async () => {
+  const id = randomUUID();
+  const response = await fetch(`${base}/batch/${id}`, { method: 'POST', body: 'batched' });
+  assert.equal(response.status, 201);
+  assert.equal(await response.text(), 'committed');
+  assert.equal(await (await fetch(`${base}/records/${id}`)).text(), 'batched');
+  await fetch(`${base}/records/${id}`, { method: 'DELETE' });
+});
+
+test('batch rolls back earlier writes when a later statement fails', async () => {
+  const id = randomUUID();
+  const response = await fetch(`${base}/batch/${id}`, {
+    method: 'POST', body: 'must roll back', headers: { 'x-fail-batch': 'yes' },
+  });
+  assert.equal(response.status, 409);
+  assert.equal(await response.text(), 'batch rejected');
+  assert.equal((await fetch(`${base}/records/${id}`)).status, 404);
+  assert.equal((await fetch(`${base}/records/${id}-invalid`)).status, 404);
+});
+
 test('first distinguishes SQL NULL from no row', async () => {
   const row = await fetch(`${base}/first-null`);
   assert.equal(row.status, 200);

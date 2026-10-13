@@ -25,6 +25,7 @@ enum class Operation : std::uint8_t {
   D1All = 17,
   D1Exec = 18,
   D1First = 19,
+  D1Batch = 20,
   R2Get = 32,
   R2Head = 33,
   R2Put = 34,

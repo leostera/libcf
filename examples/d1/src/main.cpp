@@ -11,6 +11,23 @@ Task handle(Request request, WorkerContext context) {
     auto result = co_await database.exec("CREATE TABLE IF NOT EXISTS records (id TEXT PRIMARY KEY, value BLOB NOT NULL)");
     co_return result ? Response::text("ready") : Response::text("setup failed", 502);
   }
+  if (path.starts_with("/batch/") && request.method == "POST") {
+    const std::string id(path.substr(7));
+    std::vector<D1Statement> statements;
+    statements.push_back(database.prepare("INSERT INTO records(id,value) VALUES (?,?)")
+        .bind({id, Bytes(request.body.begin(), request.body.end())}));
+    if (request.headers.get("x-fail-batch") == "yes") {
+      statements.push_back(database.prepare("INSERT INTO records(id,value) VALUES (?,?)")
+          .bind({id + "-invalid", nullptr}));
+    } else {
+      statements.push_back(database.prepare("SELECT value FROM records WHERE id=?").bind({id}));
+    }
+    auto result = co_await database.batch(std::move(statements));
+    if (!result) co_return Response::text("batch rejected", 409);
+    if (result.value().size() != 2 || result.value()[1].rows.size() != 1)
+      co_return Response::text("invalid batch results", 500);
+    co_return Response::text("committed", 201);
+  }
   if (path == "/first-null") {
     auto result = co_await database.prepare("SELECT NULL AS value").first();
     if (!result || !result.value()) co_return Response::text("expected a row", 500);
