@@ -62,6 +62,12 @@ Core needs a dedicated KV namespace for `waitUntil` readback. After `npm run bui
 
 After `npm run build:service`, run `node scripts/build-live-worker.mjs service`. In `build/live-service`, deploy the **upstream first** with `cf deploy --prebuilt --worker <upstreamName-from-test-deployment.json>`, then deploy the default Worker with `cf deploy --prebuilt`. The upstream has no domains, workers.dev route or preview URL; access is through a native service binding only. Probe with `node scripts/test-live-service.mjs <frontend-host>`. Delete the frontend before its upstream, without forcing deletion of referenced resources, and verify both are absent.
 
+## C++ Durable Object probe
+
+`npm run build:durable` compiles the frontend and object to separate Wasm modules. Run `node scripts/build-live-worker.mjs durable`, check the generated hostname is unused, and deploy from `build/live-durable` with `cf deploy --prebuilt`. The cf export configuration creates an isolated SQLite `Counter` namespace; record its ID from `cf durable-objects namespaces list` (including all pages).
+
+Run `node scripts/test-live-durable.mjs <host>`. Cleanup with `cf workers delete <worker-name> --force`, then verify Worker 404, exact-name DNS absence, and absence of the recorded namespace ID from the complete namespace listing. Do not assume deleting only the hostname removes stored objects.
+
 ## Recorded attempt (2026-10-13)
 
 - Worker: `libcf-cache-b97ca19200`
@@ -142,3 +148,14 @@ A transient CLI 401 occurred when the previous OAuth access token expired. `cf a
 - Extended Cache probe passed: miss, put, binary match, headers, delete/absent distinction, default/named isolation and an empty value in a named cache. Deleting the named entry did not delete the default-cache entry at the same URL.
 - Both test entries were deleted; Worker lookup subsequently returned 404/code 10007 and exact-name DNS lookup returned `[]`. The new certificate was `pending_deletion` at the initial cleanup check; the previous core/service certificates had disappeared.
 - This remains single-client/location evidence, not a global cache, TTL-expiry or eviction guarantee.
+
+## C++ Durable Object live verification (2026-10-13)
+
+- Worker/host: `libcf-durable-4f2a9e62ac` / `libcf-durable-4f2a9e62ac.libcf.leostera.dev`.
+- Version: `316211cd-46c7-4f20-abab-cdb36e4e5a35`.
+- Auto-created SQLite namespace: `971f1a242ca647869693a44f2ee12dec`, `libcf-durable-4f2a9e62ac_Counter`.
+- Deployment reconciled the `Counter` export and uploaded both frontend/object Wasm modules: 228.96 KiB total, 72.83 KiB gzip; reported startup 1 ms (not a benchmark).
+- Live probe passed: gated C++ per-object initialization, eight concurrent atomic increments, independent objects, transaction rollback without changing the prior counter value, binary HTTP forwarding, parameterized SQL blobs, missing-binding/empty-name errors and C++ alarm effects.
+- No forced live eviction or alarm retry was performed. Full runtime restart recovery was tested locally; alarm handling uses an idempotent armed-state update but the probe does not prove exactly-once platform delivery.
+- Cleanup: Worker lookup returned 404/code 10007, exact-name DNS listing returned `[]`, and a complete namespace listing contained 32 entries (below the requested 100-entry page size) with neither the recorded namespace ID nor the deleted Worker script. Before deletion the listing contained 33 entries including that namespace.
+- Linux CI for the C++ object implementation (`838c34d`) passed, including native sanitizer checks. A subsequent complete 24-entry certificate-pack listing contained no libcf hosts, confirming certificate cleanup for the DO and preceding runs.

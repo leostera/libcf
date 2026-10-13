@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 export function liveHttp(host, family) {
-  if (!['cache', 'd1', 'kv', 'r2', 'core', 'service'].includes(family) ||
+  if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable'].includes(family) ||
       !new RegExp(`^libcf-${family}-[a-f0-9]{10}\\.libcf\\.leostera\\.dev$`).test(host ?? ''))
     throw new Error('Expected an isolated test hostname under libcf.leostera.dev');
   return (path, init = {}) => fetch(`https://${host}${path}`, {

@@ -15,7 +15,7 @@ test('live probes reject other namespaces before making a request', () => {
 });
 
 test('each supported family is confined to its own isolated hostname pattern', () => {
-  for (const family of ['cache', 'd1', 'kv', 'r2', 'core', 'service']) {
+  for (const family of ['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable']) {
     assert.equal(typeof liveHttp(`libcf-${family}-0123456789.libcf.leostera.dev`, family), 'function');
     assert.throws(() => liveHttp('libcf-other-0123456789.libcf.leostera.dev', family));
   }
