@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "79c23495c47b9c3bff603769c69a2b3312cf0b8a",
+  "sourceDirty": false,
+  "bazel": "official 9.3.0",
+  "emscripten": "6.0.12",
+  "node": "26.11.1",
+  "compatibilityDate": "2026-10-13",
+  "preparation": "bazel run //:prepare_live_worker -- durable",
+  "probe": "bazel run //:live_durable -- libcf-durable-89d1b7e898.libcf.leostera.dev",
+  "started": "2026-10-14T01:05:04.786Z",
+  "finished": "2026-10-14T01:09:13.141Z",
+  "worker": "libcf-durable-89d1b7e898",
+  "hostname": "libcf-durable-89d1b7e898.libcf.leostera.dev",
+  "version": "e6a01770-4f48-405a-a422-b216db1fe8a5",
+  "namespace": "35d3a77c6cc247ca93b58bdccd519277",
+  "artifactSha256": {
+    "durable-object.wasm": "cc44cc6b0e213ff60f7e6add8c7802be1db229fe715ae43630f0f40b3337e8ed",
+    "durable.wasm": "9496235a7e3d74886c6d9449cc61e815ce053efbfffe3a5e583bee9521cc94b1",
+    "worker.mjs": "6a796d306a0c05e5a432d949c35cb0e2fd5ffac38b8cf2c58ca930ac57cfb3f8"
+  },
+  "passed": [
+    "per-object initialization",
+    "eight atomic concurrent increments",
+    "persistent SQL readback and object isolation",
+    "transaction rollback",
+    "binary HTTP and SQL round trips",
+    "missing binding and invalid object-name errors",
+    "real alarm effect"
+  ],
+  "ownershipPreflight": {
+    "worker404Code10007": true,
+    "exactHostDnsEmpty": true,
+    "completeNamespaceListingWithoutMatchingScript": true
+  },
+  "cleanup": {
+    "worker404Code10007": true,
+    "recordedNamespaceAbsentFromCompleteListing": true,
+    "exactHostDnsEmpty": true,
+    "ownedHostnameAndWildcardAbsentFromCompleteCertificateListing": true
+  },
+  "limitations": [
+    "No forced live eviction, alarm retry, or cross-location consistency claim.",
+    "This verifies the implemented subset, not the entire Durable Objects API.",
+    "Other probes have independent ownership and cleanup records."
+  ]
+}

@@ -50,3 +50,13 @@ Legend for test columns: `L` = local Miniflare/workerd integration (not merely a
 2. Before binding an ID, compare the pinned project's TS types/config against the current [Workers binding docs](https://developers.cloudflare.com/workers/runtime-apis/bindings/) and note compatibility flags, account restrictions, and a precise method checklist in its example README/test. Feature categories above compress signatures; implementation and test coverage are counted at **operation** granularity, not by module name.
 3. L requires invoking real local runtime binding, not just JS mock or typechecking. V requires live account resource and verifiable output. Unavailable capabilities remain `—` with a cited limitation, not a passing test; live suites opt-in and must clean test resources without touching user resources.
 4. Never count a product accessible only by REST/API or dashboard as a Worker binding. Track future changes through a separate source/version refresh. Bundle size, overhead, errors, resource isolation and cleanup are release gates.
+
+## Bazel-built live re-verification
+
+The [2026-10-14 Durable Object rerun](live/bazel-durable-2026-10-14.json)
+passed from clean source `79c2349`: per-object initialization, concurrent increments,
+SQL readback/isolation, transactional rollback, binary HTTP/SQL, error guards and
+real alarm effects. Worker, namespace, DNS and certificate cleanup were verified.
+This is new Bazel-built evidence for the existing subset, not a claim of forced
+live eviction, alarm retries or full platform parity. Other historical live results
+retain their original provenance until individually rerun.
