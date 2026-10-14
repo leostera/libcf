@@ -131,7 +131,29 @@ session APIs including acquire/connect/close. A screenshot's binary result, an
 HTTP error and a content action's JSON envelope must not be conflated. Session
 close acknowledgement can say closing; it is not an independent absence readback.
 
-Miniflare supports local browser sessions as well as remote proxy mode. Its pinned
+Quick Actions are a distinct boundary. The [current Quick Actions docs](https://developers.cloudflare.com/browser-run/quick-actions/)
+require compatibility date2026-03-24 or later and explicitly say `quickAction` is
+not supported in local development. The pinned local binding confirms
+`The RPC receiver does not implement the method "quickAction"`. Provisioning
+Chrome alone does not add that missing RPC method. Do not infer screenshot/PDF/
+content support from the existence of local session routes.
+
+A no-launch workerd test checks that rejection and reads only raw Fetcher session,
+limits and history routes. It observes empty sessions before/after, hardcoded local
+limits6/6/0 and empty history. Those synthetic values are not account allowance,
+permissions, usage or cleanup proof. Pinned hashes of the Miniflare entrypoint and
+Browser worker source gate the test before startup; dependency changes require
+routing/launch review, not a blind hash refresh. It never acquires/connects a
+browser, launches Chrome, downloads binaries or uses a personal profile.
+
+The default example harness refuses browser configurations before bundling. A
+future bounded HTML-only PNG client can use an explicit mock, request JavaScript
+and subresource blocking, and disable cache. Forwarded options are not verified
+network isolation; byte/deadline caps cannot bound native rendering memory or
+promise stopped billing. No Browser C++ API is implemented yet.
+
+Miniflare supports local browser sessions via raw Fetcher routes as well as remote proxy mode.
+Typed session-method parity has not been verified. Its pinned
 source selects Chrome 126.0.6478.182 and can download/install it at runtime. That is
 **not yet a declared/checksummed Bazel browser artifact** or a verified libcf local
 browser target. Do not trigger hidden browser downloads, use a personal browser
@@ -152,6 +174,10 @@ JavaScript execution, external subresources or AI-backed extraction.
 - [Stream pricing](https://developers.cloudflare.com/stream/pricing/)
 - [Media binding](https://developers.cloudflare.com/stream/transform-videos/bindings/)
 - [Browser binding](https://developers.cloudflare.com/browser-run/reference/browser-binding-api/)
+- [Quick Actions requirements](https://developers.cloudflare.com/browser-run/quick-actions/)
+- [Screenshot endpoint and binding](https://developers.cloudflare.com/browser-run/quick-actions/screenshot-endpoint/)
+- [No-launch local Browser regression](../tests/browser-platform.test.mjs)
+- [Default Browser policy](../tests/browser-policy.test.mjs)
 - [Browser pricing](https://developers.cloudflare.com/browser-run/pricing/)
 - Pinned Miniflare STREAM_PLUGIN, MEDIA_PLUGIN, BROWSER_RENDERING_PLUGIN,
   stream/binding.worker.js, ensureBrowserInstalled/launchBrowser and BROWSER_VERSION.

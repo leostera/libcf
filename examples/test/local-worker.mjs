@@ -11,6 +11,7 @@ async function workerOptions(configPath, root) {
   if (config.vectorize) throw new Error('Vectorize requires a remote index; use an explicit local mock configuration');
   if (config.dispatch_namespaces) throw new Error('Dispatch namespaces require remote Workers for Platforms; use an explicit local mock configuration');
   if (config.media) throw new Error('Media Transformations use a remote service; use an explicit local mock configuration');
+  if (config.browser) throw new Error('Browser Run requires an explicit local mock here; native sessions need a declared browser toolchain');
   if (config.ai_search || config.ai_search_namespaces || config.agent_memory)
     throw new Error('AI Search and Agent Memory use remote services; use an explicit local mock configuration');
   if (config.stream?.remote !== undefined && config.stream.remote !== false)

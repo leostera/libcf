@@ -146,11 +146,11 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **119 test targets**: 26 native suites,
-C++20/23 all-header checks, 31 example/benchmark integration targets, 57 JS
+The default graph currently contains **121 test targets**: 26 native suites,
+C++20/23 all-header checks, 31 example/benchmark integration targets, 59 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
-The native/header suite now contains 26 targets, also tested with `--config=cxx23`.
+The native/header suite now contains 28 targets, also tested with `--config=cxx23`.
 The AI, AI Search, Vectorize, Media and dispatch integrations use explicitly mocked providers or
 namespace selection inside workerd, not native remote-service verification. The
 local harness rejects their production binding configurations. Dispatch's mock
