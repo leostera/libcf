@@ -2,7 +2,7 @@
 
 Audited 2026-10-14 against Miniflare 5.20261006.1-alpha / workerd
 1.20261006.1, compatibility date 2026-10-13. This is an access-model and
-local-platform audit, **not a libcf C++ implementation or live verification**.
+local-platform audit, followed by a bounded Flagship implementation. **No live verification**.
 P09 remains open. No account lookup, remote binding, repository import, token
 creation or deployment was performed.
 
@@ -27,7 +27,7 @@ The test proves:
 
 The inspected workers-types 5.20261010.1 declares generic `getValue()` and
 `getDetails()` and deprecates `get()`. Those declarations are newer than the
-runtime and do not establish availability. Start a C++ vertical with the
+runtime and do not establish availability. The C++ vertical uses the
 version-matched `getBooleanDetails()`, not a silently substituted generic call.
 Only `getValue()` absence was dynamically tested; the pinned source also lacks
 `getDetails()`.
@@ -36,8 +36,9 @@ Only `getValue()` absence was dynamically tested; the pinned source also lacks
 pinned implementation distinguish known evaluation failures from unexpected
 runtime exceptions. The broader reasons reference describes `GENERAL` fallback,
 but that is not proof every binding transport/runtime failure returns details.
-A future C++ result should distinguish evaluated values, provider fallbacks and
-bridge/transport failures. Do not catch everything and fabricate a successful
+The C++ result preserves provider details separately from bridge/transport
+failure; callers must inspect those details rather than treating a value as proof
+of successful evaluation. Do not catch everything and fabricate a successful
 fallback. Preserve unknown future reason/error strings through bounded owned
 projections rather than conflating them with known outcomes.
 
@@ -51,7 +52,8 @@ flag/app cleanup. Do not pull a user's real flag definitions into fixtures.
 ## Bounded Flagship JS prototype
 
 `lib/flagship.mjs::performFlagshipBooleanDetails` now projects the typed boolean
-method. It is not yet wired to a runtime operation or a C++ header/example.
+method. Operation480 now connects it to `<cf/flagship.hpp>` and the
+[Flagship example](../examples/flagship/README.md).
 
 - Request key: 1–128 UTF-8 bytes, no C0/C1 controls. Body: empty for no context,
   otherwise 1–256 UTF-8 bytes containing a single `targetingKey`, also without
@@ -134,10 +136,28 @@ local; Artifacts requires explicit mock fixtures until a native plan is approved
 `tests/flagship-artifacts-policy.test.mjs` checks rejection order, not isolation
 of arbitrary caller-supplied Worker code.
 
-Next: add the typed C++ boolean details decoder/runtime operation and a runnable
-C++/Wasm local example for this bounded JS projection. Separately design an
-Artifacts metadata projection and RPC lifetime tests. Neither family has a
-libcf operation/header/example yet; no P09 completion claim follows from this audit.
+### Typed C++ subset
+
+`cf::Flagship(runtime, binding).boolean_details(key, fallback, options)` requires
+an explicit boolean fallback. `FlagshipBooleanOptions` holds optional owned
+`targeting_key` and a timeout (default5000ms). The call accepts key as string_view
+and options by const reference, validates before bounded copies, and retains no
+caller references. `FlagshipBooleanDetails` owns value and optional strings
+variant/reason/error_code/error_message. The strict20–4516-byte decoder rejects
+wrong reply kind, noncanonical booleans/presence, invalid text, truncation and
+trailing data. Native tests include1MiB invalid lvalues and mutation after call.
+
+The actual C++/Wasm example currently uses an **explicit mock evaluator**:
+concurrency, input/output maxima, absent/empty fields, UTF-8/BOM/NUL output,
+fallback, malformed reply, cleanup/deadline failure and recovery are tested.
+The emitted bundle health route also executes without bindings. Native local
+Flagship support is established separately at the JS adapter layer, not yet
+through this example. Do not combine these into a native C++ verification claim.
+
+Next: native local binding through the C++ example, broader typed evaluation and
+context capabilities, then separately approved live verification. Artifacts still
+has no C++ API/example; design its metadata projection and RPC lifetime tests.
+P09 remains partial, not complete.
 
 ## Sources
 

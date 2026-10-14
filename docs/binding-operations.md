@@ -67,6 +67,8 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 
 | 464 | `ContainerInspect` | [Container inspection](../examples/container/test/worker.test.mjs) | M | Approval | Owned nullable image/label projection through actual C++/Wasm DO with explicit fake capability. Native ordinary DO missing-capability and reserved-slot rejection; no engine/process/readiness/lifecycle proof. Invocation activity may extend idle retention; no start/stop/exec or native cancellation claim. |
 
+| 480 | `FlagshipBooleanDetails` | [Flagship boolean details](../examples/flagship/test/worker.test.mjs) | M | Approval | Required fallback, optional targeting key, bounded owned optional provider strings through C++/Wasm with explicit fake evaluator. Separate JS adapter test uses native local evaluator; native binding through C++ example still pending. No propagation, arbitrary context, native cancellation or account authorization claim. |
+
 ## Scope not represented by binding-operation numbers
 
 - HTTP entry/response, environment variables, RNG/UUID and the streaming C ABI have separate tests and live records. The synchronous `libcf_host_now` f64 import is outside this enum: [wall-clock example](../examples/clock/README.md), native and host tests plus two workerd cases; corrected live probe verified f64 samples, same-turn reads, post-I/O sampling, JS brackets and concurrency, followed by cleanup. No clock precision or monotonicity guarantee. RNG smoke is not an entropy audit. Stream bytes/client cancellation are not a verified transport-backpressure claim.
