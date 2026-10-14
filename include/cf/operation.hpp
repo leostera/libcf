@@ -62,6 +62,8 @@ enum class Operation : std::uint32_t {
   DispatchFetch = 368,
   MediaFramePng = 384,
   AiSearchKeywordQuery = 400,
+  StreamVideoList = 416,
+  StreamVideoDetails = 417,
 };
 
 struct OperationCall {

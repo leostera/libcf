@@ -7,6 +7,7 @@
 #include <cf/dispatch.hpp>
 #include <cf/media.hpp>
 #include <cf/ai_search.hpp>
+#include <cf/stream_video.hpp>
 #include <cf/clock.hpp>
 #include <cf/rpc.hpp>
 #include <cf/context.hpp>

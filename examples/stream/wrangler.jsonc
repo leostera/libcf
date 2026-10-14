@@ -1,0 +1,8 @@
+{
+  "name": "libcf-stream",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "stream": { "binding": "STREAM" }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "libcf-stream-mock",
+  "main": "mock.mjs",
+  "compatibility_date": "2026-10-13"
+}

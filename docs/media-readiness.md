@@ -2,7 +2,8 @@
 
 Audited 2026-10-14 using current docs, Miniflare 5.20261006.1-alpha and Workers
 types 5.20261010.1. The subsequent bounded Media frame subset is described below;
-Stream and Browser C++ APIs remain unimplemented. The named Media GIF subset has
+Stream now has a read-only C++ metadata subset; Browser remains unimplemented.
+The named Media GIF subset has
 [now passed a clean-source live probe](live/bazel-media-2026-10-14.json), with
 Worker, DNS and matching certificate absence independently verified.
 These are distinct products and must not inherit one another's support or pricing.
@@ -34,12 +35,38 @@ simulator, but its scope differs from production:
   retired scopes reject reuse while fresh lookups keep working. This verifies
   local RPC scope ownership, not production Stream cancellation or lifetime parity.
 
-A first C++ client can project bounded IDs, opaque state, ready flag, safe integer
-byte size and optional duration (-1 means unknown), avoiding URLs and arbitrary
-metadata. It must keep scoped handles alive through reads and dispose late handles
-without starting another read after a deadline. No Stream C++ API is implemented
-yet. List is account-scoped, not tenant authorization; a live plan must not enumerate
-unrelated account videos merely to exercise this method.
+`cf::StreamVideoLibrary` in `<cf/stream_video.hpp>` now provides `list` (operation416)
+and `details` (417), returning owned ID, opaque state, reported ready flag, u64
+byte size and optional duration in seconds (-1 means unknown). It excludes URLs,
+arbitrary metadata, mutations and playback. IDs are1–128 ASCII alnum/underscore/
+hyphen bytes; list limit1–50; state1–64 UTF-8 bytes; size a nonnegative JS safe
+integer; duration finite and either nonnegative or-1. Local timeout1–60000ms.
+
+Wire body is empty. List uses empty key and `count:timeout_ms` options; details
+uses the video ID key and `timeout_ms`. Reply: LE u32 count followed by each
+length-prefixed ID/state, u32 boolean, u64 size and f64 duration. Maximum11004
+bytes. Both codecs reject malformed/bounded fields; details also checks ID equality.
+The shared C++ UTF-8 helper preserves the existing AI Search validation contract.
+
+Scoped acquisition promises, resolved scopes, pending reads and returned roots
+stay owned through projection and are released when synchronous Symbol.dispose is
+available. Abort/deadline disposes late handles without beginning a subsequent
+read, observes late rejection and never disposes the borrowed binding. This does
+not delete videos, stop native processing/billing or bound earlier native parsing,
+provider buffers or blocked event-loop time.
+
+The [C++/Wasm example](../examples/stream/README.md) reads real local simulator
+metadata (**L**), including concurrent details, list and missing/deleted records.
+A separate explicit mock tests malformed results, deadline and recovery (**M**).
+Its local-only fixture setup uses the simulator's raw-stream extension; that is
+not a C++ upload API or production format/upload evidence. The separate platform
+audit uses the URL argument shape. Remote Stream config is refused before local
+bundling. No account storage or delivery was used.
+
+List is account-scoped, not tenant authorization; a live plan must not enumerate
+unrelated account videos merely to exercise this method. Syntactically valid IDs
+are not permission to read them. Upload, mutation, filters/pagination, captions,
+downloads, watermarks, tokens and playback remain outside the C++ subset.
 
 Stream storage is prepaid in $5/month increments per 1000 minutes. Unfinished direct
 uploads reserve maxDurationSeconds; creation is not a free existence probe.

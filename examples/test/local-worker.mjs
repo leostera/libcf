@@ -13,6 +13,8 @@ async function workerOptions(configPath, root) {
   if (config.media) throw new Error('Media Transformations use a remote service; use an explicit local mock configuration');
   if (config.ai_search || config.ai_search_namespaces || config.agent_memory)
     throw new Error('AI Search and Agent Memory use remote services; use an explicit local mock configuration');
+  if (config.stream?.remote !== undefined && config.stream.remote !== false)
+    throw new Error('Remote Stream is not allowed in local tests; use the local simulator configuration');
   const directory = dirname(resolve(configPath));
   const moduleRoot = resolve(root, config.name);
   const wasm = [];
@@ -56,6 +58,7 @@ async function workerOptions(configPath, root) {
     },
     env: {
       ...(config.images ? { [config.images.binding]: { type: 'images' } } : {}),
+      ...(config.stream ? { [config.stream.binding]: { type: 'stream' } } : {}),
       ...Object.fromEntries((config.workflows ?? []).map(x => [x.binding, {
         type: 'workflow', name: x.name, worker: config.name, exportName: x.class_name,
       }])),
