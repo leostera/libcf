@@ -150,7 +150,7 @@ LOCAL_EXAMPLES = [name for name in EXAMPLES if name != "benchmark"] + ["hello"]
     entry_point = "examples/%s/test/worker.test.mjs" % name,
     data = JS_TEST_DATA + [":spike" if name == "hello" else ":" + name] +
            ([":durable-object"] if name == "durable" else []) +
-           ([":legacy-sites_bundle"] if name == "legacy-sites" else []),
+           ([":" + name + "_bundle"] if name in ["legacy-sites", "images"] else []),
 ) for name in LOCAL_EXAMPLES]
 
 filegroup(

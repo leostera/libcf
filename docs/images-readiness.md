@@ -1,9 +1,9 @@
 # Images transform and hosted-storage readiness
 
 Audit2026-10-14, pinned Miniflare5.20261006.1-alpha/workerd1.20261006.1,
-compatibility date2026-10-13. Existing libcf C++ support remains `Images::info()`.
-Native local feasibility below is **not** a C++ transform/hosted implementation or
-live verification. No account lookup, plan purchase, external image/font fetch,
+compatibility date2026-10-13. C++ supports `Images::info()` and the narrow
+`Images::rotate_png90()` subset below. Hosted lifecycle probes are **not** a C++
+hosted implementation; none of the new rotation/hosted checks is live verification. No account lookup, plan purchase, external image/font fetch,
 real upload, signed URL, direct-upload grant or provider resource was created.
 
 ## Worker-accessible surfaces
@@ -110,7 +110,7 @@ Hosted simulator source also has important differences/limits:
 
 `lib/image-rotate.mjs` now implements `performImageRotate(binding, bytes, timeout,
 signal?)`: one fixed clockwise90-degree rotation, PNG output and `anim:false`.
-This is not yet dispatched through the Wasm host ABI or exposed as a C++ method.
+Operation289 `ImageRotatePng90` now dispatches it with the request's abort signal.
 
 - Canonical decimal timeout1–60000ms; input/output at most1MiB; declared width and
   height1–1024;8-bit RGB/RGBA only. Interlace0/1 accepted. PNG signature, first IHDR,
@@ -136,13 +136,27 @@ This is not yet dispatched through the Wasm host ABI or exposed as a C++ method.
 SVG, text/fonts, arbitrary URLs, other angles/resize/formats and hosted mutations
 are not part of this prototype. No account operation or live transform occurred.
 
-## Remaining implementation and live gate
+## C++ vertical and remaining live gate
 
-The JS rotation prototype still needs a strict C++ codec, opcode dispatch and an
-actual emitted-bundle C++/Wasm example. Broader resize/format APIs remain open.
-Keep SVG, text/font sources and their external-resource interpretation outside
-this first subset. Preserve the JS ownership and boundary guarantees across that
-C++/Wasm call graph rather than relying on caller discipline. Dimension/byte
+`Images::rotate_png90(std::span<const std::uint8_t>, ImageRotateOptions)` returns
+`AsyncResult<Bytes>`; timeout defaults to5000ms. C++ checks the same framing/bounds
+before copying input, snapshots options/binding/expected dimensions, and accepts
+only Value replies with bounded framing and swapped dimensions. Size arithmetic
+subtracts before adding to prevent32-bit Wasm overflow. Native tests cover input/
+reply boundaries, exact1MiB, dimensions, malformed framing, unknown/Missing reply
+kinds, snapshots and primary provider failures. Mock framing is not pixel evidence.
+
+The Images integration harness loads the **emitted Bazel bundle**, not a fresh
+rebundle. It verifies rotation pixels independently, exact1MiB PNG input,8 concurrent
+pixel-correct calls, failures and recovery through C++/Wasm and the native binding.
+The original metadata routes remain. Rotation routes fail closed by default; only
+an explicit isolated test environment enables `LIBCF_IMAGES_LOCAL_ROTATION`.
+The same emitted bundle without that fixture flag returns403. Do not enable that
+flag in a deployment as a substitute for authentication, cost approval and a
+separate live plan. Existing metadata-only live preparation does not set it.
+
+Broader resize/format/angle APIs and hosted C++ clients remain open. SVG/text/fonts
+remain outside the rotation subset. Dimension/byte
 projection caps do not prove bounded provider decompression or processing cost.
 Do not introduce arbitrary URL/font fetch, implicit caching or hosted writes as
 part of transformation convenience methods.

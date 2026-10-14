@@ -55,6 +55,7 @@ enum class Operation : std::uint32_t {
   WorkflowDelete = 274,
   WorkflowSendEvent = 275,
   ImageInfoGet = 288,
+  ImageRotatePng90 = 289,
   RpcCallJson = 304,
   AiRunJson = 320,
   ServiceTcpExchange = 336,

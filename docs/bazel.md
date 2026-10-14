@@ -35,6 +35,12 @@ bazel test //:bundles_test
 bazel build //:rpc
 ```
 
+`--config=cxx23` selects the native test configuration; it does **not** override
+an example Worker's explicit/default `cf_worker(cxx_standard = 20)`. Use
+`cf_worker(cxx_standard = 23)` for a C++23 Worker, as the relocated SDK consumer
+check does. A successful example build with `--config=cxx23` alone is not C++23
+Wasm compilation evidence (the Images action parameters still select C++20).
+
 The JS test runs Node 26.11.1, parses JSONC, bundles the Bazel-generated hello
 bridge with esbuild, and executes C++ addition through Wasm in local workerd.
 It declares both generated JS/Wasm artifacts and npm dependencies. It does not

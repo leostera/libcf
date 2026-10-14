@@ -1,5 +1,5 @@
 import { deflateSync } from 'node:zlib';
-function chunk(name, data) {
+export function chunk(name, data) {
   const payload = Buffer.concat([Buffer.from(name), data]);
   let crc = 0xffffffff;
   for (const byte of payload) {
