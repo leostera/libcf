@@ -64,6 +64,7 @@ enum class Operation : std::uint32_t {
   AiSearchKeywordQuery = 400,
   StreamVideoList = 416,
   StreamVideoDetails = 417,
+  BrowserScreenshotHtmlPng = 432,
 };
 
 struct OperationCall {

@@ -147,7 +147,8 @@ routing/launch review, not a blind hash refresh. It never acquires/connects a
 browser, launches Chrome, downloads binaries or uses a personal profile.
 
 The default example harness refuses browser configurations before bundling.
-`lib/browser.mjs` now prototypes bounded HTML-only PNG through the documented
+`cf::BrowserRun::screenshot_html_png(BrowserScreenshotRequest)` in `<cf/browser.hpp>`
+is wired through operation432 and `lib/browser.mjs` for bounded HTML-only PNG via the documented
 `quickAction('screenshot', options)` method. It snapshots1..65536 UTF-8 input bytes
 before suspension, accepts1..512 viewport dimensions and1..60000ms local timeout,
 and caps the returned PNG payload at1MiB. MIME/signature checks are not full PNG
@@ -167,8 +168,11 @@ calls, preserves primary failures, and cannot change already-settled calls.
 
 Forwarded options are not verified network isolation; byte/deadline caps cannot
 bound native rendering memory, establish stopped billing or erase remote effects.
-No native AbortSignal option is invented. No Browser C++ API, operation number or
-runnable C++ Browser example is implemented yet.
+No native AbortSignal option is invented. The [C++/Wasm example](../examples/browser/README.md) uses an explicit mock renderer;
+concurrent UTF-8 requests, exact input cap, malformed responses, missing binding,
+deadline and recovery are tested. Its fixed2x3 PNG is not rendered HTML or the
+requested128x128 viewport. Native C++ tests validate owned request snapshots,
+UTF-8 and request/reply bounds. No native rendering or session API is claimed.
 
 Miniflare supports local browser sessions via raw Fetcher routes as well as remote proxy mode.
 Typed session-method parity has not been verified. Its pinned

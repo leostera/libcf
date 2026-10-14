@@ -1,0 +1,5 @@
+{
+  "name": "libcf-browser-local-mock",
+  "main": "local.mjs",
+  "compatibility_date": "2026-10-13"
+}
