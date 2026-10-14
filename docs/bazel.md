@@ -84,6 +84,11 @@ of overwriting its manifest. For a retry, retain/move the old directory only aft
 independently verifying cleanup of all resources it identifies. Do not erase active
 ownership evidence merely to clear an `EEXIST` error.
 
+The events probe has a separate elapsed Cron-observation budget: 20 minutes by
+default, configurable with `LIBCF_LIVE_CRON_TIMEOUT_MS` (1..3600000 ms). That
+single deadline covers HTTP, bounded 64-KiB response bodies and retry sleeps.
+Longer observation is opt-in and does not constitute delivery evidence.
+
 Probe target names replace family hyphens with underscores, for example
 `//:live_http_client`, `//:live_rate_limit` and `//:live_rpc`. Arguments and bounded
 readiness settings are unchanged. `//:prepare_cron_control` prepares the plain-JS
@@ -132,8 +137,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **81 test targets**: 19 native suites,
-C++20/23 all-header checks, 24 example/benchmark integration targets, 33 JS
+The default graph currently contains **82 test targets**: 19 native suites,
+C++20/23 all-header checks, 24 example/benchmark integration targets, 34 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally and in Linux CI; the 21-target native/header suite also
 passes under `--config=cxx23`.

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { liveHttp, awaitCertificate } from './live-http.mjs';
+import { awaitScheduled } from './live-scheduled.mjs';
 
 const host = process.argv[2];
 const request = liveHttp(host, 'events');
@@ -35,20 +36,5 @@ console.log(JSON.stringify({ host, queuePassed: ['text', 'bytes', 'explicit retr
 
 // Observe a real Cron event. There is deliberately no HTTP route that can
 // manufacture scheduled invocations; propagation may take several minutes.
-let observed;
-for (let attempt = 0; attempt < 61; attempt++) {
-  const response = await request('/scheduled-status');
-  const cron = await response.text();
-  if (response.status === 200) {
-    const time = Number(response.headers.get('x-scheduled-time'));
-    assert.equal(cron, '* * * * *');
-    assert(Number.isSafeInteger(time) && time > 0 && time % 60000 === 0);
-    assert(Math.abs(Date.now() - time) < 30 * 60 * 1000);
-    observed = { cron, scheduledTime: time };
-    break;
-  }
-  assert.equal(response.status, 404);
-  if (attempt < 60) await new Promise(resolve => setTimeout(resolve, 20000));
-}
-assert(observed, 'No real Cron invocation observed within 20 minutes');
+const observed = await awaitScheduled(request);
 console.log(JSON.stringify({ host, scheduledPassed: observed, cleanup: 'delete consumer, Worker/triggers, queue and isolated D1 database' }));
