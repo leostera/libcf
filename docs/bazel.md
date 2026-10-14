@@ -146,14 +146,15 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **97 test targets**: 22 native suites,
-C++20/23 all-header checks, 27 example/benchmark integration targets, 43 JS
+The default graph currently contains **98 test targets**: 22 native suites,
+C++20/23 all-header checks, 27 example/benchmark integration targets, 44 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
 The native/header suite now contains 24 targets, also tested with `--config=cxx23`.
 The AI and Vectorize integrations use explicitly mocked providers inside workerd,
 not remote inference/index services; the local harness rejects their production
-binding configurations.
+binding configurations. Dispatch namespace configurations are rejected too:
+its pinned emulator forwards to a remote Workers for Platforms namespace.
 Integration targets consume declared Wasm outputs rather than spawning compilers.
 The initial all-header attempt omitted `CF_CONSUMER_STANDARD`; the rules now
 provide the same explicit standard assertion selector as the previous consumer.
@@ -236,6 +237,13 @@ the bounded service TCP client. [Run 38511948729](https://github.com/leostera/li
 commit `8cc8f6c`, passed the complete pipeline with 93 default tests after adding
 its opt-in live harness. CI uses a real local service socket, not external TCP or
 a database; these CI results do not establish production socket behavior.
+
+[Run 38516878628](https://github.com/leostera/libcf/actions/runs/38516878628),
+commit `4550fd0`, passed 97 defaults, 24 C++23 native/header targets, 24 ASan/UBSan
+targets and relocated native20/23 plus Worker23 consumers of the 84-file SDK.
+Vectorize coverage is explicitly mock-only, not native index/ranking evidence.
+The Linux archive integrity was `sha256-vn9hnLhNXYTn/KNL43NSb1kB56OvKXlOFNl4kSKDSuE=`;
+no new cross-host equality claim is made.
 
 ## Current evidence
 

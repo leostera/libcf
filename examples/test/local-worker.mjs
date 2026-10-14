@@ -9,6 +9,7 @@ async function workerOptions(configPath, root) {
   const config = parseFixtureConfig(await readFile(configPath, 'utf8'));
   if (config.ai) throw new Error('Workers AI is remote inference; use an explicit local mock configuration');
   if (config.vectorize) throw new Error('Vectorize requires a remote index; use an explicit local mock configuration');
+  if (config.dispatch_namespaces) throw new Error('Dispatch namespaces require remote Workers for Platforms; use an explicit local mock configuration');
   const directory = dirname(resolve(configPath));
   const moduleRoot = resolve(root, config.name);
   const wasm = [];
