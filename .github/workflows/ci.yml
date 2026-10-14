@@ -36,6 +36,8 @@ jobs:
           g++-13 --version
       - run: bazel test --lockfile_mode=error //...
       - run: bazel test --lockfile_mode=error --config=cxx23 //:native_tests
+      - name: Relocated SDK external consumer
+        run: bazel run --lockfile_mode=error //:verify_package -- "$(command -v bazel)"
       - name: Native memory and UB checks
         run: bazel test --lockfile_mode=error --config=asan --test_timeout=60 //:native_tests
       - run: npm install --global cf@1.0.0-beta.6

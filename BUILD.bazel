@@ -1,36 +1,72 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+load("@rules_python//python:defs.bzl", "py_binary")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//tools:worker.bzl", "bridge_spike", "cf_worker")
+load("//tools:sdk.bzl", "cf_sdk")
 
 npm_link_all_packages(name = "node_modules")
 
-cc_library(
-    name = "cf",
-    hdrs = glob(["include/cf/**/*.hpp"]),
-    includes = ["include"],
-    visibility = ["//visibility:public"],
+cf_sdk()
+
+pkg_files(
+    name = "sdk_files",
+    srcs = glob(["include/cf/**/*.hpp", "lib/*.mjs", "lib/*.js"]) + [
+        "src/worker.cpp", "MODULE.bazel", "MODULE.bazel.lock", ".bazelversion",
+        "pnpm-lock.yaml", "pnpm-workspace.yaml", "REPO.bazel",
+        "//tools:BUILD.bazel", "//tools:sdk.bzl", "//tools:worker.bzl",
+        "packaging/BUILD.sdk.bazel", "packaging/package.json", "docs/packaging.md",
+    ],
+    strip_prefix = strip_prefix.from_root(""),
+    renames = {
+        "packaging/BUILD.sdk.bazel": "BUILD.bazel",
+        "packaging/package.json": "package.json",
+        "docs/packaging.md": "README.md",
+    },
 )
 
-cc_library(
-    name = "worker_runtime",
-    srcs = ["src/worker.cpp"],
-    copts = ["-O2", "-fexceptions", "-sDISABLE_EXCEPTION_CATCHING=1"],
-    deps = [":cf"],
-    target_compatible_with = ["@platforms//cpu:wasm32"],
-    visibility = ["//visibility:public"],
+pkg_tar(
+    name = "sdk_archive",
+    srcs = [":sdk_files"],
+    out = "cf-0.1.0.tar.gz",
+    package_dir = "cf-0.1.0",
+    extension = "tar.gz",
+    mode = "0644",
+    owner = "0.0",
+    mtime = 0,
+    portable_mtime = False,
+    stamp = 0,
 )
 
-filegroup(
-    name = "host_library",
-    srcs = ["lib/emscripten-host.js"],
-    visibility = ["//visibility:public"],
+py_binary(
+    name = "unpack_sdk",
+    srcs = ["scripts/unpack-sdk.py"],
+    main = "scripts/unpack-sdk.py",
 )
 
-filegroup(
-    name = "runtime_modules",
-    srcs = glob(["lib/*.mjs", "lib/*.js"]),
-    visibility = ["//visibility:public"],
+SDK_CHECK_DATA = [
+    ":sdk_archive", ":unpack_sdk", ":runtime_modules", ":node_modules/esbuild",
+    "scripts/sdk-archive.mjs", "src/worker.cpp", "tests/package/all_headers.cpp",
+] + glob(["include/cf/**/*.hpp"])
+
+js_test(
+    name = "sdk_archive_test",
+    entry_point = "tests/toolchains/package.mjs",
+    args = ["$(rootpath :unpack_sdk)"],
+    data = SDK_CHECK_DATA,
+)
+
+js_binary(
+    name = "verify_package",
+    entry_point = "scripts/verify-package.mjs",
+    args = ["$(rootpath :unpack_sdk)"],
+    data = SDK_CHECK_DATA + [
+        ":node_modules/miniflare", "tests/package/main.cpp",
+        "tests/package/consumer-worker.cpp", "tests/package/BUILD.consumer",
+    ],
+    tags = ["manual"],
 )
 
 EXAMPLES = [

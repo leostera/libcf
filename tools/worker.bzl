@@ -3,6 +3,7 @@
 load("@bazel_lib//lib:copy_file.bzl", "copy_file")
 load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
+load(":sdk.bzl", "WASM_COMPILE_OPTIONS")
 
 _WORKER_EXPORTS = [
     "_libcf_http",
@@ -15,14 +16,16 @@ _WORKER_EXPORTS = [
     "_free",
 ]
 
-def _module(name, srcs, deps, host_library, exports, visibility):
+def _module(name, srcs, deps, host_library, exports, visibility, cxx_standard = 20):
+    if cxx_standard not in [20, 23]:
+        fail("libcf requires C++20 or C++23")
     cc_binary(
         name = name + "_link",
         srcs = srcs,
         deps = deps,
         additional_linker_inputs = [host_library],
         # Match em++'s existing default: allow throws, without catch/unwind support.
-        copts = ["-O2", "-fexceptions", "-sDISABLE_EXCEPTION_CATCHING=1"],
+        copts = ["-std=c++%d" % cxx_standard] + WASM_COMPILE_OPTIONS,
         linkopts = [
             "-O2",
             "-sDISABLE_EXCEPTION_CATCHING=1",
@@ -57,7 +60,7 @@ def _module(name, srcs, deps, host_library, exports, visibility):
         visibility = visibility,
     )
 
-def cf_worker(name, srcs, visibility = None):
+def cf_worker(name, srcs, visibility = None, cxx_standard = 20):
     """Build a libcf Worker or DO module from application C++ sources."""
     _module(
         name = name,
@@ -66,6 +69,7 @@ def cf_worker(name, srcs, visibility = None):
         host_library = Label("//:host_library"),
         exports = _WORKER_EXPORTS,
         visibility = visibility,
+        cxx_standard = cxx_standard,
     )
 
 def bridge_spike(name):

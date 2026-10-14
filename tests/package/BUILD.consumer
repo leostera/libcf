@@ -1,0 +1,23 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@cf//tools:worker.bzl", "cf_worker")
+
+cc_test(
+    name = "native_consumer",
+    srcs = ["main.cpp"],
+    copts = ["-std=c++20"],
+    deps = ["@cf//:cf"],
+)
+
+[cc_test(
+    name = "headers_cxx%d" % standard,
+    srcs = ["all_headers.cpp"],
+    copts = ["-std=c++%d" % standard],
+    local_defines = ["CF_CONSUMER_STANDARD=%d" % standard],
+    deps = ["@cf//:cf"],
+) for standard in [20, 23]]
+
+cf_worker(
+    name = "consumer_worker",
+    srcs = ["consumer-worker.cpp"],
+    cxx_standard = 23,
+)

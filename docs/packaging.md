@@ -1,48 +1,108 @@
-# Installed CMake package
+# Bazel SDK archive
 
-libcf installs the header-only C++ target and its JS/Wasm host support files. No package publication is performed by these commands.
+Use official Bazel **9.3.0**, directly or through Bazelisk. No package publication
+is performed by these commands, and no CMake consumer interface is provided.
 
 ```sh
-cmake -S . -B build/package -DBUILD_TESTING=OFF \
-  -DCMAKE_INSTALL_PREFIX="$PWD/build/install"
-cmake --install build/package
+bazel build //:sdk_archive
+bazel test //:sdk_archive_test
+bazel run //:verify_package -- "$(command -v bazel)"
 ```
 
-Consumer `CMakeLists.txt`:
+The output is `bazel-bin/cf-0.1.0.tar.gz`, rooted at `cf-0.1.0/`. It contains all
+public/detail headers, every JS host adapter, `src/worker.cpp`, reusable Bazel
+rules, pinned dependency metadata and this README. It excludes examples, tests,
+built artifacts, account configuration, credentials and CMake files. Archive file
+modes are 0644, owner/group IDs are zero and modification times are zero.
 
-```cmake
-cmake_minimum_required(VERSION 3.24)
-project(my_worker LANGUAGES CXX)
-find_package(cf 0.1 CONFIG REQUIRED)
-add_executable(my_worker main.cpp)
-target_link_libraries(my_worker PRIVATE cf::cf)
-# Optional: use C++23 rather than the target's C++20 minimum.
-set_target_properties(my_worker PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED YES)
+## Native consumer
+
+Add to your `MODULE.bazel`, substituting the archive's URL and SHA-256 integrity:
+
+```starlark
+bazel_dep(name = "cf", version = "0.1.0")
+archive_override(
+    module_name = "cf",
+    urls = ["file:///absolute/path/cf-0.1.0.tar.gz"],
+    integrity = "sha256-<base64-encoded-SHA256>",
+    strip_prefix = "cf-0.1.0",
+)
+bazel_dep(name = "rules_cc", version = "0.2.26")
 ```
 
-Configure with `-DCMAKE_PREFIX_PATH=/path/to/install`. Include headers as `<cf/http.hpp>`, `<cf/subtle_crypto.hpp>`, etc.; there are no legacy namespace/package aliases.
+For local development, an extracted archive can instead be selected with
+`local_path_override(module_name = "cf", path = "/absolute/path/cf-0.1.0")`.
+Do not specify both overrides. Publication and registry submission remain separate
+approval-dependent activities; `cf` has not been published by this migration.
 
-## Runtime paths
+Consumer `BUILD.bazel`:
 
-`find_package` also exposes:
+```starlark
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 
-- `cf_RUNTIME_DIR`: installed adapter directory (normally `<prefix>/share/cf`). Contains `runtime.mjs`, event/DO adapters, binding helpers and `emscripten-host.js`.
-- `cf_WORKER_SOURCE`: installed `src/worker.cpp`, used when compiling a Worker with Emscripten.
+cc_binary(
+    name = "app",
+    srcs = ["main.cpp"],
+    copts = ["-std=c++20"],  # C++23 is also supported.
+    deps = ["@cf//:cf"],
+)
+```
 
-These are relocated paths, not references to the original source checkout or installation prefix. The install layout follows GNUInstallDirs: `CMAKE_INSTALL_INCLUDEDIR`, `CMAKE_INSTALL_DATADIR` and `CMAKE_INSTALL_LIBDIR`. The imported header target respects a customized include directory. If the package configuration is under a non-standard library directory, set `cf_DIR` directly to its installed `cmake/cf` directory.
+Include headers as `<cf/http.hpp>`, `<cf/router.hpp>`, etc. The header target does
+not implement native host callbacks or supply a Cloudflare runtime. Native builds
+use your host compiler/SDK. The SDK's `.bazelrc` is deliberately not shipped or
+implicitly inherited; select your native language standard explicitly. Commit the
+consumer's own module lockfile: dependency-module locks do not replace root
+application dependency resolution.
 
-The target itself supplies headers and the minimum language standard; it does **not** compile a Worker, generate a Wasm bundle, invoke Cloudflare deployment, or provide host implementations for a native executable. The repository's Emscripten examples demonstrate the current build flags and static Wasm import pattern. A native consumer can use portable pieces or supply host callbacks for asynchronous capabilities.
+## Worker / Durable Object module
 
-## Verification
+```starlark
+load("@cf//tools:worker.bzl", "cf_worker")
 
-The default suite includes `tests/installed-package.test.mjs`:
+cf_worker(
+    name = "worker",
+    srcs = ["worker.cpp"],
+    cxx_standard = 23,  # Defaults to 20; only 20 and 23 are accepted.
+)
+```
 
-1. Install into a temporary prefix with spaces in its path and non-default include/data/library directories.
-2. Move the entire prefix, removing the original location.
-3. Configure an independent `find_package(cf)` consumer against the relocated package.
-4. Compile all 36 current public headers together in explicit C++20 and C++23 modes, plus the core consumer, and execute all three CTest cases.
-5. Verify exported include/runtime/source paths and the installed header/module inventory. Every source adapter must be present with identical contents.
-6. Bundle all installed ESM adapters using esbuild, treating `cloudflare:*` as platform imports. Intentionally remove an installed dependency and verify resolution fails, proving there is no source-tree fallback.
-7. Remove all temporary files in `finally`.
+`bazel build //:worker` produces `bazel-bin/build/worker.mjs` and `worker.wasm`.
+The rule supplies the Emscripten toolchain, SDK bridge, language standard and
+required ABI exports. The shared bridge compiles in C++20; application sources
+may use C++20 or C++23. Throws are permitted but Wasm exception catching/unwinding
+remains disabled, matching the existing SDK policy.
 
-The header-inventory check fails when a new public header has not been added to the consumer. These are compilation, relocation and import-closure checks, not a live Worker deployment or a complete C++23 standard-library conformance test. Platform-only modules are not executed in Node. Existing Emscripten/workerd suites provide runtime checks separately.
+`@cf//:runtime_modules` exposes the JS adapters and
+`@cf//:host_library` exposes the Emscripten import library. Bundle the generated
+module with `lib/runtime.mjs` and a static compiled-Wasm import as demonstrated by
+the repository examples. The archive keeps adapter-relative imports intact.
+These are module build outputs, not complete deployment manifests: bindings,
+assets, service peers and resource ownership configuration belong to the app.
+No deployment occurs during a build.
+
+## Verification and limitations
+
+`//:sdk_archive_test` runs in the default test graph. It checks safe archive
+members and normalized metadata, the complete header and adapter inventories,
+source byte equality and adapter import closure. Removing an extracted dependency
+must make bundling fail rather than falling back to this checkout.
+
+`//:verify_package` is a separate Bazel run target because it starts fresh external
+Bazel builds. It requires the absolute path to an official Bazel 9.3.0 executable
+(or Bazelisk selecting that version). It:
+
+1. Moves the archive to a path containing spaces, removing its original location.
+2. Creates an unrelated consumer workspace with a checksum-pinned archive override.
+3. Builds/runs a native consumer and all-header C++20/C++23 checks, then repeats
+   with strict lockfile checking.
+4. Builds a C++23 Worker with the archive's rule, without a project `.bazelrc`.
+5. Bundles the extracted runtime with that consumer's generated module and executes
+   its HTTP response in local workerd.
+6. Removes temporary consumer, extraction and output directories in `finally`.
+
+The local macOS arm64 external consumer passes. Linux package CI and independent
+archive-byte repeatability checks are still pending. Dependency downloads may
+reuse Bazel caches; this is not a network-isolated or empty-download-cache test.
+Native SDK/compiler installation remains a host prerequisite. Nothing here proves
+additional live Cloudflare behavior or complete C++23 standard-library conformance.
