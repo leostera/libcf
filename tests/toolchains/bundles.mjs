@@ -9,7 +9,7 @@ const names = [
   'crypto', 'benchmark', 'http-client', 'pipeline', 'timer', 'workflow',
   'images', 'clock', 'rpc', 'ai', 'service-tcp', 'hello', 'hello-js', 'benchmark-js',
   'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference',
-  'vectorize', 'dispatch', 'dispatch-reference', 'media', 'ai-search', 'stream', 'browser', 'agent-memory', 'container', 'flagship', 'artifacts',
+  'vectorize', 'dispatch', 'dispatch-reference', 'media', 'ai-search', 'stream', 'browser', 'agent-memory', 'container', 'flagship', 'artifacts', 'analytics-sql',
 ];
 const plainJs = new Set(['hello-js', 'benchmark-js', 'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference', 'dispatch-reference']);
 const manifests = new Map();

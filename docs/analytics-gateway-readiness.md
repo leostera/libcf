@@ -1,8 +1,9 @@
 # Analytics SQL and AI Gateway readiness
 
 Audited2026-10-14 against Miniflare5.20261006.1-alpha/workerd1.20261006.1 and
-current public docs. P11 remains incomplete: a bounded Analytics SQL JS prototype
-is described below, but no dedicated C++ API, operation or example is wired yet. This audit makes no account query, model/provider call,
+current public docs. P11 remains incomplete: bounded C++ Analytics SQL scalar
+query/results now have an explicit-mock Wasm example. Native account verification
+is approval-dependent, and AI Gateway remains unimplemented. This audit makes no account query, model/provider call,
 gateway/log lookup, mutation or credential request.
 
 ## Analytics SQL is not Analytics Engine writeDataPoint
@@ -101,6 +102,32 @@ query engine**, including delivered unused capability disposal. This proves
 transport/projection mechanics, not Analytics SQL execution, account access,
 retryability transport into C++, provider retention or server disposer timing.
 
+## C++/Wasm scalar query vertical (mock only)
+
+`<cf/analytics_sql.hpp>` adds `cf::AnalyticsSql::query`, operation512
+`AnalyticsSqlQuery`, wired to the adapter above. `AnalyticsSqlQuery` owns a
+statement and optional variant of positional-vector/named-map parameters.
+`AnalyticsSqlScalar` is null/bool/double/string, not D1 blobs/int64 coercion.
+`AnalyticsSqlResult` owns rows of named columns plus elapsed duration in
+milliseconds and uint64 rows/bytes-read counters restricted to JS-safe integers.
+
+Input validation precedes bounded snapshots; a small scalar-only JSON encoder
+preserves absent/empty parameter shapes, UTF-8/control escaping and signed zero,
+with checked65536-byte aggregate budget. C++ host decoding independently checks
+reply kind, all lengths/counts, tags, UTF-8, finite/safe numbers, duplicate column
+names, statistics and trailing bytes; max aggregate1MiB. It does not infer SQL
+column types/order beyond the returned named scalar data. Provider retryability
+metadata is **not exposed** by the generic C++ host-error ABI; there is no retry.
+
+`tests/native/analytics_sql.cpp` tests input snapshots, exact parameter/result
+byte caps, truncations, malformed fields, scalar kinds, statistics and host errors.
+[The example](../examples/analytics-sql/README.md) exercises actual C++/Wasm with
+an explicit fake engine: named/positional forms, Unicode/NUL/quotes, negative zero,
+empty results,8 concurrent labels, text bounds, malformed/provider/cleanup/deadline
+failures and recovery. The fixture checks arguments, not SQL execution/dialect.
+Ordinary `analytics` declarations remain rejected. No native provider, account
+query, dataset enumeration, ingestion or billing operation was performed.
+
 ## AI Gateway uses the AI binding, with different operations
 
 `env.AI.run(model, inputs, {gateway: {id, ...}})` routes inference through a gateway.
@@ -163,9 +190,9 @@ configs. The existing local Analytics Engine write fixture remains allowed;
 it is a separate no-op acceptance test. `tests/analytics-gateway-policy.test.mjs`
 checks rejection order only, not isolation of arbitrary code.
 
-Next: typed C++ Analytics SQL scalar query/result API and explicit-mock Wasm
-example, plus a narrowly owned Gateway URL/metadata projection. Model provider
-error metadata explicitly before claiming C++ retryability support. No native read should be attempted without the applicable account,
+Next: a narrowly owned Gateway URL/metadata projection and broader approved
+Analytics SQL validation. Model provider error metadata explicitly before
+claiming C++ retryability support. No native read should be attempted without the applicable account,
 data, provider and cost plan. P11 remains open, not platform-unavailable.
 
 ## Sources

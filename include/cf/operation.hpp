@@ -69,6 +69,7 @@ enum class Operation : std::uint32_t {
   ContainerInspect = 464,
   FlagshipBooleanDetails = 480,
   ArtifactsRepositoryInfo = 496,
+  AnalyticsSqlQuery = 512,
 };
 
 struct OperationCall {
