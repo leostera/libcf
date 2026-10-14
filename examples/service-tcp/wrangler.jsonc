@@ -1,0 +1,9 @@
+{
+  "name": "libcf-service-tcp",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "services": [{ "binding": "BACKEND", "service": "libcf-service-tcp-reference" }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}

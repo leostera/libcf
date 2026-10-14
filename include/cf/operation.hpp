@@ -57,6 +57,7 @@ enum class Operation : std::uint32_t {
   ImageInfoGet = 288,
   RpcCallJson = 304,
   AiRunJson = 320,
+  ServiceTcpExchange = 336,
 };
 
 struct OperationCall {

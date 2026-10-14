@@ -7,10 +7,10 @@ const names = [
   'core', 'kv', 'd1', 'r2', 'cache', 'service', 'durable', 'events',
   'websocket', 'email', 'rate-limit', 'analytics', 'metadata', 'worker-loader',
   'crypto', 'benchmark', 'http-client', 'pipeline', 'timer', 'workflow',
-  'images', 'clock', 'rpc', 'ai', 'hello', 'hello-js', 'benchmark-js',
-  'service-upstream', 'http-upstream', 'rpc-reference',
+  'images', 'clock', 'rpc', 'ai', 'service-tcp', 'hello', 'hello-js', 'benchmark-js',
+  'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference',
 ];
-const plainJs = new Set(['hello-js', 'benchmark-js', 'service-upstream', 'http-upstream', 'rpc-reference']);
+const plainJs = new Set(['hello-js', 'benchmark-js', 'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference']);
 const manifests = new Map();
 for (const name of names) {
   const directory = `bundles/${name}`;

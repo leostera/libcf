@@ -40,21 +40,21 @@ bridge with esbuild, and executes C++ addition through Wasm in local workerd.
 It declares both generated JS/Wasm artifacts and npm dependencies. It does not
 read the old source `build/` artifacts, use Cloudflare credentials, or deploy.
 
-`//:all_workers` builds all 26 existing module pairs: 24 Worker examples,
+`//:all_workers` builds all 27 existing module pairs: 25 Worker examples,
 the separate Durable Object implementation and the hello bridge spike. The shared
 `src/worker.cpp` compiles once per configuration: action-graph inspection found
 26 C++ compilation actions, exactly one belonging to `//:worker_runtime`.
 `//tools:worker.bzl` provides the declared compile/link/extraction rule. Public
 runtime files are exposed through `//:runtime_modules` and `//:host_library`.
 
-`//:all_bundles` emits 30 JS/Wasm module bundles, including the private upstreams
+`//:all_bundles` emits 32 JS/Wasm module bundles, including the private upstreams
 and plain-JS baselines. Each `bazel-bin/bundles/<name>/` contains `worker.mjs`, a
 versioned `bundle.json` inventory and content-addressed static Wasm imports.
 For example, `bazel build //:rpc_bundle` builds only that bundle's dependencies.
 The bundler is a declared Node action with no deployment, account access or random
 resource identity. Bindings, assets and ownership manifests are separate deployment
 inputs; these module bundles are not complete prebuilt `cf deploy` directories.
-`//:bundles_test` validates all 30 inventories, Wasm hashes/validity and static
+`//:bundles_test` validates all 32 inventories, Wasm hashes/validity and static
 imports, then executes the emitted C++ and JS benchmark bundles in workerd.
 
 The upstream Bazel Emscripten toolchain defaults to `-fno-exceptions`, unlike the
@@ -145,11 +145,11 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **89 test targets**: 20 native suites,
-C++20/23 all-header checks, 25 example/benchmark integration targets, 39 JS
+The default graph currently contains **92 test targets**: 21 native suites,
+C++20/23 all-header checks, 26 example/benchmark integration targets, 40 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
-The native/header suite now contains 22 targets, also tested with `--config=cxx23`.
+The native/header suite now contains 23 targets, also tested with `--config=cxx23`.
 The AI integration uses an explicitly mocked provider inside workerd, not remote
 inference; the local harness rejects production AI binding configurations.
 Integration targets consume declared Wasm outputs rather than spawning compilers.
