@@ -67,3 +67,11 @@ frame limits and upgrade guards. The persisted initialization counter advanced
 from 1 to 2 while the same socket survived the idle interval: reconstruction was
 observed, not forced or guaranteed. Worker, namespace, DNS and certificate cleanup
 were verified independently.
+
+The [Bazel-built Queue/Cron rerun](live/bazel-events-2026-10-14.json) passed
+text/binary delivery, explicit retry/redelivery and oversized-message rejection.
+The overall probe **failed** because no durable Cron write was observed; the CLI's
+reported schedule application is not delivery evidence. Queue batch sending was
+not covered by this live probe. Consumer, Worker, queue, D1, DNS and certificate
+cleanup were verified. Cron remains unresolved rather than classified as an
+unsupported platform capability.

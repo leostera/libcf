@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "79c23495c47b9c3bff603769c69a2b3312cf0b8a",
+  "sourceDirty": false,
+  "excludedGeneratedPaths": [".cloudflare/"],
+  "bazel": "official 9.3.0 via Bazelisk 1.29.0",
+  "emscripten": "6.0.12",
+  "node": "26.11.1",
+  "compatibilityDate": "2026-10-13",
+  "preparation": "bazel run //:prepare_live_worker -- events <owned-database-id> <owned-queue-name>",
+  "probe": "bazel run //:live_events -- libcf-events-1499211118.libcf.leostera.dev",
+  "started": "2026-10-14T01:23:22.083Z",
+  "finished": "2026-10-14T01:48:26.819Z",
+  "worker": "libcf-events-1499211118",
+  "hostname": "libcf-events-1499211118.libcf.leostera.dev",
+  "version": "90f8bd01-ed0c-44ef-a64b-0d6e2da5264d",
+  "queue": {"name": "libcf-events-7f36600e5d", "id": "1f772a8cb3744845ae406f62b720ebe0"},
+  "consumer": "c5f52828649749f38582e9f4c7afddc8",
+  "database": {"name": "libcf-events-db-7f36600e5d", "id": "590d8321-e8b2-44f9-8111-952f6069b546"},
+  "artifactSha256": {
+    "events.wasm": "0a38194a8b54224bcaecc19fcf75dd017f3ab0e4645a1e18b79942d6eed3d353",
+    "worker.mjs": "e5cb791cf9eb01ae5fa1d9136effaf232b9dea959bc42b85f3e9c2ea82be9192"
+  },
+  "overallProbePassed": false,
+  "queuePassed": ["text delivery/readback", "binary delivery/readback", "explicit retry and redelivery", "SDK oversized-message rejection"],
+  "scheduledPassed": false,
+  "scheduledEvidence": {
+    "cliReportedAppliedSchedule": "* * * * *",
+    "durableScheduledWriteObserved": false,
+    "polls": 61,
+    "delayBetweenPollsMs": 20000,
+    "note": "This source used the old polling-count budget; HTTP time was additional. The later elapsed-deadline fix was not part of this run.",
+    "cronFilteredTelemetryRows": 0,
+    "telemetryFromUnixMs": 1791941002083,
+    "telemetryToUnixMs": 1791942011091,
+    "telemetryCaveat": "The captured query window ended before the probe. Log absence is not proof that no invocation occurred or that the platform is unsupported."
+  },
+  "cleanup": {
+    "ownedConsumerDeleted": true,
+    "worker404Code10007": true,
+    "queue404Code11000": true,
+    "database404Code7404": true,
+    "exactHostDnsEmpty": true,
+    "ownedHostnameAndWildcardAbsentFromCompleteCertificateListing": true
+  },
+  "limitations": ["No live Queue batch-send coverage in this probe.", "Cron delivery remains unresolved; CLI deployment success is not runtime delivery evidence."]
+}
