@@ -21,8 +21,25 @@ simulator, but its scope differs from production:
 - The local implementation also accepts raw stream upload input beyond the
   published URL-only binding signature. Do not use that convenience as evidence
   that a C++ byte-upload API works in production.
-- Metadata/storage simulation is not transcoding, HLS/DASH playback or delivery
-  evidence. The test does not fetch video sources, watermarks or playback URLs.
+- A second real simulator test imports the owned448-byte synthetic GIF through
+  the published URL-argument shape, using exactly one HTTP fetch from an owned
+  loopback server. It lists the resulting ID and reads scoped metadata, then
+  deletes the fixture and independently observes missing details and an empty
+  fresh list. No returned thumbnail, watermark or playback URL is fetched.
+- The simulator reports ready=true/state=ready but duration=-1 and dimensions0×0
+  for that known16×16,200ms fixture. These are simulated metadata, not transcoding,
+  GIF acceptance in production, playable output, HLS/DASH or delivery evidence.
+- Both the videos property and video(id) yield awaitable RPC handles locally.
+  Tests release the pending handles, resolved scopes and returned calls/results;
+  retired scopes reject reuse while fresh lookups keep working. This verifies
+  local RPC scope ownership, not production Stream cancellation or lifetime parity.
+
+A first C++ client can project bounded IDs, opaque state, ready flag, safe integer
+byte size and optional duration (-1 means unknown), avoiding URLs and arbitrary
+metadata. It must keep scoped handles alive through reads and dispose late handles
+without starting another read after a deadline. No Stream C++ API is implemented
+yet. List is account-scoped, not tenant authorization; a live plan must not enumerate
+unrelated account videos merely to exercise this method.
 
 Stream storage is prepaid in $5/month increments per 1000 minutes. Unfinished direct
 uploads reserve maxDurationSeconds; creation is not a free existence probe.
@@ -63,11 +80,13 @@ Pinned Miniflare's Media plugin is remote-only. The local harness rejects its
 production config before bundling; future explicit mocks are M, not provider L.
 The current binding documentation says public open beta transformations through
 this binding are **not billed**. This is separate from Stream storage/delivery and
-must be rechecked before any live probe. No transformation was executed here.
-The prepared opt-in probe uses an owned 448-byte animated GIF and authenticated
+must be rechecked before any live probe. The initial audit executed no transformation;
+the subsequent named live probe is recorded above.
+That opt-in probe used an owned 448-byte animated GIF and authenticated
 isolated ingress; at most three processing attempts, no transformation retries,
 URL crawling, AI or account storage. Only a token hash is deployed. The private
-token file must remain local and is not printed in preparation/probe reports.
+token file was removed after verified cleanup; future probe tokens must remain
+local and must not be printed in preparation/probe reports.
 Default tests decode the fixture with local Images/Sharp, verify native auth and
 exercise artifact policy and a mocked probe; none is native Media evidence.
 
