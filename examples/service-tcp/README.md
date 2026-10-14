@@ -41,7 +41,11 @@ failure or cancellation does not establish that the peer received no bytes or
 rolled back its effects. The peer must implement a half-close/EOF protocol; a
 persistent interactive peer will eventually hit the deadline instead.
 
-**Live verification is pending.** Build isolated artifacts with
+[The isolated Bazel live probe](../../docs/live/bazel-service-tcp-2026-10-14.json)
+passed empty/binary/1MiB, concurrency, invalid-address, overflow, deadline and
+recovery cases; both Workers and frontend DNS/certificate-pack cleanup were
+independently checked. This does not extend support to persistent sockets, socket
+TLS or C++ inbound handlers. Build isolated artifacts with
 `bazel run //:prepare_live_worker -- service-tcp` (no deployment). The retained
 manifest names the private upstream and approved HTTPS frontend. Deploy the
 private upstream first using cf CLI, then the frontend; run

@@ -3,12 +3,12 @@
 Checked2026-10-14 against workerd `v1.20261006.1`, Miniflare
 `5.20261006.1-alpha`, compatibility date `2026-10-13`, current Cloudflare docs and
 the previously inventoried workers-types `5.20261010.1` declarations.
-A [bounded C++ service TCP client](../examples/service-tcp/README.md) now has native/JS and real C++/Wasm local verification. No persistent socket, Hyperdrive, C++ inbound handler or live networking verification is claimed.
+A [bounded C++ service TCP client](../examples/service-tcp/README.md) now has native/JS and real C++/Wasm local verification. The bounded client also passed an [isolated live probe](live/bazel-service-tcp-2026-10-14.json) with cleanup. No persistent socket, Hyperdrive or C++ inbound handler support is claimed.
 
 | Path | Evidence and classification |
 | --- | --- |
 | Outbound TCP | Public `cloudflare:sockets.connect()` API; libcf wrapper still planned. It returns readable/writable streams, opened/closed promises, close and StartTLS. |
-| Service-forwarded inbound TCP | Public `connect(socket, env, ctx)` handler, reached through `env.BACKEND.connect(address)`. Actual JS-only byte echo passes in pinned local workerd; Bounded C++ client exchange is locally verified; C++ inbound entrypoint and live verification remain unimplemented. |
+| Service-forwarded inbound TCP | Public `connect(socket, env, ctx)` handler, reached through `env.BACKEND.connect(address)`. Actual JS-only byte echo passes in pinned local workerd; Bounded C++ client exchange is locally and live verified; the C++ inbound entrypoint remains unimplemented. |
 | Direct public inbound TCP | Current docs explicitly exclude public Internet connections, including HTTP CONNECT to a Worker URL. Service-forwarded ingress is a different capability. |
 | Hyperdrive | Worker binding offers context-scoped credentials and an unauthenticated socket; a compatible DB driver must still authenticate/speak the database protocol. No driver, credential transport or query path implemented in libcf. |
 | `node:dgram` | Explicitly documented non-functional stub, not UDP support. The pinned implementation's send/connect methods are no-ops. Local test checks stub construction/empty address without sending a datagram. |

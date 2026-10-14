@@ -27,6 +27,16 @@ The internal-only Workers and isolated D1 were deleted, with independent absence
 checks. Schedule activation/delivery remains unresolved; repeated deployment alone
 is not a remedy or evidence of platform incompatibility.
 
+The [Bazel service TCP pair](live/bazel-service-tcp-2026-10-14.json) passed on clean
+source `8cc8f6c`: empty/binary/1MiB buffers, eight concurrent exchanges, invalid
+address, response overflow, deadline and recovery. Only the frontend had an
+approved HTTPS domain; the JS connect-handler reference stayed private. Both
+Workers returned404/code10007 after deletion, exact frontend DNS was empty, and
+a complete certificate-pack listing contained no matching hostname or wildcard.
+This proves the bounded C++ service-binding client, not general outbound TCP,
+socket TLS, public TCP ingress or a C++ server. A later manual TLS/certificate
+check occurred after cleanup and is not evidence of a failed readiness phase.
+
 ## Cache deployment probe
 
 ```sh

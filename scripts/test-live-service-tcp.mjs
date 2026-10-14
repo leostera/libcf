@@ -26,5 +26,5 @@ assert.equal(recovery.status, 200);
 assert.equal(new TextDecoder().decode(await readBounded(recovery.body, 64)), 'recovered');
 console.log(JSON.stringify({ host, passed: ['empty/binary/1-MiB service TCP exchange',
   '8 concurrent owned buffers', 'invalid address', 'reply overflow', 'deadline', 'recovery'],
-  publicTcpListener: false, externalTcpDestination: false, tlsVerified: false,
+  publicTcpListener: false, externalTcpDestination: false, socketTlsVerified: false,
   cppInboundHandler: false, remoteRollbackVerified: false }, null, 2));
