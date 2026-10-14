@@ -3,7 +3,8 @@
 Audited2026-10-14 against Miniflare5.20261006.1-alpha/workerd1.20261006.1 and
 current public docs. P11 remains incomplete: bounded C++ Analytics SQL scalar
 query/results now have an explicit-mock Wasm example. Native account verification
-is approval-dependent, and AI Gateway remains unimplemented. This audit makes no account query, model/provider call,
+is approval-dependent. AI Gateway has a JS URL lookup prototype only; no C++ API
+or example is wired yet. This audit makes no account query, model/provider call,
 gateway/log lookup, mutation or credential request.
 
 ## Analytics SQL is not Analytics Engine writeDataPoint
@@ -162,6 +163,45 @@ stops provider work/billing. The legacy run implementation normalizes/mutates
 request header values; a future bridge must own bounded request data before
 calling it, rather than leaking mutation into caller-owned options.
 
+### Bounded Gateway URL JS prototype
+
+`lib/ai-gateway.mjs::performAiGatewayUrl` calls only `binding.gateway(id)` then
+`gateway.getUrl(provider?)`, preserving receivers and argument omission. It does
+not pass beta/experimental options; the binding's ambient compatibility behavior
+still applies. It does not call inference, list/create gateways, getLog, patchLog,
+or fetch the returned endpoint. In particular, this is not local URL construction.
+
+- Explicit gateway ID1–64ASCII lowercase alphanumeric/hyphen, alphanumeric first.
+  Optional provider uses the same subset; empty body omits the argument. Explicit
+  `universal` is forwarded, not silently omitted. Explicit `default` gateway ID
+  is allowed, but does not cause an inference call or implicit ID selection.
+- Canonical decimal timeout1–60000ms. Provider bytes are decoded/owned before
+  yielding, so caller mutation cannot change the invocation.
+- Returned primitive string must exactly match
+  `https://gateway.ai.cloudflare.com/v1/<account>/<id>/<provider>`; account is
+  1–128ASCII alphanumeric/hyphen, alphanumeric first, exact echoed ID/provider.
+  Omitted/universal provider requires the trailing slash with no provider suffix,
+  as documented. No normalization, credentials, query, fragment, port, encoded
+  path segments, alternate origin or custom endpoint shape is supported.
+- Raw owned ASCII wire41–295bytes, no length prefix. This is a deliberately narrow
+  documented endpoint-shape subset, **not** native existence, account ownership,
+  provider support, authorization, routing or permission to fetch. Unknown provider
+  names are only syntax-checked; native support is not implied.
+- Up to four owned roots (acquisition/gateway/pending/result, including malformed
+  nonprimitive result), held through validation/encoding; reverse conditional
+  synchronous disposal, identity deduplication, borrowed binding excluded. Cleanup
+  rejects success but preserves primary errors. No retry; deadline/abort drains
+  late results and prevents getUrl after canceled acquisition, not proof backend
+  work stopped or that a gateway was deleted.
+
+`tests/ai-gateway-adapter.test.mjs` verifies receiver/argument/snapshot semantics,
+canonical shape and echoed selectors, exact min/max, malformed input/result,
+disposal, aliases and both-stage cancellation/late failures.
+`tests/ai-gateway-rpc-lifetime.test.mjs` uses native service RPC with **fake gateways**,
+not the AI binding/backend. Delivered gateway capability disposal and borrowed
+service survival are transport evidence, not server disposer timing or provider
+verification. No native lookup, inference, private log or account operation ran.
+
 ### Gateway privacy and cost gates
 
 Core Gateway features are published as free on all plans, not provider inference.
@@ -190,8 +230,8 @@ configs. The existing local Analytics Engine write fixture remains allowed;
 it is a separate no-op acceptance test. `tests/analytics-gateway-policy.test.mjs`
 checks rejection order only, not isolation of arbitrary code.
 
-Next: a narrowly owned Gateway URL/metadata projection and broader approved
-Analytics SQL validation. Model provider error metadata explicitly before
+Next: typed C++ Gateway URL API and explicit-mock Wasm example, plus broader
+approved Analytics SQL validation. Model provider error metadata explicitly before
 claiming C++ retryability support. No native read should be attempted without the applicable account,
 data, provider and cost plan. P11 remains open, not platform-unavailable.
 
