@@ -69,6 +69,8 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 
 | 480 | `FlagshipBooleanDetails` | [Flagship boolean details](../examples/flagship/test/worker.test.mjs) | L | Approval | Required fallback, optional targeting key and bounded owned details through C++/Wasm with native local Flagship: static/disabled, one equality rule, concurrent matching/nonmatching calls, missing/type fallback, update and delete/readback. Separate mocks retain bounds/cleanup/deadline tests. No propagation, general targeting/rollout parity, native cancellation or account authorization claim. |
 
+| 496 | `ArtifactsRepositoryInfo` | [Artifacts metadata](../examples/artifacts/test/worker.test.mjs) | M | Approval | Existing-name get/info only; owned ID/name/default-branch/read-only projection through actual C++/Wasm with fake repositories. Separate native RPC lifetime fixture is not Artifacts provider evidence. No listing, tokens, mutation, Git/file or native cancellation/billing claim; owned data and pricing approval required. |
+
 ## Scope not represented by binding-operation numbers
 
 - HTTP entry/response, environment variables, RNG/UUID and the streaming C ABI have separate tests and live records. The synchronous `libcf_host_now` f64 import is outside this enum: [wall-clock example](../examples/clock/README.md), native and host tests plus two workerd cases; corrected live probe verified f64 samples, same-turn reads, post-I/O sampling, JS brackets and concurrency, followed by cleanup. No clock precision or monotonicity guarantee. RNG smoke is not an entropy audit. Stream bytes/client cancellation are not a verified transport-backpressure claim.

@@ -68,6 +68,7 @@ enum class Operation : std::uint32_t {
   AgentMemoryListCreatingProfile = 448,
   ContainerInspect = 464,
   FlagshipBooleanDetails = 480,
+  ArtifactsRepositoryInfo = 496,
 };
 
 struct OperationCall {

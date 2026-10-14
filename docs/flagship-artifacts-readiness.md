@@ -129,8 +129,8 @@ expiry/revocation, timeout behavior and independent deletion/absence checks.
 ## Bounded Artifacts JS prototype
 
 `lib/artifacts.mjs::performArtifactsInfo` now performs only `get(name)` followed
-by the returned repository's `info()`. No runtime operation, C++ API or standalone
-example is wired yet. Missing/not-ready lookup remains an error; no implicit
+by the returned repository's `info()`. Operation496 now connects this projection
+to `<cf/artifacts.hpp>` and an [explicit-mock C++/Wasm example](../examples/artifacts/README.md). Missing/not-ready lookup remains an error; no implicit
 create, enumeration, import, credential issuance or compensating deletion.
 
 - Repository selector: 1–128 ASCII bytes, first alphanumeric and the remainder
@@ -203,9 +203,26 @@ account authorization or native cancellation.
 
 Next: broader typed evaluation and context capabilities, then separately approved
 live verification. Artifacts still
-has no C++ API/example; add its typed metadata decoder and explicit-mock example
-after the JS projection tests, retaining native approval gates.
+has only the narrow metadata client/example below; wider capabilities and native
+provider verification remain open, retaining data-access and pricing gates.
 P09 remains partial, not complete.
+
+### Typed Artifacts metadata subset
+
+`cf::Artifacts(runtime, binding).info(name, options)` looks up an existing name.
+`ArtifactsInfoOptions` timeout defaults5000ms. A string_view selector and options
+by const reference are validated before bounded owned copies; no caller references
+escape. `ArtifactsRepositoryInfo` owns ID/name/default_branch/read_only. Strict
+19–528-byte decoding rejects wrong reply kind, noncanonical booleans, malformed
+UTF-8, field bounds, mismatched name, truncation and trailing bytes. Native tests
+include1MiB invalid lvalues, post-call mutation, minima/maxima and host failures.
+
+The actual C++/Wasm example uses fake repositories only: eight concurrent lookups,
+maxima, BOM/NUL output, malformed input/results, missing binding/repository,
+cleanup failure and both acquisition/read deadlines with recovery. Native RPC
+fixtures remain fake-provider transport evidence. The emitted bundle health route
+executes without a binding. No native Artifacts call, account resource, token,
+import, mutation or Git/file capability was exercised or implemented.
 
 ## Sources
 
