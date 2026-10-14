@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "58400d76f5261210172049bc38fc0f125ce895f2",
+  "verifiedAt": "2026-10-14T00:20:24.869Z",
+  "bazel": "9.3.0 official",
+  "archive": "cf-0.1.0.tar.gz",
+  "sha256": "cb774c1fd7c43ed6a82f03888f5e7a23470b0538b347c16f5c21717dbdcb2b23",
+  "sdkFiles": 78,
+  "independentMacBuilds": 2,
+  "macHost": "macOS arm64 / Apple clang 17.0.0 / SDK 26.2",
+  "linuxHost": "Ubuntu 24.04 x86_64 / GCC 13.3.0",
+  "ci": "https://github.com/leostera/libcf/actions/runs/38489131176",
+  "archiveBytesIdenticalAcrossHosts": true,
+  "externalConsumer": {
+    "sdkFiles": 78,
+    "archiveIntegrity": "sha256-y3dMH9fEPtaoLwOIj156I0cLBTizR8FvXCFxfb3LKyM=",
+    "nativeStandards": [
+      20,
+      23
+    ],
+    "workerStandard": 23,
+    "externalWorkerExecuted": true,
+    "relocatedArchive": true,
+    "cmakeUsed": false
+  },
+  "limitations": [
+    "Archive reproducibility only; native/Wasm binary cross-host identity was not compared",
+    "Public dependency downloads may reuse caches",
+    "No publication or live deployment performed"
+  ]
+}

@@ -3,8 +3,10 @@
 Status: build-path audit and declared artifact graph complete on macOS arm64:
 25 Wasm module pairs, 29 JS/Wasm bundles, 19 native suites and initial workerd checks.
 Two independent clean builds produced byte-identical bundle files. The 79-target
-local graph and Linux CI, including C++23 and sanitizers, pass. Packaging and
-removal of superseded build/consumer commands remain pending.
+local graph and Linux CI, including C++23 and sanitizers, pass. SDK packaging
+and external consumption pass on macOS/Linux; the default graph now has 80 tests.
+SDK archive bytes match across both platforms. Removal of superseded build/consumer
+commands remains pending.
 See [current Bazel commands and limitations](bazel.md).
 
 The agreed destination is **Bazel-only**, including tests, CI and packaging.

@@ -101,8 +101,14 @@ Bazel builds. It requires the absolute path to an official Bazel 9.3.0 executabl
    its HTTP response in local workerd.
 6. Removes temporary consumer, extraction and output directories in `finally`.
 
-The local macOS arm64 external consumer passes. Linux package CI and independent
-archive-byte repeatability checks are still pending. Dependency downloads may
-reuse Bazel caches; this is not a network-isolated or empty-download-cache test.
+The external consumer passes on macOS arm64 and Ubuntu 24.04 x86_64 (GCC 13.3.0).
+CI run `38489131176`, source commit `58400d7`, passed all 80 default tests,
+C++23, sanitizers, external consumption and the deployment dry-run. Two independent
+clean macOS builds and Linux CI produced the same 78-file archive with SHA-256
+`cb774c1fd7c43ed6a82f03888f5e7a23470b0538b347c16f5c21717dbdcb2b23`.
+This digest identifies that source revision, not future documentation/code changes.
+It proves archive-byte repeatability, not cross-host native/Wasm binary identity.
+Dependency downloads may reuse Bazel caches; this is not a network-isolated or
+empty-download-cache test.
 Native SDK/compiler installation remains a host prerequisite. Nothing here proves
 additional live Cloudflare behavior or complete C++23 standard-library conformance.

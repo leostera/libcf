@@ -2,8 +2,8 @@
 
 Use the **official Bazel 9.3.0 release binary**, directly or through Bazelisk
 (`.bazelversion`). The public header target is `//:cf`;
-the Bzlmod module is named `cf`. Packaging, CI and final command cleanup are still being migrated. The declared
-local test graph is available:
+the Bzlmod module is named `cf`. Packaging and CI are verified; removal of obsolete commands is still in progress.
+The declared local test graph is available:
 
 ```sh
 bazel test //...
@@ -79,16 +79,18 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **79 test targets**: 19 native suites,
+The default graph currently contains **80 test targets**: 19 native suites,
 C++20/23 all-header checks, 24 example/benchmark integration targets, 32 JS
-adapter/policy checks and two toolchain/bundle checks. The 79-target graph passes
-locally; the 21-target native/header suite also passes under `--config=cxx23`.
+adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
+The graph passes locally and in Linux CI; the 21-target native/header suite also
+passes under `--config=cxx23`.
 Integration targets consume declared Wasm outputs rather than spawning compilers.
 The initial all-header attempt omitted `CF_CONSUMER_STANDARD`; the rules now
 provide the same explicit standard assertion selector as the previous consumer.
 
 The old CMake installed-package test is **not** counted or run by Bazel. Its
-archive/external-consumer replacement is a remaining migration requirement.
+[archive/external-consumer replacement](packaging.md) passes on macOS and Linux.
+External consumption runs separately through `bazel run //:verify_package`.
 Compiler-spawning integration wrapper files still exist pending command cleanup,
 but their example tests run directly through Bazel. Live-policy/readiness/artifact tests are
 local simulations; their names do not imply account access or new live evidence.
@@ -114,8 +116,12 @@ commit `92d7a0c`, passed on Ubuntu 24.04/GCC 13.3.0 with official Bazel 9.3.0:
 - all 21 native/header targets under ASan/UBSan, with a 60-second test timeout;
 - preparation using Bazel-built modules and an offline `cf deploy` dry-run.
 
-No Cloudflare account resources were created. Packaging/external-consumer tests
-and removal of superseded commands remain separate unfinished requirements.
+No Cloudflare account resources were created. Later
+[run 38489131176](https://github.com/leostera/libcf/actions/runs/38489131176),
+commit `58400d7`, also passed the new archive test (80 default targets total) and
+relocated external-consumer checks. The SDK archive matched both independent
+macOS builds byte-for-byte; [the report](builds/sdk-2026-10-14.json) records its
+source revision and digest. Removal of superseded commands remains unfinished.
 GitHub reported a deprecation notice for the pinned checkout/setup-node v4 actions'
 internal Node runtime; the project's Node toolchain remains pinned and tested.
 
@@ -142,5 +148,4 @@ fresh output bases and the same locked/system-only-PATH procedure, passed the
 This is same-host repeatability with a shared download cache, not cross-host or
 empty-download-cache reproducibility.
 
-This does not replace all-header consumer checks, remaining integration tests, live verification
-or release reproducibility checks. See [the migration checklist](bazel-migration.md).
+These build checks do not replace live verification or the final release audit. See [the migration checklist](bazel-migration.md).
