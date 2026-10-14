@@ -45,7 +45,7 @@ a verified platform limitation.
 | S04 | [DO](../examples/durable/README.md) | General IDs/stubs/connect/RPC surface beyond named buffered fetch; existing subset has Bazel live evidence. |
 | S05 | [durable_storage.hpp](../include/cf/durable_storage.hpp), [DO](../examples/durable/README.md) | KV storage CRUD/list, broader transaction/cursor/sync/alarm APIs; SQL batches are not arbitrary async transactions. |
 | S06 | [WebSocket](../examples/websocket/README.md), [DO](../examples/durable/README.md) | Tags/attachments; live reconstruction observed, not forced eviction or alarm-retry proof. |
-| E01 | [events](../examples/events/README.md) | sendBatch/delay/dead-letter surface; revised raw-body rejection at128000 bytes needs live rerun. Earlier Queue delivery/retry pass does not verify the revised boundary. |
+| E01 | [events](../examples/events/README.md) | sendBatch/dead-letter surface and native nonzero producer-delay evidence; existing delay defaults explicitly to zero. Local UTF-8 BOM preservation and strict producer-reply checks pass; revised raw-body rejection at128000 bytes needs live rerun. Earlier Queue delivery/retry pass does not verify the revised boundary. |
 | E02 | [events](../examples/events/README.md) | No durable Cron write in45-minute JS/C++ control; need a new diagnostic hypothesis/readback, not unchanged redeployment. |
 | E03 | [email](../examples/email/README.md) | Inbound reply and outbound send unimplemented; real routing requires approved owned sender/destination. |
 | E04 | [rate limit](../examples/rate-limit/README.md) | Supported limit/key outcome subset has historical live evidence; Bazel rerun pending, no global quota claim. |

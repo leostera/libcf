@@ -14,11 +14,28 @@ C++ consumers must return `queue_ack()` or `queue_retry(delay)` explicitly. A ge
 
 The example awaits a D1 insert before acknowledging. Message ID is the primary key and `INSERT OR IGNORE` makes duplicate successful processing idempotent. `retry:` text is deliberately retried on its first attempt. Producers use `POST /send/text` and `/send/bytes`; `POST /lookup` returns a processed body with attempt/format headers. `GET /scheduled-status` reports the last scheduled metadata persisted by C++. Schema creation is idempotent and performed in the example; it is not a required SDK behavior.
 
-Six local tests exercise actual workerd Queue text/binary delivery, retry/redelivery before ack, a concurrent 16-message batch plus duplicate-ID replay, scheduled metadata, scheduled failure and oversized-producer rejection. Native tests reject malformed event metadata/delays; JS boundary tests check unsupported payloads and reserved-key conflicts. Scheduled tests invoke workerd's scheduled event directly, not a public HTTP simulation route. Live text/binary delivery, explicit retry/redelivery and oversized-producer rejection passed. The real Cron probe timed out without a scheduled write; scheduled handlers remain locally verified only. See [live evidence](../../docs/live-verification.md).
+Seven local tests exercise actual workerd Queue text/binary delivery, retry/redelivery before ack, a concurrent 16-message batch plus duplicate-ID replay, scheduled metadata, scheduled failure and oversized-producer rejection. Native tests reject malformed event metadata/delays; JS boundary tests check unsupported payloads and reserved-key conflicts. Scheduled tests invoke workerd's scheduled event directly, not a public HTTP simulation route. Live text/binary delivery, explicit retry/redelivery and oversized-producer rejection passed. The real Cron probe timed out without a scheduled write; scheduled handlers remain locally verified only. See [live evidence](../../docs/live-verification.md).
 
 Not implemented: JSON/V8 payloads, sendBatch/results metrics, batch ack/retry helpers, dead-letter management, scheduled noRetry controls or exactly-once delivery. The current runtime rejects an ArrayBuffer for `contentType: 'bytes'` and requires an ArrayBufferView; the producer uses a copied Uint8Array. This was verified locally and live, not inferred from documentation (which currently describes ArrayBuffer).
 
 The producer boundary was corrected from binary KiB to decimal KB on 2026-10-14. Native and JS tests cover 127,999-byte dispatch, 128,000-byte rejection, invalid delays/UTF-8, owned byte copies and provider failure without retries. Near-limit dispatch tests use mocks, not a live acceptance claim. Queue `sendBatch`, JSON/V8 payloads and queue metrics remain unimplemented; concurrent consumer-batch tests do not establish producer `sendBatch` support.
+
+Producer text decoding preserves leading U+FEFF characters (including repeated ones).
+A native C++ producer → Queue consumer → D1 readback test compares raw UTF-8 bytes:
+`Response.text()` would itself remove a leading BOM. Both text and byte payloads
+are snapshotted before reading the provider's `send` property, and the original
+receiver is retained. JS regressions failed before these fixes.
+
+A successful C++ send reply must be `Value` with no bytes; Missing, unknown kinds
+and unexpected payloads now fail with HostFailure. This is a producer host reply,
+not a consumer acknowledgment or delivery proof. A failed reply can occur after
+the provider accepted a message, so libcf never automatically retries. Application
+retries need a payload-level idempotency strategy: a newly enqueued message can
+have a new Queue message ID, defeating deduplication by that ID alone.
+
+The existing default send delay is explicitly zero, overriding a queue-level
+default delay. Nonzero producer-delay delivery timing still needs native/live
+evidence; bounds checks and retry/redelivery are not that proof.
 
 Limit source retrieved 2026-10-14: [Queue limits](https://developers.cloudflare.com/queues/platform/limits/) (1 KB = 1,000 bytes; internal metadata counts toward message limits).
 

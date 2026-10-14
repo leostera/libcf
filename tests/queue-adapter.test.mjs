@@ -50,6 +50,30 @@ test('Queue byte payload is owned before awaiting the binding', async () => {
   await result;
 });
 
+test('Queue text preserves leading Unicode BOM code points', async () => {
+  for (const text of ['\uFEFF', '\uFEFFhello', '\uFEFF\uFEFFhello']) {
+    let captured;
+    await performQueue(112, { send(value) { captured = value; } }, new TextEncoder().encode(text), '0');
+    assert.equal(captured, text);
+  }
+});
+
+test('Queue snapshots text and bytes before accessing the send method', async () => {
+  for (const method of [112, 113]) {
+    const input = Uint8Array.of(65, 66);
+    let captured;
+    const queue = { get send() {
+      input.fill(90);
+      return function(value) { assert.equal(this, queue); captured = value; };
+    } };
+    await performQueue(method, queue, input, '0');
+    assert.deepEqual(captured, method === 112 ? 'AB' : Uint8Array.of(65, 66));
+  }
+  let accessed = false;
+  await assert.rejects(performQueue(112, { get send() { accessed = true; } }, Uint8Array.of(255), '0'));
+  assert.equal(accessed, false, 'invalid text must fail before provider method access');
+});
+
 test('Queue propagates ambiguous provider failure without retrying', async () => {
   let calls = 0;
   const failure = new Error('provider failure');

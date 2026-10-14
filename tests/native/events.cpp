@@ -65,4 +65,31 @@ int main() {
   boundary_task.resume();
   assert(boundary_task.done() && accepted == 2);
   boundary_task.destroy();
+
+  // A send acknowledgment has exactly one valid wire shape. Failure is not a
+  // safe retry signal: the provider may already have accepted the message.
+  for (bool text : {false, true}) {
+    for (auto reply : {OperationReply{ReplyKind::Value, {}},
+                       OperationReply{ReplyKind::Missing, {}},
+                       OperationReply{static_cast<ReplyKind>(255), {}},
+                       OperationReply{ReplyKind::Value, Bytes{1}}}) {
+      const bool valid = reply.kind == ReplyKind::Value && reply.bytes.empty();
+      int sends = 0;
+      BindingRuntime replies([&](OperationCall, BindingRuntime::Completion done) {
+        ++sends;
+        done(Result<OperationReply>::success(reply));
+      }, [](auto) {});
+      Queue producer(replies, "EVENTS");
+      auto check = [&]() -> Task {
+        auto result = co_await (text ? producer.send_text("x") : producer.send_bytes(Bytes{1}));
+        assert(static_cast<bool>(result) == valid);
+        if (!valid) assert(result.error().code == ErrorCode::HostFailure);
+        co_return queue_ack();
+      };
+      auto checked = check().take();
+      checked.resume();
+      assert(checked.done() && sends == 1);
+      checked.destroy();
+    }
+  }
 }

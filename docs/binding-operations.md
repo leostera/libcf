@@ -37,8 +37,8 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 81 | `DurableSqlBatch` | [DO](../examples/durable/test/worker.test.mjs) | L | V | Atomic statement groups, racing increments and rollback. |
 | 82 | `DurableSetAlarm` | [DO](../examples/durable/test/worker.test.mjs) | L | V | Alarm handler's durable effects observed; alarm retry is not verified. |
 | 96 | `DurableFetch` | [DO](../examples/durable/test/worker.test.mjs) | L | V | Named-object buffered fetch, object isolation, binary/headers/errors. |
-| 112 | `QueueSendText` | [Events](../examples/events/test/worker.test.mjs) | L | V | Consumer readback and explicit retry/redelivery; not exactly-once. Revised rejection at128000 raw bytes needs live rerun. |
-| 113 | `QueueSendBytes` | [Events](../examples/events/test/worker.test.mjs) | L | V | Byte consumer readback and oversized rejection. Revised rejection at128000 raw bytes needs live rerun; provider metadata can reduce acceptance. |
+| 112 | `QueueSendText` | [Events](../examples/events/test/worker.test.mjs) | L | V | Consumer readback and explicit retry/redelivery; not exactly-once. Leading U+FEFF raw-byte preservation is newly local-only. Strict producer reply checks do not prove delivery. Revised rejection at128000 raw bytes needs live rerun. |
+| 113 | `QueueSendBytes` | [Events](../examples/events/test/worker.test.mjs) | L | V | Byte consumer readback and oversized rejection. Snapshot-before-provider-access and strict producer reply checks are local/native boundaries, not delivery proof. Revised rejection at128000 raw bytes needs live rerun; provider metadata can reduce acceptance. |
 | 128 | `RateLimit` | [Rate limit](../examples/rate-limit/test/worker.test.mjs) | L | V | Allowed/exceeded, key/namespace isolation, bounds and recovery; approximate/local. |
 | 144 | `AnalyticsWriteDataPoint` | [Analytics](../examples/analytics/test/worker.test.mjs) | A | Approval | Bounded acceptance only; live retention/deletion terms need approval. |
 | 160 | `VersionMetadataGet` | [Metadata](../examples/metadata/test/worker.test.mjs) | L | V | Version ID matches deployment; tag/timestamp and missing binding. |

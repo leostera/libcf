@@ -30,6 +30,20 @@ test('C++ producer and consumer preserve text and bytes', async () => {
   assert.deepEqual(new Uint8Array(await bytesResult.arrayBuffer()), bytes);
 });
 
+test('C++ Queue text preserves leading U+FEFF through native delivery and storage', async () => {
+  const bom = String.fromCodePoint(0xFEFF);
+  for (const prefix of [bom, bom + bom]) {
+    const text = prefix + randomUUID();
+    const sent = await fetch(`${base}/send/text`, { method: 'POST', body: text });
+    assert.equal(sent.status, 202);
+    await sent.arrayBuffer();
+    const result = await delivered(text);
+    assert.equal(result.headers.get('x-body-format'), 'text');
+    // Response.text() itself removes a leading UTF-8 BOM; compare raw bytes.
+    assert.deepEqual(new Uint8Array(await result.arrayBuffer()), new TextEncoder().encode(text));
+  }
+});
+
 test('explicit retry redelivers before acknowledgement', async () => {
   const text = `retry:${randomUUID()}`;
   assert.equal((await fetch(`${base}/send/text`, { method: 'POST', body: text })).status, 202);

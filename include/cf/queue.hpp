@@ -21,7 +21,11 @@ class Queue {
       }, [](std::coroutine_handle<>) {});
     }
     return runtime_.call<Unit>({method, binding_, {}, std::move(bytes), std::to_string(delay.count())},
-        [](OperationReply) { return Result<Unit>::success({}); });
+        [](OperationReply reply) {
+          if (reply.kind != ReplyKind::Value || !reply.bytes.empty())
+            return Result<Unit>::failure({ErrorCode::HostFailure, "invalid Queue acknowledgment"});
+          return Result<Unit>::success({});
+        });
   }
   BindingRuntime runtime_;
   std::string binding_;
