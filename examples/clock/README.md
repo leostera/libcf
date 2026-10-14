@@ -17,4 +17,6 @@ For an opt-in live test, build the example, run `bazel run //:prepare_live_worke
 
 `WorkerContext` now includes an explicit `WallClock` member. Code that manually aggregate-constructs a context must supply that provider; normal Worker handlers receive it from the adapter.
 
+The [2026-10-14 Bazel-built rerun](../../docs/live/bazel-clock-2026-10-14.json) passed the revised 33-sample production check, post-I/O sampling, JS brackets and eight concurrent requests on clean source `0c3b229`. Worker, DNS and certificate cleanup were independently verified.
+
 Source retrieved 2026-10-13: [Workers web standards](https://developers.cloudflare.com/workers/runtime-apis/web-standards/), especially JavaScript `Date.now()` and timers. Compatibility remains pinned to 2026-10-13.

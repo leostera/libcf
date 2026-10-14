@@ -75,3 +75,10 @@ reported schedule application is not delivery evidence. Queue batch sending was
 not covered by this live probe. Consumer, Worker, queue, D1, DNS and certificate
 cleanup were verified. Cron remains unresolved rather than classified as an
 unsupported platform capability.
+
+The [Bazel-built clock rerun](live/bazel-clock-2026-10-14.json) passed f64
+Unix milliseconds, 33 equal synchronous production samples, post-I/O samples,
+JS before/after brackets and eight concurrent requests. Worker, DNS and certificate
+absence were verified after cleanup. Local workerd instead reads the system clock:
+its tests check each sample against JS brackets, not production-only freezing.
+Neither test path establishes precision, monotonicity or synchronization.

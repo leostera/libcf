@@ -13,6 +13,12 @@ only after independently verifying every recorded resource is gone. Historical
 results below predate the Bazel cutover unless explicitly identified otherwise;
 changing these commands does not promote old results to Bazel-built evidence.
 
+The [2026-10-14 Bazel clock rerun](live/bazel-clock-2026-10-14.json) passed on
+clean source `0c3b229`, including all 33 equal synchronous production samples,
+post-I/O sampling, JS brackets and concurrency. Worker, DNS and certificate
+absence were independently verified. This retains the production check while
+correcting the invalid assumption that standalone local workerd freezes time.
+
 ## Cache deployment probe
 
 ```sh

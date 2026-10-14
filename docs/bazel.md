@@ -210,6 +210,10 @@ the live probe still requires all samples to be equal. A mocked live-probe test
 rejects advancing samples. See the [clock example](../examples/clock/README.md)
 for the pinned source and the distinction between transport and platform policy.
 No retry hides the original failure; error messages retain response body/path.
+[Run 38501440558](https://github.com/leostera/libcf/actions/runs/38501440558),
+commit `0c3b229`, passed all 84 default tests, C++23, sanitizers, package consumers
+and offline dry-run after this correction. The revised
+[clock live probe](live/bazel-clock-2026-10-14.json) also passed with cleanup.
 
 ## Current evidence
 

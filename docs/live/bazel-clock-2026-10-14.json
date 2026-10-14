@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "0c3b229023b8d9907c92e80c9ce3bfca4982f569",
+  "sourceDirty": false,
+  "excludedGeneratedPaths": [".cloudflare/"],
+  "bazel": "official 9.3.0 via Bazelisk",
+  "emscripten": "6.0.12",
+  "node": "26.11.1",
+  "compatibilityDate": "2026-10-13",
+  "preparation": "bazel run //:prepare_live_worker -- clock",
+  "probe": "bazel run //:live_clock -- libcf-clock-0669fac6fb.libcf.leostera.dev",
+  "started": "2026-10-14T02:33:48.796Z",
+  "finished": "2026-10-14T02:37:51.370Z",
+  "worker": "libcf-clock-0669fac6fb",
+  "hostname": "libcf-clock-0669fac6fb.libcf.leostera.dev",
+  "version": "2a2847d7-2cd3-440a-a2f4-b80f683e19ac",
+  "artifactSha256": {
+    "clock.wasm": "df600d8f7ca59f65d9c8624bad036fed96d03cf4a5d73fac6d0304f4194f79d2",
+    "worker.mjs": "5b55b382ff77fa1413c9705ca2533c50c43b7deac019935b0db640dcd7f1d006"
+  },
+  "passed": [
+    "f64 Unix milliseconds",
+    "33 synchronous samples all equal on the production runtime",
+    "post-I/O sampling",
+    "same-invocation JS before/after brackets",
+    "eight concurrent owned requests"
+  ],
+  "ownershipPreflight": {
+    "worker404Code10007": true,
+    "exactHostDnsEmpty": true,
+    "ownedHostnameAndWildcardAbsentFromCompleteCertificateListing": true
+  },
+  "cleanup": {
+    "worker404Code10007": true,
+    "exactHostDnsEmpty": true,
+    "ownedHostnameAndWildcardAbsentFromCompleteCertificateListing": true
+  },
+  "limitations": [
+    "Local workerd uses system time and does not promise frozen synchronous samples; local tests check all samples against JS brackets instead.",
+    "This live observation does not establish clock precision, monotonicity, remote synchronization or equality across awaited I/O.",
+    "The cf-generated .cloudflare cache directory is not a declared Bazel source input."
+  ]
+}
