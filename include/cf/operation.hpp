@@ -61,6 +61,7 @@ enum class Operation : std::uint32_t {
   VectorizeQuery = 352,
   DispatchFetch = 368,
   MediaFramePng = 384,
+  AiSearchKeywordQuery = 400,
 };
 
 struct OperationCall {

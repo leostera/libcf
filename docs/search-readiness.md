@@ -1,9 +1,9 @@
 # AI Search and Agent Memory readiness
 
-Audit date2026-10-14. No C++ search/memory API, managed-index experiment or profile
-operation is implemented/verified here. This audit separates native Worker APIs,
-local policy checks and future provider evidence. A JS-only keyword adapter
-prototype now exists; it is not wired into the C++ runtime or operation enum yet.
+Audit date2026-10-14. A bounded C++ direct-instance keyword text-search subset is
+implemented with explicit provider mocks. No managed-index experiment, native
+AI Search provider verification or Agent Memory operation has been performed.
+This audit separates implementation, local policy/mechanism tests and provider evidence.
 
 ## Worker-accessible scope
 
@@ -37,8 +37,11 @@ and unsupported capabilities. Inspect/dispose native returned handles/promises a
 appropriate; a plain-object mock alone cannot establish those semantics. Limits
 on owned results cannot bound provider-side processing or earlier materialization.
 
-## Keyword adapter prototype
+## Bounded keyword subset
 
+`cf::AiSearch::keyword_search(AiSearchKeywordQuery)` in `<cf/ai_search.hpp>` uses
+operation400. The [runnable example](../examples/ai-search/README.md) uses actual
+C++/Wasm dispatch with an explicit mock, not a native search/index emulator.
 `lib/ai-search.mjs` projects only text chunk ID, overall score, source key and text.
 It does not serialize query echoes, timestamps, metadata, scoring details or
 capabilities. The fixed request asks for keyword AND retrieval with threshold0,
@@ -53,10 +56,12 @@ be finite and0–1. UTF-8 round trips reject lone surrogates and preserve a lead
 BOM. Keys remain opaque identifiers, not authorized URLs or filesystem paths.
 Oversize/unsupported results reject rather than silently truncate.
 
-Proposed wire: empty key, raw UTF-8 query body, decimal `count:timeout_ms` options.
+Operation400 wire: empty key, raw UTF-8 query body, decimal `count:timeout_ms` options.
 Reply is little-endian u32 count followed by each length-prefixed ID, binary64
 score, length-prefixed source key and text. Maximum is4+count×18708 bytes
-(935404 at50). No operation number or C++ API has been allocated yet.
+(935404 at50). Both C++ and JS validate UTF-8, field bounds, count and finite
+scores; the native codec rejects truncation, invalid reply kinds and trailing bytes.
+The C++ request is snapshotted before returning the async operation.
 
 Owned returned promises/results exposing synchronous Symbol.dispose are released
 at most once; the borrowed binding is excluded. Abort/deadline settles locally,
@@ -71,7 +76,9 @@ late completion and cleanup. A real local WorkerEntrypoint RPC fixture returns a
 nested capability and Date in ignored metadata: success/rejection/abort/deadline
 leave delivered capabilities disposed and the borrowed service usable. This proves
 that ownership mechanism on native RPC, **not** the AI Search binding's actual
-implementation, C++/Wasm dispatch, indexing, retrieval or remote cancellation.
+implementation, indexing, retrieval or remote cancellation. Separate C++/Wasm
+mock tests cover dispatch, concurrent Unicode/NUL results, input/output errors,
+provider failures, local deadline and subsequent recovery.
 No account operation or managed index/profile was created.
 
 ## Local behavior and source disagreements

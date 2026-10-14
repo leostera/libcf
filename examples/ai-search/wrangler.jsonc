@@ -1,0 +1,8 @@
+{
+  "name": "libcf-ai-search",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "ai_search": [{ "binding": "SEARCH", "instance_name": "replace-with-approved-instance" }]
+}
