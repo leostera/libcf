@@ -27,7 +27,10 @@ async function workerOptions(configPath, root) {
       flagship[item.binding] = { type: 'flagship', id: item.app_id, dev: { remote: false } };
     }
   }
-  if (config.ai) throw new Error('Workers AI is remote inference; use an explicit local mock configuration');
+  if (Object.hasOwn(config, 'analytics'))
+    throw new Error('Analytics SQL queries account data remotely; use an explicit local mock configuration');
+  if (Object.hasOwn(config, 'ai'))
+    throw new Error('Workers AI and AI Gateway use remote services; use an explicit local mock configuration');
   if (config.vectorize) throw new Error('Vectorize requires a remote index; use an explicit local mock configuration');
   if (config.dispatch_namespaces) throw new Error('Dispatch namespaces require remote Workers for Platforms; use an explicit local mock configuration');
   if (config.media) throw new Error('Media Transformations use a remote service; use an explicit local mock configuration');
