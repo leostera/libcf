@@ -9,7 +9,7 @@ const names = [
   'crypto', 'benchmark', 'http-client', 'pipeline', 'timer', 'workflow',
   'images', 'clock', 'rpc', 'ai', 'service-tcp', 'hello', 'hello-js', 'benchmark-js',
   'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference',
-  'vectorize', 'dispatch', 'dispatch-reference', 'media', 'ai-search', 'stream', 'browser', 'agent-memory',
+  'vectorize', 'dispatch', 'dispatch-reference', 'media', 'ai-search', 'stream', 'browser', 'agent-memory', 'container',
 ];
 const plainJs = new Set(['hello-js', 'benchmark-js', 'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference', 'dispatch-reference']);
 const manifests = new Map();
@@ -36,7 +36,7 @@ for (const name of names) {
 }
 
 // Execute the emitted files, not source entry points rebundled in the test.
-for (const name of ['benchmark', 'benchmark-js', 'browser']) {
+for (const name of ['benchmark', 'benchmark-js', 'browser', 'container']) {
   const runtime = new Miniflare({ host: '127.0.0.1', port: 0, workers: [{ config: {
     name,
     compatibilityDate: '2026-10-13',
@@ -49,11 +49,14 @@ for (const name of ['benchmark', 'benchmark-js', 'browser']) {
     },
   } }] });
   try {
-    const response = await runtime.dispatchFetch(name === 'browser' ? 'https://example.test/' : 'https://example.test/hello', {
+    const health = name === 'browser' || name === 'container';
+    const response = await runtime.dispatchFetch(health ? 'https://example.test/' : 'https://example.test/hello', {
       signal: AbortSignal.timeout(10000),
     });
     assert.equal(response.status, 200);
-    assert.equal(await response.text(), name === 'browser' ? 'Browser example; POST UTF-8 HTML to /screenshot' : 'ok');
+    const expected = name === 'browser' ? 'Browser example; POST UTF-8 HTML to /screenshot' :
+      name === 'container' ? 'Container inspection example; no lifecycle mutations' : 'ok';
+    assert.equal(await response.text(), expected);
   } finally { await runtime.dispose(); }
 }
 console.log(`Verified ${names.length} bundle inventories; emitted C++ and JS bundles execute in workerd`);

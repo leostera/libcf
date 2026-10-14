@@ -53,7 +53,7 @@ a verified platform limitation.
 | D02 | [analytics](../examples/analytics/README.md) | Local acceptance is a no-op, not persistence; live retention/deletion plan unresolved. |
 | D03 | [networking audit](networking-readiness.md), [service TCP](../examples/service-tcp/README.md) | Service TCP has Bazel live evidence; general TCP/TLS/StartTLS/Hyperdrive unimplemented. UDP stub and public ingress limitations do not rule out other APIs. |
 | D04 | [dispatch](../examples/dispatch/README.md) | Mock namespace is not WfP routing/isolation/CPU enforcement; entitlement/budget, props/capability surface remain open. |
-| D05 | [Container audit](container-readiness.md) | No C++ lifecycle/port API or example; bounded JS inspection prototype has mock/RPC mechanism tests only. Direct DO API/engine/pricing audited; default harness refuses declarations, native engine/process/account verification not attempted. |
+| D05 | [Container audit](container-readiness.md) | Typed nullable C++ inspection and explicit-mock DO example only; lifecycle/ports unimplemented. Direct DO API/engine/pricing audited; default harness refuses declarations, native engine/process/account verification not attempted. |
 | D06 | [metadata](../examples/metadata/README.md) | Version metadata historical live rerun; real secret read requires an approved owned store/secret, not existing data. |
 | D07 | [RPC](../examples/rpc/README.md) | JSON client only; historical dirty-source live pass retained, clean Bazel rerun pending. No C++ RPC exports/general JS escape hatch. |
 | P01 | [Workflow](../examples/workflow/README.md) | Client subset with JS reference; C++ steps/replay/retry/wait execution and wider lifecycle APIs unimplemented. Historical live retry passed; Bazel rerun pending. |

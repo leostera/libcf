@@ -1,0 +1,7 @@
+{
+  "name": "libcf-container-mock",
+  "main": "local.mjs",
+  "compatibility_date": "2026-10-13",
+  "durable_objects": { "bindings": [{ "name": "OBJECTS", "class_name": "Inspection" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Inspection"] }]
+}

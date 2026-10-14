@@ -1,7 +1,9 @@
 # Containers: runtime scope and verification gates
 
-Audit2026-10-14. **No C++ Container API, operation ID or runnable Container example
-yet.** This is D05 implementation planning, not a native Container pass. No engine
+Audit2026-10-14. **Typed C++ inspection only; native Container verification and
+mutating lifecycle APIs remain open.** Operation464 and the
+[standalone example](../examples/container/README.md) use explicit mock metadata,
+not a native Container pass. No engine
 was contacted, image acquired/built/pushed, container started, or account resource
 accessed. The local Docker CLI being present does not establish a usable or
 approved engine. Existing C++ Durable Objects and service TCP do not prove
@@ -19,8 +21,9 @@ for methods on the native capability.
 Inspected Workers types5.20261010.1 declare `running`, `images`, `start`, `monitor`,
 `destroy`, `signal`, `getTcpPort`, `setInactivityTimeout`, interception, `exec`,
 `inspect` and snapshots. These newer types are not proof of availability in the
-pinned workerd1.20261006.1. Current libcf's DO adapter forwards storage/events but
-not `ctx.container`; that plumbing and reserved-name protection are still missing.
+pinned workerd1.20261006.1. libcf's DO adapter now borrows `ctx.container` into
+`__LIBCF_DO_CONTAINER` for each invocation and rejects conflicting environment
+bindings; no capability is disposed by this forwarding.
 
 | Native surface | Contract relevant to a future C++ wrapper |
 | --- | --- |
@@ -96,12 +99,19 @@ verify stopped instances and resource cleanup. Abort/timeout of a caller does no
 prove stopped work, zero billing, rollback or erasure. Do not attach to existing
 applications or use a successful deploy as a runtime pass.
 
-## Bounded inspection JS prototype
+## Bounded typed inspection subset
 
 `lib/container.mjs::performContainerInspect` borrows the DO capability and invokes
-only `inspect()`, preserving its receiver. It has **no C++ operation/runtime wiring
-or runnable C++ example yet**. Unit and real workerd service-RPC tests use fake
-metadata providers, not a Container binding, engine or process.
+only `inspect()`, preserving its receiver. `<cf/container.hpp>` provides
+`cf::Container::inspect(ContainerInspectOptions)` with default5000ms timeout and
+owned `optional<ContainerInfo>` results (`image`, vector of `ContainerLabel`
+name/value pairs). Operation464 `ContainerInspect` uses the fixed internal DO slot.
+Native C++ tests validate input snapshots, maximum output, every truncated prefix,
+UTF-8/control/count/presence rules, duplicate names and trailing bytes. The actual
+C++/Wasm DO example uses a test-only context facade with fake metadata; ordinary
+native DO missing-capability and reserved-environment failure cases are separate.
+Neither these fixtures nor the real service-RPC lifetime fixture run a Container
+engine/process. The emitted bundle's no-binding health route also executes.
 
 Request: empty key/body, canonical timeout1..60000ms. The owned result is nullable;
 when present, image is0..2048 UTF-8 bytes and labels are at most10 own enumerable
@@ -136,8 +146,6 @@ Runtime/local/architecture pages report updated2026-09-30; pricing2026-10-05.
 The older DO API URL redirects to the Containers API page; follow its canonical
 Markdown URL rather than treating redirected HTML as API content.
 
-Next: add a typed nullable inspection API, strict C++ decoder, DO capability
-plumbing with reserved-name protection, and an independent explicit-mock example.
-Mutating lifecycle/readiness operations need separate design and tests.
-Native engine/image and account prerequisites remain separate approval gates.
-No operation number is allocated by this audit.
+Next: design and test explicit startup/exit/readiness/mutation outcomes and port
+access without treating inspection as lifecycle parity. Native engine/image and
+account prerequisites remain separate approval gates.

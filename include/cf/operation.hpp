@@ -66,6 +66,7 @@ enum class Operation : std::uint32_t {
   StreamVideoDetails = 417,
   BrowserScreenshotHtmlPng = 432,
   AgentMemoryListCreatingProfile = 448,
+  ContainerInspect = 464,
 };
 
 struct OperationCall {

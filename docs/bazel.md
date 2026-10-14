@@ -40,7 +40,7 @@ bridge with esbuild, and executes C++ addition through Wasm in local workerd.
 It declares both generated JS/Wasm artifacts and npm dependencies. It does not
 read the old source `build/` artifacts, use Cloudflare credentials, or deploy.
 
-`//:all_workers` builds all 34 existing module pairs: 32 Worker examples,
+`//:all_workers` builds all 35 existing module pairs: 33 Worker examples,
 the separate Durable Object implementation and the hello bridge spike. The shared
 `src/worker.cpp` compiles once per configuration. The original cutover action-graph
 inspection found26 C++ compilation actions, exactly one belonging to
@@ -48,14 +48,14 @@ inspection found26 C++ compilation actions, exactly one belonging to
 `//tools:worker.bzl` provides the declared compile/link/extraction rule. Public
 runtime files are exposed through `//:runtime_modules` and `//:host_library`.
 
-`//:all_bundles` emits 40 JS/Wasm module bundles, including the private upstreams
+`//:all_bundles` emits 41 JS/Wasm module bundles, including the private upstreams
 and plain-JS baselines. Each `bazel-bin/bundles/<name>/` contains `worker.mjs`, a
 versioned `bundle.json` inventory and content-addressed static Wasm imports.
 For example, `bazel build //:rpc_bundle` builds only that bundle's dependencies.
 The bundler is a declared Node action with no deployment, account access or random
 resource identity. Bindings, assets and ownership manifests are separate deployment
 inputs; these module bundles are not complete prebuilt `cf deploy` directories.
-`//:bundles_test` validates all 40 inventories, Wasm hashes/validity and static
+`//:bundles_test` validates all 41 inventories, Wasm hashes/validity and static
 imports, then executes the emitted C++ and JS benchmark bundles in workerd.
 
 The upstream Bazel Emscripten toolchain defaults to `-fno-exceptions`, unlike the
@@ -146,12 +146,12 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **133 test targets**: 28 native suites,
-C++20/23 all-header checks, 33 example/benchmark integration targets, 67 JS
+The default graph currently contains **135 test targets**: 29 native suites,
+C++20/23 all-header checks, 34 example/benchmark integration targets, 67 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
-The native/header suite now contains 30 targets, also tested with `--config=cxx23`.
-The AI, AI Search, Agent Memory, Vectorize, Media, Browser and dispatch integrations use explicitly mocked providers or
+The native/header suite now contains 31 targets, also tested with `--config=cxx23`.
+The AI, AI Search, Agent Memory, Container inspection, Vectorize, Media, Browser and dispatch integrations use explicitly mocked providers or
 namespace selection inside workerd, not native remote-service verification. The
 local harness rejects their production binding configurations. Dispatch's mock
 returns a native local service Fetcher, not a deployed WfP user Worker.

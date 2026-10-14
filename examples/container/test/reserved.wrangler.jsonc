@@ -1,0 +1,8 @@
+{
+  "name": "libcf-container-reserved",
+  "main": "local.mjs",
+  "compatibility_date": "2026-10-13",
+  "vars": { "__LIBCF_DO_CONTAINER": "spoof" },
+  "durable_objects": { "bindings": [{ "name": "OBJECTS", "class_name": "Inspection" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Inspection"] }]
+}
