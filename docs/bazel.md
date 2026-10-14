@@ -134,13 +134,17 @@ reports use `buildMilliseconds: null` because compilation happens before executi
   checksum-pinned Bazel module. `MODULE.bazel.lock` records module resolution.
 - `pnpm-lock.yaml` preserves all **84** package versions and integrity hashes
   from the committed npm lockfile at migration baseline `ccc0500`. Its direct
-  dependencies remain esbuild **0.28.2**, jsonc-parser **3.3.1** and Miniflare
-  **5.20261006.1-alpha**, with workerd **1.20261006.1**. The unrelated formatter
+  runtime/build dependencies remain esbuild **0.28.2**, jsonc-parser **3.3.1** and
+  Miniflare **5.20261006.1-alpha**, with workerd **1.20261006.1**. Two development-only
+  additions bring the lock to **86** packages: Workers types **5.20261006.1** and
+  TypeScript **6.0.3**, used by `//:platform_contracts_test`. TypeScript6 retains
+  the JavaScript compiler API without the native-platform dependencies of7.
+  See [static contract scope](platform-contracts.md). The unrelated formatter
   additions in the working npm files are not part of this lock conversion.
 - Package install hooks are disabled. Native executables/libraries come from
   integrity-locked optional packages; actual esbuild/workerd execution is checked,
-  not inferred from successful imports. Image/sharp functionality still needs its
-  existing integration suite migrated and run.
+  not inferred from successful imports. Image/sharp execution and synthetic pixel
+  checks run in the native Images integration tests.
 - First use downloads public build dependencies. Normal test execution uses
   local workerd and does not mutate a Cloudflare account. Aspect telemetry is
   disabled through `DO_NOT_TRACK` in `.bazelrc`.
@@ -162,11 +166,11 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **171 test targets**: 35 native suites,
+The default graph currently contains **172 test targets**: 35 native suites,
 C++20/23 all-header checks, 41 example/benchmark/probe integration targets, 90 JS
-adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
+adapter/policy checks, three toolchain/bundle/declaration checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
-The native/header suite now contains 31 targets, also tested with `--config=cxx23`.
+The native/header suite now contains 37 targets, also tested with `--config=cxx23`.
 The AI, AI Search, Agent Memory, Container inspection, Vectorize, Media, Browser and dispatch integrations use explicitly mocked providers or
 namespace selection inside workerd, not native remote-service verification. The
 local harness rejects their production binding configurations. Dispatch's mock

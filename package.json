@@ -4,8 +4,10 @@
   "type": "module",
   "packageManager": "pnpm@10.22.0",
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20261006.1",
     "esbuild": "0.28.2",
     "jsonc-parser": "3.3.1",
-    "miniflare": "5.20261006.1-alpha"
+    "miniflare": "5.20261006.1-alpha",
+    "typescript": "6.0.3"
   }
 }

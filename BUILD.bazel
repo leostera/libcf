@@ -150,6 +150,18 @@ filegroup(
     srcs = glob(["examples/**/*.mjs", "examples/**/*.jsonc", "examples/**/public/**", "examples/**/README.md"]),
 )
 
+js_test(
+    name = "platform_contracts_test",
+    entry_point = "tests/platform-contracts/test.mjs",
+    data = [
+        "tests/platform-contracts/fixture.ts",
+        "lib/image-rotate.mjs",
+        ":node_modules/@cloudflare/workers-types",
+        ":node_modules/typescript",
+        ":node_modules/miniflare",
+    ],
+)
+
 JS_TEST_DATA = [
     ":runtime_modules",
     ":example_sources",
