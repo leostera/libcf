@@ -31,7 +31,7 @@ assert.equal((await request('/send/text', { method: 'POST', body: retry })).stat
 const retryResult = await delivered(retry);
 assert(Number(retryResult.headers.get('x-attempts')) >= 2);
 assert.equal(await retryResult.text(), retry);
-assert.equal((await request('/send/bytes', { method: 'POST', body: new Uint8Array(128 * 1024) })).status, 502);
+assert.equal((await request('/send/bytes', { method: 'POST', body: new Uint8Array(128_000) })).status, 502);
 console.log(JSON.stringify({ host, queuePassed: ['text', 'bytes', 'explicit retry/redelivery', 'oversized rejection'] }));
 
 // Observe a real Cron event. There is deliberately no HTTP route that can

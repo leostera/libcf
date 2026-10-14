@@ -14,7 +14,8 @@ class Queue {
   }
  private:
   AsyncResult<Unit> send(Operation method, Bytes bytes, std::chrono::seconds delay) const {
-    if (bytes.size() >= 128 * 1024 || delay.count() < 0 || delay.count() > 86400) {
+    // Queue limits use decimal KB; provider metadata may further reduce capacity.
+    if (bytes.size() >= 128'000 || delay.count() < 0 || delay.count() > 86400) {
       return AsyncResult<Unit>([](auto done) {
         done(Result<Unit>::failure({ErrorCode::InvalidInput, "invalid Queue body size or delay"}));
       }, [](std::coroutine_handle<>) {});

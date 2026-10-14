@@ -73,6 +73,6 @@ test('scheduled handler failure is not reported as successful delivery', async (
 });
 
 test('oversized Queue message rejects before sending', async () => {
-  const response = await fetch(`${base}/send/bytes`, { method: 'POST', body: new Uint8Array(128 * 1024) });
+  const response = await fetch(`${base}/send/bytes`, { method: 'POST', body: new Uint8Array(128_000) });
   assert.equal(response.status, 502);
 });

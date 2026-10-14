@@ -37,12 +37,32 @@ int main() {
   auto handler = [&]() -> Task {
     auto bad_delay = co_await queue.send_text("x", std::chrono::seconds{-1});
     assert(!bad_delay);
-    auto oversized = co_await queue.send_bytes(Bytes(128 * 1024));
-    assert(!oversized);
+    auto oversized = co_await queue.send_bytes(Bytes(128'000));
+    assert(!oversized && oversized.error().code == ErrorCode::InvalidInput);
+    auto oversized_text = co_await queue.send_text(std::string(128'000, 'x'));
+    assert(!oversized_text && oversized_text.error().code == ErrorCode::InvalidInput);
     co_return queue_ack();
   };
   auto task = handler().take();
   task.resume();
   assert(task.done() && !called);
   task.destroy();
+
+  int accepted = 0;
+  BindingRuntime accepting([&](OperationCall call, BindingRuntime::Completion done) {
+    assert(call.body.size() == 127'999);
+    assert(call.method == (accepted == 0 ? Operation::QueueSendText : Operation::QueueSendBytes));
+    ++accepted;
+    done(Result<OperationReply>::success({ReplyKind::Value, {}}));
+  }, [](auto) {});
+  Queue near_limit(accepting, "EVENTS");
+  auto boundary = [&]() -> Task {
+    assert((co_await near_limit.send_text(std::string(127'999, 'x'))));
+    assert((co_await near_limit.send_bytes(Bytes(127'999))));
+    co_return queue_ack();
+  };
+  auto boundary_task = boundary().take();
+  boundary_task.resume();
+  assert(boundary_task.done() && accepted == 2);
+  boundary_task.destroy();
 }
