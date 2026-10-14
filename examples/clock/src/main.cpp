@@ -10,10 +10,14 @@ Task handle(Request request, WorkerContext context) {
   if (!first) co_return Response::text("clock failed", 502);
   const auto count = first.value().time_since_epoch().count();
   if (path == "/same-turn") {
+    // Report every sample; the host decides whether time freezes without I/O.
+    auto samples = std::to_string(count);
     for (int index = 0; index < 32; ++index) {
       auto next = context.clock.now();
-      if (!next || next.value() != first.value()) co_return Response::text("clock changed without I/O", 502);
+      if (!next) co_return Response::text("clock failed", 502);
+      samples += " " + std::to_string(next.value().time_since_epoch().count());
     }
+    co_return Response::text(std::move(samples));
   }
   if (path == "/after-sleep") {
     Timer timer(context.bindings);

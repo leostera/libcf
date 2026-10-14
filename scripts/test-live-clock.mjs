@@ -6,8 +6,9 @@ await awaitCertificate(request);
 async function sample(path, count) {
   const before = Date.now();
   const response = await request(path);
-  assert.equal(response.status, 200);
-  const tokens = (await response.text()).split(' ');
+  const body = await response.text();
+  assert.equal(response.status, 200, `${path}: HTTP ${response.status}: ${body}`);
+  const tokens = body.split(' ');
   assert.equal(tokens.length, count);
   for (const token of tokens) assert.match(token, /^-?\d{1,17}$/);
   const values = tokens.map(Number);
@@ -24,9 +25,11 @@ async function sample(path, count) {
     return value;
   });
   for (const value of values) assert(value >= Math.min(...reference) && value <= Math.max(...reference));
+  return values;
 }
 await sample('/now', 1);
-await sample('/same-turn', 1);
+const synchronous = await sample('/same-turn', 33);
+assert(synchronous.every(value => value === synchronous[0]), 'production clock changed without I/O');
 await sample('/after-sleep', 2);
 await Promise.all(Array.from({ length: 8 }, () => sample('/now', 1)));
 console.log(JSON.stringify({ host, passed: ['f64 Unix milliseconds', 'same-turn frozen clock',

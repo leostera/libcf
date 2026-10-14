@@ -145,8 +145,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **83 test targets**: 19 native suites,
-C++20/23 all-header checks, 24 example/benchmark integration targets, 35 JS
+The default graph currently contains **84 test targets**: 19 native suites,
+C++20/23 all-header checks, 24 example/benchmark integration targets, 36 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
 The 21-target native/header suite also passes under `--config=cxx23`.
@@ -202,9 +202,14 @@ commit `73fc3a2`, passed all 83 default tests and the C++23, sanitizer, package
 and offline dry-run jobs. The preceding
 [run 38498719521](https://github.com/leostera/libcf/actions/runs/38498719521)
 failed the clock example's `/same-turn` check with HTTP 502. That response body
-was not captured; 30 fresh local repetitions passed. This intermittent result
-remains unexplained, not repaired by the later successful run. Clock assertions
-now include the response body and path without retrying or weakening the check.
+was not captured; 30 fresh local repetitions passed. Inspection of the pinned
+workerd source then established that its local `TimerChannel::now` reads the
+system clock rather than freezing it between I/O. The example now returns all
+33 synchronous samples: local tests check every sample against the JS bracket;
+the live probe still requires all samples to be equal. A mocked live-probe test
+rejects advancing samples. See the [clock example](../examples/clock/README.md)
+for the pinned source and the distinction between transport and platform policy.
+No retry hides the original failure; error messages retain response body/path.
 
 ## Current evidence
 

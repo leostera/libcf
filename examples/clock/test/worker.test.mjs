@@ -26,9 +26,10 @@ async function sample(path, count) {
     assert(value >= before - 1000 && value <= after + 1000);
   }
 }
-test('wall-clock f64 import preserves Unix milliseconds and stays frozen without I/O', async () => {
+test('wall-clock f64 import preserves Unix milliseconds across synchronous samples', async () => {
   await sample('/now', 1);
-  await sample('/same-turn', 1);
+  // workerd's local TimerChannel uses the system clock, not production freezing.
+  await sample('/same-turn', 33);
 });
 test('clock remains usable after awaited I/O and for concurrent owned requests', async () => {
   await sample('/after-sleep', 2);
