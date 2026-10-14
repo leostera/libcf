@@ -64,7 +64,7 @@ a verified platform limitation.
 | P06 | [Stream](../examples/stream/README.md) | Bounded metadata L; upload/mutations/tokens/playback etc. remain gaps. Native resource/pricing approval required; simulator ingestion is not production format acceptance. |
 | P07 | [Media](../examples/media/README.md), [Browser](../examples/browser/README.md) | First-frame PNG has narrow Bazel live evidence; other Media modes unimplemented. Browser screenshot is M; actions/sessions/native rendering remain open. |
 | P08 | [Loader](../examples/worker-loader/README.md) | Restricted single-module fetch L; native creation-cost approval and broader loader capabilities remain open. |
-| P09 | [inventory](../INVENTORY.md) | No C++ Flagship/Artifacts API or runnable example; inspect current binding contract, local seed restrictions and account/data availability before implementing. |
+| P09 | [access-model audit](flagship-artifacts-readiness.md) | No C++ Flagship/Artifacts API or runnable example. Native local Flagship fixture verifies typed evaluation/fallback/rejection, not propagation; Artifacts is remote-only in the pinned simulator. Owned data, pricing and native approval remain open. |
 | P10 | [inventory](../INVENTORY.md) | No mTLS/VPC API/example; owned certificate/network prerequisites and Worker binding access model require audit. Do not use unrelated private networks. |
 | P11 | [inventory](../INVENTORY.md) | No Analytics SQL/AI Gateway API/example; inspect native binding contracts separately from Analytics Engine writes and Workers AI. |
 | P12 | [inventory](../INVENTORY.md) | Optional legacy Sites track remains open, not silently skipped. Modern Assets support does not implement legacy manifest behavior. |

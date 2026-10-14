@@ -10,6 +10,10 @@ async function workerOptions(configPath, root) {
   if (Object.hasOwn(config, 'containers') || Object.values(config.exports ?? {}).some(
     value => value && typeof value === 'object' && Object.hasOwn(value, 'container')))
     throw new Error('Containers require an explicit local engine/image and cleanup plan; use a separate approved harness');
+  if (Object.hasOwn(config, 'artifacts'))
+    throw new Error('Artifacts uses a remote service; use an explicit local mock configuration');
+  if (Object.hasOwn(config, 'flagship'))
+    throw new Error('Flagship requires explicit local seeding; use a separate local harness');
   if (config.ai) throw new Error('Workers AI is remote inference; use an explicit local mock configuration');
   if (config.vectorize) throw new Error('Vectorize requires a remote index; use an explicit local mock configuration');
   if (config.dispatch_namespaces) throw new Error('Dispatch namespaces require remote Workers for Platforms; use an explicit local mock configuration');
