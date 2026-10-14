@@ -3,8 +3,8 @@
 Audit date2026-10-14. A bounded C++ direct-instance keyword text-search subset is
 implemented with explicit provider mocks. No managed-index experiment, native
 AI Search provider verification or native Agent Memory operation has been performed.
-A scoped Agent Memory list projection now has JS boundary and native RPC mechanism
-coverage with explicit mocks, but no C++ API/runtime operation/example yet.
+The scoped Agent Memory list subset now has a typed C++ API, runnable C++/Wasm
+example, JS boundaries and native RPC mechanism coverage with explicit mocks.
 This audit separates implementation, local policy/mechanism tests and provider evidence.
 
 ## Worker-accessible scope
@@ -83,13 +83,15 @@ mock tests cover dispatch, concurrent Unicode/NUL results, input/output errors,
 provider failures, local deadline and subsequent recovery.
 No account operation or managed index/profile was created.
 
-## Agent Memory list prototype (profile creation is explicit)
+## Agent Memory list subset (profile creation is explicit)
 
 `lib/agent-memory.mjs::performAgentMemoryListCreatingProfile` calls `getProfile(name)`
 then `profile.list({limit, cursor?})`. **This can create a missing profile**, including
 when a deadline subsequently rejects. It must not become a misleading read-only
-lookup or deletion-absence check. A future C++ API should require an explicitly
-named get-or-create profile selection, not hide creation behind an ordinary ID.
+lookup or deletion-absence check. `cf::AgentMemory::list_memories` in
+`<cf/agent_memory.hpp>` requires a `GetOrCreateMemoryProfile` selector, plus optional
+`AgentMemoryListOptions`; operation448 is `AgentMemoryListCreatingProfile`.
+The selector permits creation, not an existing-only lookup or lifecycle receipt.
 Profile-name syntax is not tenant authorization. No delete, remember, ingest,
 recall or getSummary method is invoked by this subset.
 
@@ -129,7 +131,16 @@ returns profile capabilities, Date-bearing records and an ignored nested capabil
 success/invalid records/abort/deadlines dispose delivered roots while the borrowed
 service remains callable; late acquisition starts no list. It is a fake memory
 service, not Agent Memory storage, generation, privacy or provider verification.
-No native Agent Memory namespace/profile or account operation was performed.
+Native C++ tests additionally validate request snapshots, all truncated replies,
+UTF-8, flags/enums, signed timestamp endpoints, caps and trailing bytes. The
+[C++/Wasm example](../examples/agent-memory/README.md) uses a fake provider for
+concurrent Unicode/BOM/NUL cursor round-trips, nullable/empty sessions, explicit
+pagination, maximum wire output, failure/deadline/cleanup-error recovery and default
+remote refusal. Its output is human-readable, not delimiter-safe interchange.
+`AgentMemoryTime` preserves millisecond precision/range without narrowing to the
+system clock's default duration. Pagination does not establish a stable snapshot;
+a profile deleted between calls can be recreated. No native Agent Memory namespace/
+profile or account operation was performed.
 
 ## Local behavior and source disagreements
 

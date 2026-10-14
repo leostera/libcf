@@ -1,0 +1,9 @@
+{
+  "name": "libcf-agent-memory",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true, "traces": { "enabled": true } },
+  "agent_memory": [{ "binding": "MEMORY", "namespace": "replace-with-approved-namespace" }]
+}
