@@ -1,12 +1,14 @@
 import { build } from 'esbuild';
 import { randomBytes } from 'node:crypto';
-import { mkdir, copyFile, writeFile } from 'node:fs/promises';
+import { mkdir, copyFile, writeFile, realpath } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createLiveOutput } from './live-output.mjs';
 
 const databaseId = process.argv[2];
 if (process.argv.length !== 3 || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(databaseId ?? ''))
   throw new Error('Provide an isolated D1 database UUID');
+// Runfile and esbuild-resolved paths may alias the same declared artifact.
+const expectedWasm = await realpath('build/events.wasm');
 const root = await createLiveOutput('cron-control');
 const output = `${root}/.cloudflare/output/v0`;
 const suffix = randomBytes(5).toString('hex');
@@ -20,13 +22,13 @@ for (const kind of ['js', 'cpp']) {
     outfile: `${directory}/bundle/worker.mjs`, bundle: true, format: 'esm', platform: 'browser',
     external: ['cloudflare:*'],
     plugins: [{ name: 'wasm', setup(builder) {
-      builder.onResolve({ filter: /\.wasm$/ }, args => {
-        if (resolve(args.resolveDir, args.path) !== resolve('build/events.wasm')) throw new Error('Unexpected Wasm import');
+      builder.onResolve({ filter: /\.wasm$/ }, async args => {
+        if (await realpath(resolve(args.resolveDir, args.path)) !== expectedWasm) throw new Error('Unexpected Wasm import');
         return { path: './events.wasm', external: true };
       });
     } }],
   });
-  if (kind === 'cpp') await copyFile('build/events.wasm', `${directory}/bundle/events.wasm`);
+  if (kind === 'cpp') await copyFile(expectedWasm, `${directory}/bundle/events.wasm`);
   await writeFile(`${directory}/worker.config.json`, JSON.stringify({
     name, compatibilityDate: '2026-10-13', workersDev: false, previewUrls: false, domains: [],
     env: { DB: { type: 'd1', id: databaseId } },

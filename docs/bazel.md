@@ -92,6 +92,11 @@ Cron control uses the same timeout setting, interrupts in-flight CLI queries at
 the deadline, and retains fresh per-command budgets for cleanup. Its CLI output
 is separately bounded to 1 MiB per command.
 
+Cron preparation compares canonical Wasm paths: esbuild may resolve a runfile
+symlink to its physical artifact path. Regression tests accept aliases of the
+declared module and reject different files even when their names/bytes match.
+The actual Bazel executable also passed offline preparation of both controls.
+
 Probe target names replace family hyphens with underscores, for example
 `//:live_http_client`, `//:live_rate_limit` and `//:live_rpc`. Arguments and bounded
 readiness settings are unchanged. `//:prepare_cron_control` prepares the plain-JS
@@ -140,11 +145,11 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **82 test targets**: 19 native suites,
-C++20/23 all-header checks, 24 example/benchmark integration targets, 34 JS
+The default graph currently contains **83 test targets**: 19 native suites,
+C++20/23 all-header checks, 24 example/benchmark integration targets, 35 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
-The graph passes locally and in Linux CI; the 21-target native/header suite also
-passes under `--config=cxx23`.
+The graph passes locally; the CI evidence below identifies verified revisions.
+The 21-target native/header suite also passes under `--config=cxx23`.
 Integration targets consume declared Wasm outputs rather than spawning compilers.
 The initial all-header attempt omitted `CF_CONSUMER_STANDARD`; the rules now
 provide the same explicit standard assertion selector as the previous consumer.
