@@ -227,6 +227,14 @@ commit `5a00b22`, passed 88 default tests, 22 C++23 native/header targets,
 inference or native AI service verification. No account usage or live resources
 were involved. This revision has no new cross-host archive-identity claim.
 
+[Run 38511219987](https://github.com/leostera/libcf/actions/runs/38511219987),
+commit `921311b`, passed 92 defaults, 23 C++23 native/header targets,
+23 ASan/UBSan targets and relocated consumers of the 82-file SDK after adding
+the bounded service TCP client. [Run 38511948729](https://github.com/leostera/libcf/actions/runs/38511948729),
+commit `8cc8f6c`, passed the complete pipeline with 93 default tests after adding
+its opt-in live harness. CI uses a real local service socket, not external TCP or
+a database; these CI results do not establish production socket behavior.
+
 ## Current evidence
 
 On 2026-10-13, the two toolchain tests passed with
