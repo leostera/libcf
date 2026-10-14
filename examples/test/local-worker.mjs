@@ -27,6 +27,8 @@ async function workerOptions(configPath, root) {
       flagship[item.binding] = { type: 'flagship', id: item.app_id, dev: { remote: false } };
     }
   }
+  if (Object.hasOwn(config, 'site'))
+    throw new Error('Legacy Workers Sites requires an explicit manifest/namespace fixture; use a dedicated local harness');
   if (Object.hasOwn(config, 'analytics'))
     throw new Error('Analytics SQL queries account data remotely; use an explicit local mock configuration');
   if (Object.hasOwn(config, 'ai'))
