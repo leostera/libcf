@@ -189,7 +189,7 @@ During this work Linux CI exposed a transport race in the oversized-upload test 
 
 Both HTTPS probes passed. Core verified routing, headers/string vars, `Assets.fetch`, binary echo, stream contents, client cancellation plus subsequent-request recovery, UUID format/uniqueness, concurrent request isolation and `waitUntil` KV persistence. This does not establish transport backpressure, delivery of cancellation to upstream I/O, cryptographic entropy quality or geographical consistency.
 
-Service verified POST/binary/header forwarding, upstream HTTP 503 preservation, bodyless 204, oversized-response rejection, missing-binding errors and subsequent-request recovery. The upstream deployment reported **No targets deployed**; both workers.dev and previews were disabled. Only the frontend had a custom domain. RPC and end-to-end streaming remain unimplemented.
+Service verified POST/binary/header forwarding, upstream HTTP 503 preservation, bodyless 204, oversized-response rejection, missing-binding errors and subsequent-request recovery. The upstream deployment reported **No targets deployed**; both workers.dev and previews were disabled. Only the frontend had a custom domain. At that probe revision, RPC and end-to-end streaming were unimplemented; later JSON RPC client evidence is reconciled below.
 
 Cleanup: all three Worker lookups returned 404/code 10007; KV namespace lookup returned 404/code 10013; both exact-name DNS listings returned `[]`. The frontend was deleted before its upstream; no delete-with-references override was used. Certificate deletion is asynchronous and tracked separately.
 
@@ -213,6 +213,21 @@ A transient CLI 401 occurred when the previous OAuth access token expired. `cf a
 - No forced live eviction or alarm retry was performed. Full runtime restart recovery was tested locally; alarm handling uses an idempotent armed-state update but the probe does not prove exactly-once platform delivery.
 - Cleanup: Worker lookup returned 404/code 10007, exact-name DNS listing returned `[]`, and a complete namespace listing contained 32 entries (below the requested 100-entry page size) with neither the recorded namespace ID nor the deleted Worker script. Before deletion the listing contained 33 entries including that namespace.
 - Linux CI for the C++ object implementation (`838c34d`) passed, including native sanitizer checks. A subsequent complete 24-entry certificate-pack listing contained no libcf hosts, confirming certificate cleanup for the DO and preceding runs.
+
+## Historical JSON service RPC reconciliation (2026-10-13)
+
+The [retained RPC summary](live/rpc-historical-2026-10-13.json) records a passing
+JSON client probe: nested/scalar values, exact1MiB argument body, eight concurrent
+calls, invalid/provider/capability/size/reserved/missing failures and recovery.
+Its base commit was53a68bed, **with dirty source**, before the Bazel migration;
+the commit alone cannot reproduce those deployed artifacts. This corrects the
+stale “live pending” classification without claiming a clean Bazel rerun.
+Both Workers returned404/code10007 after cleanup, exact frontend DNS was empty,
+and the retained final certificate listing contains no matching hostname.
+The reference had no public domains per the ownership record. No new account
+lookup was performed during this reconciliation. C++ RPC exports, arbitrary JS
+interop and live server-disposer timing are not verified. A clean Bazel rerun
+remains required.
 
 ## Queue live success and unresolved Cron probe (2026-10-13)
 

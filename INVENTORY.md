@@ -8,6 +8,10 @@ The implemented target is **Workers module format**: a small JavaScript/TypeScri
 
 Classification below: **R** = exposed by the inspected workers-rs high-level `worker` crate; **P** = platform/peer binding candidate not covered by that Rust surface (verify per current docs); **X** = special deployment or experimental status, not automatic Worker parity. An inventory row is a task, not evidence of runtime support or a passing test. Each row should get a public API, one `examples/<name>/` sample, and an integration test unless marked differently.
 
+The [row-by-row reconciliation](docs/inventory-audit.md) maps every foundation and
+inventory track to capability-level gaps. It is a release backlog, not completion
+or a platform-unavailability claim.
+
 ## 0. Foundation requirements and remaining audit work
 
 - [x] F01: C++ hello-world Wasm loads in a module Worker; Bazel local tests and declared deployment artifacts pass. Toolchain versions, repeated bundle hashes and matched size/startup measurements are recorded in [Bazel evidence](docs/bazel.md) and [benchmarks](docs/benchmarks.md). Native host-toolchain limitations remain documented.

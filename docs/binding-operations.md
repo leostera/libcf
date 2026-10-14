@@ -4,6 +4,11 @@ Snapshot: 2026-10-14. This ledger enumerates every numeric `cf::Operation` in th
 
 `L` means a real local workerd fixture exercises the operation. `A` means workerd accepts dispatch but its pinned provider is a no-op: not persistence or ingestion evidence. `M` means the C++/Wasm bridge runs in workerd with an explicitly mocked provider, not the native binding or remote service. `V` means the named subset passed an isolated live probe; consult [dated deployment and cleanup evidence](live-verification.md). `Pending` and `Approval` are not passes or verified platform limitations. The Workflow retry verified deletion through independent instance-list readback; immediate binding lookups returned `terminated`, not absence. The earlier incomplete run is retained separately. Live results are single-client/location observations, not global consistency, exactly-once delivery or full production parity.
 
+The [inventory reconciliation](inventory-audit.md) maps every inventory track and
+capability row to remaining work; passing this ledger's consistency test is not
+release readiness. Live `V` includes historical pre-Bazel evidence, not just current
+Bazel verification; consult provenance before claiming a rerun.
+
 Every row below is implemented; its fixture links to local runtime tests. Native codecs and adapter boundary tests supplement those fixtures, but a row does not claim every possible failure or parameter combination is tested.
 
 | ID | Operation | Local fixture | Local | Live | Verified subset or outstanding constraint |
@@ -32,8 +37,8 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 81 | `DurableSqlBatch` | [DO](../examples/durable/test/worker.test.mjs) | L | V | Atomic statement groups, racing increments and rollback. |
 | 82 | `DurableSetAlarm` | [DO](../examples/durable/test/worker.test.mjs) | L | V | Alarm handler's durable effects observed; alarm retry is not verified. |
 | 96 | `DurableFetch` | [DO](../examples/durable/test/worker.test.mjs) | L | V | Named-object buffered fetch, object isolation, binary/headers/errors. |
-| 112 | `QueueSendText` | [Events](../examples/events/test/worker.test.mjs) | L | V | Consumer readback and explicit retry/redelivery; not exactly-once. |
-| 113 | `QueueSendBytes` | [Events](../examples/events/test/worker.test.mjs) | L | V | Byte consumer readback and oversized rejection. |
+| 112 | `QueueSendText` | [Events](../examples/events/test/worker.test.mjs) | L | V | Consumer readback and explicit retry/redelivery; not exactly-once. Revised rejection at128000 raw bytes needs live rerun. |
+| 113 | `QueueSendBytes` | [Events](../examples/events/test/worker.test.mjs) | L | V | Byte consumer readback and oversized rejection. Revised rejection at128000 raw bytes needs live rerun; provider metadata can reduce acceptance. |
 | 128 | `RateLimit` | [Rate limit](../examples/rate-limit/test/worker.test.mjs) | L | V | Allowed/exceeded, key/namespace isolation, bounds and recovery; approximate/local. |
 | 144 | `AnalyticsWriteDataPoint` | [Analytics](../examples/analytics/test/worker.test.mjs) | A | Approval | Bounded acceptance only; live retention/deletion terms need approval. |
 | 160 | `VersionMetadataGet` | [Metadata](../examples/metadata/test/worker.test.mjs) | L | V | Version ID matches deployment; tag/timestamp and missing binding. |
@@ -48,7 +53,7 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 274 | `WorkflowDelete` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Completed/active deletion acknowledged; independent instance list empty before administrative cleanup. Not physical erasure or rollback. |
 | 275 | `WorkflowSendEvent` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Null/array payload readback and JS workflow completion; no C++ durable replay. |
 | 288 | `ImageInfoGet` | [Images](../examples/images/test/worker.test.mjs) | L | V | PNG dimensions/size, SVG category, invalid/empty/missing/oversized failures and recovery; no transforms/uploads. |
-| 304 | `RpcCallJson` | [JSON service RPC](../examples/rpc/test/worker.test.mjs) | L | Pending | Owned bounded JSON arguments/results, concurrent calls, errors and recovery. Separate JS workerd tests verify rejected/late capability disposal; no C++ RPC exports. |
+| 304 | `RpcCallJson` | [JSON service RPC](../examples/rpc/test/worker.test.mjs) | L | V | Historical dirty-source JSON client probe passed; [provenance](live/rpc-historical-2026-10-13.json), clean Bazel rerun pending. Concurrent calls/errors/recovery; separate local capability-disposal fixtures. No C++ RPC exports or live server-disposer timing proof. |
 | 320 | `AiRunJson` | [AI JSON](../examples/ai/test/worker.test.mjs) | M | Approval | Bounded JSON object input and raw JSON response, errors, owned concurrent dispatch. No real inference; account usage needs approval. Streaming/binary/advanced options remain gaps. |
 | 336 | `ServiceTcpExchange` | [Service TCP](../examples/service-tcp/test/worker.test.mjs) | L | V | Empty/binary/1MiB and concurrent bounded half-close/EOF exchanges, invalid address, overflow, deadline and recovery passed in an isolated Bazel live pair; cleaned. No persistent sockets, socket TLS, C++ ingress or general outbound TCP. |
 | 352 | `VectorizeQuery` | [Vectorize query](../examples/vectorize/test/worker.test.mjs) | M | Approval | Finite float32 input, bounded owned IDs/binary64 scores, empty/concurrent/error/deadline recovery via explicit mock. Native pre-parsing remains outside SDK caps; no provider cancellation/ranking/mutation claim. |

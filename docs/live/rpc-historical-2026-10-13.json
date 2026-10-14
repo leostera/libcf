@@ -1,0 +1,39 @@
+{
+  "scope": "Historical pre-Bazel JSON service RPC probe; not a clean-source or Bazel rerun",
+  "started": "2026-10-13T21:10:23.315Z",
+  "finished": "2026-10-13T21:48:13.633Z",
+  "sourceCommit": "53a68bed4915a35f4ad61ea8d92bfe03aa85bbf1",
+  "dirtySource": true,
+  "exactSourceReproducibleFromCommit": false,
+  "hostname": "libcf-rpc-2a3f704162.libcf.leostera.dev",
+  "workers": [
+    { "name": "libcf-rpc-2a3f704162", "version": "5b3abecc-0167-4dc0-9be0-931bb2b889e3" },
+    { "name": "libcf-rpc-2a3f704162-upstream", "version": "f1781006-4baf-43db-951d-bbcc0969b3a1" }
+  ],
+  "passed": [
+    "scalar/nested JSON",
+    "exact 1-MiB argument body",
+    "8 concurrent calls",
+    "provider/unsupported/capability/size/reserved/missing failures",
+    "invalid arguments",
+    "recovery"
+  ],
+  "cppRpcExports": false,
+  "serverDisposerTimingVerified": false,
+  "cleanup": {
+    "bothWorkers": "404/code10007 in retained post-cleanup lookups",
+    "frontendDns": "exact-host listing empty",
+    "referencePublicDomains": "none, per retained ownership record",
+    "certificates": "retained 24-entry final listing contains no exact probe hostname; no new account lookup in this reconciliation"
+  },
+  "retainedLocalEvidence": [
+    "build/live-evidence/rpc-active.json",
+    "build/live-evidence/rpc-test.log",
+    "build/live-evidence/rpc-frontend-worker-after.json",
+    "build/live-evidence/rpc-upstream-worker-after.json",
+    "build/live-evidence/rpc-frontend-dns-after.json",
+    "build/live-evidence/rpc-certificates-final.json"
+  ],
+  "reconciled": "2026-10-14",
+  "remaining": "Clean Bazel-produced live rerun; no arbitrary JS interop, C++ RPC exports or server disposer timing claim"
+}
