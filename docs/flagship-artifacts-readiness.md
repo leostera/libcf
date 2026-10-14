@@ -126,6 +126,43 @@ actual account entitlement still require review. A native test plan must name
 owned namespace/repo/data, maximum operations/storage, credential handling,
 expiry/revocation, timeout behavior and independent deletion/absence checks.
 
+## Bounded Artifacts JS prototype
+
+`lib/artifacts.mjs::performArtifactsInfo` now performs only `get(name)` followed
+by the returned repository's `info()`. No runtime operation, C++ API or standalone
+example is wired yet. Missing/not-ready lookup remains an error; no implicit
+create, enumeration, import, credential issuance or compensating deletion.
+
+- Repository selector: 1–128 ASCII bytes, first alphanumeric and the remainder
+  alphanumeric/dot/underscore/hyphen. This is a deliberately narrow libcf subset,
+  not a claim about every platform-valid name. Empty body and canonical decimal
+  timeout1–60000ms are required, validated before binding access.
+- Output owns only `id` (1–128 UTF-8 bytes), exact echoed `name` (1–128),
+  `defaultBranch` (1–256) and boolean `readOnly`. ID/branch are opaque metadata,
+  not parsed Git references or safe command arguments. BOM/NUL are preserved;
+  ill-formed UTF-8/lone surrogates reject. URL, token, description, timestamps and
+  fork source are neither read nor serialized. A matching name is not tenant
+  authorization or proof of an atomic snapshot.
+- Wire: LE u32 readOnly0/1 followed by length-prefixed UTF-8 ID, name and branch;
+  minimum19, maximum528 bytes. Bounds apply to projection, not provider-side
+  materialization, namespace access or billed operations.
+- At most four owned roots: acquisition promise, repository capability, read
+  promise and result. Receivers preserved, roots retained through projection,
+  reverse conditional synchronous disposal with identity deduplication; borrowed
+  namespace excluded. Cleanup error rejects success and preserves primary errors.
+  Abort/deadline drains late acquisition/read results or rejections; no late info
+  invocation after canceled acquisition. No native-work/billing/erasure guarantee.
+
+`tests/artifacts-adapter.test.mjs` verifies caps, selected-field-only reads,
+receiver/argument shape, aliasing, cleanup failures and cancellation at both
+stages. `tests/artifacts-rpc-lifetime.test.mjs` uses real service RPC with **fake
+repository metadata**: retired repository/result capabilities are unusable while
+the borrowed service remains usable, including failures and canceled work. It
+is not an Artifacts binding test, server-disposer timing proof, repository/Git
+compatibility proof or evidence of account access. Default remote-service guards
+remain unchanged. A native metadata read still needs explicit owned-repository
+and pricing/data-access approval.
+
 ## Default-test safety and next steps
 
 The ordinary fixture harness rejects `artifacts` before bundling the affected
@@ -166,7 +203,8 @@ account authorization or native cancellation.
 
 Next: broader typed evaluation and context capabilities, then separately approved
 live verification. Artifacts still
-has no C++ API/example; design its metadata projection and RPC lifetime tests.
+has no C++ API/example; add its typed metadata decoder and explicit-mock example
+after the JS projection tests, retaining native approval gates.
 P09 remains partial, not complete.
 
 ## Sources
