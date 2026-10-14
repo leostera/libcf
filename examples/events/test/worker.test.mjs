@@ -4,7 +4,7 @@ import { before, after, test } from 'node:test';
 import { startLocalWorker } from '../../test/local-worker.mjs';
 let worker;
 let base;
-before(async () => { worker = await startLocalWorker('examples/events/wrangler.jsonc'); base = worker.base; });
+before(async () => { worker = await startLocalWorker('examples/events/test/local.wrangler.jsonc'); base = worker.base; });
 after(async () => { await worker?.dispose(); });
 async function delivered(body) {
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -14,7 +14,7 @@ async function delivered(body) {
     await response.arrayBuffer();
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  assert.fail('Queue delivery timed out');
+  assert.fail(`Queue delivery timed out for synthetic payload ${JSON.stringify(body)}`);
 }
 
 test('C++ producer and consumer preserve text and bytes', async () => {
@@ -42,6 +42,47 @@ test('C++ Queue text preserves leading U+FEFF through native delivery and storag
     // Response.text() itself removes a leading UTF-8 BOM; compare raw bytes.
     assert.deepEqual(new Uint8Array(await result.arrayBuffer()), new TextEncoder().encode(text));
   }
+});
+
+test('C++ text batch delivers 100 distinct messages through native Queue and D1', {timeout:30000}, async () => {
+  const messages = Array.from({length:100},(_,i)=>i === 2 ? '' :
+    (i === 0 ? String.fromCodePoint(0xFEFF) : '') + randomUUID());
+  const sent = await fetch(`${base}/send/batch-text`, {method:'POST',body:messages.join('\n')});
+  assert.equal(sent.status,202); await sent.arrayBuffer();
+  for (const text of messages) {
+    const response = await delivered(text);
+    assert.equal(response.headers.get('x-body-format'),'text');
+    assert.deepEqual(new Uint8Array(await response.arrayBuffer()),new TextEncoder().encode(text));
+  }
+  for (const body of [Array(101).fill('x').join('\n'),'x'.repeat(128000),'before'+String.fromCharCode(0)+'after']) {
+    const rejected = await fetch(`${base}/send/batch-text`, {method:'POST',body});
+    assert.equal(rejected.status,502); await rejected.arrayBuffer();
+  }
+  const recovered = randomUUID();
+  const recovery = await fetch(`${base}/send/batch-text`,{method:'POST',body:recovered});
+  assert.equal(recovery.status,202); await recovery.arrayBuffer();
+  assert.equal(await (await delivered(recovered)).text(),recovered);
+});
+
+test('pinned native text-batch producer truncates NUL while direct consumer injection preserves it', async () => {
+  const prefix = randomUUID(), original = prefix + String.fromCharCode(0) + 'tail';
+  const injected = await worker.queue('libcf-events-local', [{id:randomUUID(),body:original,attempts:1,timestamp:new Date()}]);
+  assert.equal(injected.outcome,'ok');
+  assert.deepEqual(new Uint8Array(await (await delivered(original)).arrayBuffer()),new TextEncoder().encode(original));
+  const sent = await fetch(`${base}/control/send-batch`,{method:'POST',body:original});
+  assert.equal(sent.status,202); await sent.arrayBuffer();
+  assert.equal(await (await delivered(prefix)).text(),prefix);
+  const received = await (await fetch(`${base}/control/received`)).json();
+  assert(received.some(value=>value.text === prefix),'truncation precedes libcf consumer handling');
+});
+
+test('default example refuses batch producers without the local opt-in', async () => {
+  const guarded = await startLocalWorker('examples/events/wrangler.jsonc');
+  try {
+    const response = await fetch(`${guarded.base}/send/batch-text`,{method:'POST',body:'not-enqueued'});
+    assert.equal(response.status,403);
+    assert.equal(await response.text(),'batch producer disabled');
+  } finally { await guarded.dispose(); }
 });
 
 test('explicit retry redelivers before acknowledgement', async () => {

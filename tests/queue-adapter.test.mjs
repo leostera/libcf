@@ -2,6 +2,56 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { performQueue } from '../lib/queue.mjs';
 
+function batchWire(messages) {
+  const u32 = value => { const bytes = Buffer.alloc(4); bytes.writeUInt32LE(value); return bytes; };
+  return Buffer.concat([u32(messages.length), ...messages.flatMap(message => {
+    const bytes = typeof message === 'string' ? Buffer.from(message) : message;
+    return [u32(bytes.length),bytes];
+  })]);
+}
+
+test('Queue text batch is wholly owned before the one provider call', async () => {
+  for (const messages of [['', '\uFEFFhello', 'abc'], Array.from({length:100},(_,i)=>String(i)),
+    ['x'.repeat(127994), 'y'.repeat(127994)]]) {
+    const wire = batchWire(messages);
+    let calls = 0;
+    const queue = {get sendBatch() {
+      wire.fill(90);
+      return function(batch, options) {
+        assert.equal(this,queue); calls++;
+        assert.deepEqual(batch,messages.map(body=>({body,contentType:'text'})));
+        assert.deepEqual(options,{delaySeconds:86400});
+      };
+    }};
+    assert.deepEqual(await performQueue(114,queue,wire,'86400'),{status:0,bytes:new Uint8Array()});
+    assert.equal(calls,1);
+  }
+});
+
+test('Queue batch rejects all malformed frames before provider access', async () => {
+  let accesses = 0;
+  const queue = {get sendBatch() { accesses++; throw new Error('must not access'); }};
+  const frame = batchWire(['ok']);
+  const badCount = Buffer.from(frame); badCount.writeUInt32LE(0xffffffff,0);
+  const badLength = Buffer.from(frame); badLength.writeUInt32LE(0xffffffff,4);
+  const cases = [batchWire([]),batchWire(Array(101).fill('')),batchWire(['x'.repeat(128000)]),
+    batchWire(['x'.repeat(127995),'y'.repeat(127994)]),batchWire([Uint8Array.of(255)]),batchWire(['ok','a\0b']),
+    badCount,badLength,Buffer.concat([frame,Buffer.from([0])])];
+  for (let size=0;size<frame.length;size++) cases.push(frame.subarray(0,size));
+  for (const bytes of cases) await assert.rejects(performQueue(114,queue,bytes,'0'));
+  for (const delay of ['-1','86401']) await assert.rejects(performQueue(114,queue,frame,delay));
+  assert.equal(accesses,0);
+});
+
+test('Queue batch observes late provider rejection without retries', async () => {
+  let calls = 0, reject;
+  const failure = new Error('acceptance unknown');
+  const pending = performQueue(114,{sendBatch() { calls++; return new Promise((_,fail)=>{reject=fail;}); }},batchWire(['one','two']),'0');
+  reject(failure);
+  await assert.rejects(pending,error=>error===failure);
+  assert.equal(calls,1);
+});
+
 test('Queue producer uses a decimal 128-KB exclusive body boundary', async () => {
   for (const method of [112, 113]) {
     let calls = 0;

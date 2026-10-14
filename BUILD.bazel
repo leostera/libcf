@@ -161,6 +161,7 @@ js_test(
         "lib/ai-gateway.mjs",
         "lib/sites.mjs",
         "lib/outbound-get.mjs",
+        "lib/queue.mjs",
         ":node_modules/@cloudflare/workers-types",
         ":node_modules/typescript",
         ":node_modules/miniflare",

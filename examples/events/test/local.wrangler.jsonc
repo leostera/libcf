@@ -1,0 +1,18 @@
+{
+  "name": "libcf-events-local",
+  "main": "local.mjs",
+  "compatibility_date": "2026-10-13",
+  "vars": { "LIBCF_EVENTS_LOCAL_BATCH": "enabled" },
+  "d1_databases": [{
+    "binding": "DB", "database_name": "libcf-events-local",
+    "database_id": "00000000-0000-0000-0000-000000000002"
+  }],
+  "queues": {
+    "producers": [{ "binding": "EVENTS", "queue": "libcf-events-local" }],
+    "consumers": [{
+      "queue": "libcf-events-local", "max_batch_size": 1, "max_batch_timeout": 1,
+      "max_retries": 3, "retry_delay": 1
+    }]
+  },
+  "triggers": { "crons": ["* * * * *"] }
+}

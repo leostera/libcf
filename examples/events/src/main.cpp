@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "cf/d1.hpp"
 #include "cf/events.hpp"
 #include "cf/queue.hpp"
@@ -38,6 +40,21 @@ Task handle(Request request, WorkerContext context) {
     auto sent = co_await (path == "/send/text" ? queue.send_text(std::move(request.body))
         : queue.send_bytes(Bytes(request.body.begin(), request.body.end())));
     co_return sent ? Response::text("queued", 202) : Response::text("send failed", 502);
+  }
+  if (path == "/send/batch-text" && request.method == "POST") {
+    if (request.body.size() > 256000) co_return Response::text("batch send failed", 502);
+    std::vector<std::string> messages;
+    std::size_t start = 0;
+    while (true) {
+      if (messages.size() == 100) co_return Response::text("batch send failed", 502);
+      const auto end = request.body.find('\n', start);
+      messages.push_back(request.body.substr(start, end == std::string::npos ? end : end - start));
+      if (end == std::string::npos) break;
+      start = end + 1;
+    }
+    Queue queue(context.bindings, "EVENTS");
+    auto sent = co_await queue.send_text_batch(messages);
+    co_return sent ? Response::text("batch queued", 202) : Response::text("batch send failed", 502);
   }
   if (path == "/lookup" && request.method == "POST") {
     auto statement = database.prepare("SELECT payload,attempts,format,COUNT(*) OVER() AS copies FROM messages WHERE payload=?")

@@ -20,9 +20,10 @@ lock metadata remains part of the SDK archive.
   Unclassified receivers, dynamic method/argument forms and changed site count
   fail instead of being silently skipped. This covers transform/output/contentType,
   not arbitrary dynamic calls or complete control flow.
-- For Analytics SQL, AI Gateway, Sites and outbound GET, extract five actual
+- For Queue single/batch sends, Analytics SQL, AI Gateway, Sites and outbound GET,
+  extract seven actual
   `Reflect.apply` provider sites. Resolve their cached method selectors from the
-  source (`query`, `gateway`, `getUrl`, `get`, `fetch`) and require the matching
+  source (`send`, `sendBatch`, `query`, `gateway`, `getUrl`, `get`, `fetch`) and require the matching
   receiver. Emit the actual arguments; split Gateway's conditional argument list
   into branches so omission remains distinct from passing undefined. Reviewed
   receiver and input-value types are annotations, not inferred data flow.

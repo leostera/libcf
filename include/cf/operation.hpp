@@ -41,6 +41,7 @@ enum class Operation : std::uint32_t {
   DurableFetch = 96,
   QueueSendText = 112,
   QueueSendBytes = 113,
+  QueueSendTextBatch = 114,
   RateLimit = 128,
   AnalyticsWriteDataPoint = 144,
   VersionMetadataGet = 160,

@@ -19,9 +19,8 @@ test('reflective extraction rejects unknown targets and mismatched receivers', (
   for (const contract of contracts) {
     const text = readFileSync(`lib/${contract.file}.mjs`,'utf8');
     assert.throws(()=>extractReflectionContract(`${text}\nReflect.apply(unknown, binding, []);`,contract),/unclassified Reflect.apply/);
-    const mismatch = text.replace('Reflect.apply(invoke, binding,','Reflect.apply(invoke, wrong,');
-    // Gateway's getUrl uses gateway, not binding, as its receiver.
-    const changed = mismatch === text ? text.replace('Reflect.apply(invoke, gateway,','Reflect.apply(invoke, wrong,') : mismatch;
+    const changed = text.replace(/Reflect\.apply\((invoke|sendBatch|send), (binding|gateway|queue),/,
+      'Reflect.apply($1, wrong,');
     assert.notEqual(changed,text);
     assert.throws(()=>extractReflectionContract(changed,contract),/method\/receiver mismatch/);
   }

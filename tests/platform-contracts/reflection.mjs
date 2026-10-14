@@ -3,6 +3,7 @@ import ts from 'typescript';
 
 // These are reviewed semantic roles, not inferred runtime types/data flow.
 export const contracts = [
+  {file:'queue',roles:{queue:'CF.Queue'},values:{messages:'Array<{body:string;contentType:"text"}>',payload:'string | Uint8Array',method:'number',delaySeconds:'number'},sites:2,cleanup:{}},
   {file:'analytics-sql',roles:{binding:'CF.AnalyticsSQLBinding'},values:{request:'CF.AnalyticsSQLQuery'},sites:1,cleanup:{release:1}},
   {file:'ai-gateway',roles:{binding:'CF.Ai',gateway:'CF.AiGateway'},values:{key:'string',provider:'string | undefined'},sites:2,cleanup:{release:1}},
   {file:'sites',roles:{binding:'CF.KVNamespace'},values:{physical:'string'},sites:1,cleanup:{release:1,cancelStream:1}},
