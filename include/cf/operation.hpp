@@ -59,6 +59,7 @@ enum class Operation : std::uint32_t {
   AiRunJson = 320,
   ServiceTcpExchange = 336,
   VectorizeQuery = 352,
+  DispatchFetch = 368,
 };
 
 struct OperationCall {

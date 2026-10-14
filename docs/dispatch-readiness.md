@@ -1,9 +1,10 @@
 # Dynamic dispatch readiness
 
 Audited2026-10-14 against current docs, Workers types5.20261010.1 and pinned
-Miniflare5.20261006.1-alpha. No C++ dispatch namespace API or live verification
-exists yet. Regular service-binding tests do not establish Workers for Platforms
-(WfP) namespace routing, isolation or limit enforcement.
+Miniflare5.20261006.1-alpha. A [buffered C++ dispatch subset](../examples/dispatch/README.md)
+now has explicit mock coverage. No native WfP/live verification is claimed.
+Regular service-binding tests do not establish Workers for Platforms (WfP)
+namespace routing, isolation or limit enforcement.
 
 ## Native contract and scope
 
@@ -14,9 +15,9 @@ passes values to configured outbound-worker parameters. These are distinct input
 not one interchangeable options object. RPC stubs in props are request-scoped:
 storing one for a later request does not make cross-request I/O legal.
 
-A future libcf subset should start with one owned, bounded HTTP request/reply per
-call, preserving method, headers, binary data, status and body cancellation. A
-JSON props subset would exclude RPC capabilities explicitly. Native CPU/subrequest
+The implemented libcf subset uses one owned, bounded HTTP request/reply per call,
+preserving method, headers, binary data, status and body cancellation. It supplies
+explicit CPU/subrequest limits but excludes props, including JSON and RPC capabilities. Native CPU/subrequest
 limits are not local wall-clock deadlines; a recorded mock argument does not prove
 the provider enforced it. Handle both synchronous lookup failure and asynchronous
 fetch rejection, without implicit retries or remote rollback promises.
@@ -34,7 +35,7 @@ Pinned Miniflare's `DISPATCH_NAMESPACE_PLUGIN` uses the module named
 proxy**. Its name is not evidence of a local namespace emulator. Official local
 development documentation likewise connects a local dispatcher to deployed user
 Workers. The local harness now rejects `dispatch_namespaces` before bundling or
-runtime startup. A future explicit namespace mock is **M**, not native local L/V.
+runtime startup. The explicit namespace mock is **M**, not native local L/V.
 
 ## Isolation and fees
 

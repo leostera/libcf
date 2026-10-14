@@ -9,7 +9,7 @@ Included in the default suite. `cf::WorkerLoader(runtime, binding).fetch(source,
 
 ## Enforced adapter policy
 
-- Source: 1–65,536 UTF-8 bytes. Request/response bodies and headers use the existing Service Binding bounds (1 MiB bodies, 64 KiB headers); responses are buffered, not streamed across this API.
+- Source: 1–65,536 UTF-8 bytes. Request/response bodies and headers use the existing Service Binding bounds (1 MiB total request wire including method/headers/prefixes, 1 MiB response body, 64 KiB headers); responses are buffered, not streamed across this API.
 - Child compatibility date: `2026-10-13`, no compatibility flags.
 - `env: {}` and `globalOutbound: null`: no inherited bindings and no global HTTP/TCP egress. Forwarded request fields are explicitly visible to child code; do not forward sensitive data unnecessarily.
 - Requested resource limits: 50 CPU milliseconds and zero subrequests. These settings are asserted in adapter tests; local tests do not establish live CPU enforcement or a wall-clock execution deadline.

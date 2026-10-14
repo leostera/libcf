@@ -24,6 +24,7 @@ class ServiceBinding {
   friend class DurableObjectStub;
   friend class WorkerLoader;
   friend class HttpClient;
+  friend class DispatchNamespace;
   AsyncResult<Response> fetch(Request request, Operation operation, std::string options) const {
     if (request.body.size() > 1024 * 1024 || request.method.empty() || request.method.size() > 32)
       return invalid("invalid binding request size");
@@ -37,6 +38,9 @@ class ServiceBinding {
       headers.insert(headers.end(), header.name.begin(), header.name.end());
       headers.insert(headers.end(), header.value.begin(), header.value.end());
     }
+    // The host's 1 MiB operation-body cap includes all three field prefixes.
+    if (request.body.size() + headers.size() + request.method.size() + 12 > 1048576)
+      return invalid("binding request wire exceeds 1 MiB");
     Bytes wire;
     field(wire, request.method);
     u32(wire, static_cast<std::uint32_t>(headers.size()));
@@ -46,12 +50,13 @@ class ServiceBinding {
         {operation, name_, std::move(request.url), std::move(wire), std::move(options)},
         [](OperationReply reply) -> Result<Response> {
           const auto invalid = [] { return Result<Response>::failure({ErrorCode::InvalidInput, "invalid binding response"}); };
-          if (reply.kind != ReplyKind::Value) return invalid();
+          if (reply.kind != ReplyKind::Value || reply.bytes.size() > 1048576 + 65536 + 15)
+            return invalid();
           detail::WireReader reader(reply.bytes);
           Response response;
           std::string status, body;
           Bytes headers;
-          if (!reader.string(status) || !reader.bytes(headers) || !reader.string(body) || !reader.done()) return invalid();
+          if (!reader.string(status) || !reader.bytes(headers) || !reader.string(body) || !reader.done() || headers.size() > 65536 || body.size() > 1048576) return invalid();
           const auto [end, error] = std::from_chars(status.data(), status.data() + status.size(), response.status);
           auto parsed = detail::parse_headers(headers);
           if (error != std::errc{} || end != status.data() + status.size() ||

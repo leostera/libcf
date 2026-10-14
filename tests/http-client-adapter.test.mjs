@@ -44,3 +44,25 @@ test('abort cancels a late response stream without buffering it', async () => {
   }), error => error.name === 'AbortError');
   assert.equal(cancelled, true);
 });
+
+test('shared service codec enforces aggregate request wire budget before fetch', async () => {
+  let calls = 0;
+  const invoke = async request => {
+    calls++;
+    assert.equal((await request.arrayBuffer()).byteLength, 1048576 - 16);
+    return new Response('ok');
+  };
+  function postWire(bodyLength, method = 'POST') {
+    const bytes = Buffer.alloc(12 + method.length + bodyLength);
+    bytes.writeUInt32LE(method.length, 0);
+    bytes.write(method, 4);
+    bytes.writeUInt32LE(0, 4 + method.length);
+    bytes.writeUInt32LE(bodyLength, 8 + method.length);
+    return bytes;
+  }
+  await performHttp(url, postWire(1048576 - 16), 'manual', helpers, undefined, invoke);
+  assert.equal(calls, 1);
+  for (const bytes of [postWire(1048576 - 15), postWire(0, ''), postWire(0, 'A'.repeat(33))])
+    await assert.rejects(performHttp(url, bytes, 'manual', helpers, undefined, invoke));
+  assert.equal(calls, 1);
+});

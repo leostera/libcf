@@ -6,6 +6,22 @@ Counts must fit the **remaining** bytes, not the original buffer length: already
 
 The review reproduced a prior decoder accepting two KV keys for `list(limit=1)`. Native regression cases now cover exact limits, excess records, missing reply kinds, continuation cursors, consumed-prefix count padding, trailing data and truncated SQL/header frames. Tests use deliberately malformed host replies; they do not claim the live providers emitted such replies.
 
+## Buffered HTTP request and reply frames
+
+Service fetch, Durable Object fetch, Worker Loader, outbound HTTP and dispatch
+share a request codec: three u32-prefixed fields (method, header wire, body).
+The host caps the **entire operation body at1MiB**, so the request body budget is
+`1048576 - 12 - methodBytes - headerWireBytes`, not a full1MiB plus overhead.
+The C++ encoder and JS decoder now enforce that same aggregate boundary. Methods
+are1–32 bytes; headers are separately capped at64KiB. The dispatch integration
+exposed the previous mismatch at an exactly1MiB raw request body; it was rejected
+by the bridge, not by Workers for Platforms. The correction retains the bridge cap.
+
+Buffered replies permit a1MiB body and64KiB header wire, plus the three prefixes
+and a three-digit status. C++ rejects oversized aggregate replies before decoding,
+and rejects oversized individual fields. Boundary tests use forged replies and
+explicit mocks; these are not observations of malformed provider output.
+
 ## JSON result preparation
 
 The internal `encodeBoundedJson` helper accepts only ordinary JSON-compatible values: finite numbers, strings, booleans, null, dense ordinary arrays, and ordinary/null-prototype records. It rejects accessors without invoking them, `toJSON` functions, non-enumerable data, extra array properties, unsupported prototypes/capabilities, cycles and unsupported primitive values. Repeated references are serialized by value. Proxy traps and modified JS intrinsics are outside this ordinary-data contract; this is not a JavaScript sandbox.

@@ -73,7 +73,7 @@ EXAMPLES = [
     "core", "kv", "d1", "r2", "cache", "service", "durable", "events",
     "websocket", "email", "rate-limit", "analytics", "metadata", "worker-loader",
     "crypto", "benchmark", "http-client", "pipeline", "timer", "workflow",
-    "images", "clock", "rpc", "ai", "service-tcp", "vectorize",
+    "images", "clock", "rpc", "ai", "service-tcp", "vectorize", "dispatch",
 ]
 
 [cf_worker(name = name, srcs = ["examples/%s/src/main.cpp" % name]) for name in EXAMPLES]
@@ -108,6 +108,7 @@ JS_ENTRIES = {
     "http-upstream": "examples/http-client/upstream/worker.mjs",
     "rpc-reference": "examples/rpc/reference/worker.mjs",
     "service-tcp-reference": "examples/service-tcp/reference/worker.mjs",
+    "dispatch-reference": "examples/dispatch/reference/worker.mjs",
 }
 
 [js_run_binary(
@@ -235,7 +236,7 @@ test_suite(
 NATIVE_SUITES = [
     "core", "storage", "d1", "events", "websocket", "email", "rate_limit",
     "analytics", "metadata", "worker_loader", "subtle_crypto", "http_client",
-    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp", "vectorize",
+    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp", "vectorize", "dispatch",
 ]
 
 [cc_test(
