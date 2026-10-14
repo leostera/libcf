@@ -3,11 +3,12 @@
 ## Reproduce
 
 ```sh
-npm ci
-node scripts/bench-sdk.mjs
+bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json
 ```
 
-See [`examples/benchmark`](../examples/benchmark/README.md). The runner builds the fixture and writes `build/benchmark/report.json`. It makes only local requests, validates every response, disposes every runtime in `finally`, and rejects changed source inputs. No performance threshold is imposed on CI.
+See [`examples/benchmark`](../examples/benchmark/README.md). Bazel builds the fixture first; the runner writes to the supplied new absolute report path and refuses to overwrite an existing file. Schema 2 excludes compilation time (`buildMilliseconds: null`). It makes only local requests, validates every response, disposes every runtime in `finally`, and rejects changed source inputs. No performance threshold is imposed on CI.
+
+The results below predate the Bazel cutover; they are not Bazel-built benchmark evidence. A two-round/five-sample Bazel smoke verified execution/report generation only. A full matched Bazel rerun remains required before release.
 
 [Recorded raw data](benchmarks/local-2026-10-13.json) includes 6,720 measured request samples, per-round statistics, module hashes, source fingerprint and tool versions. It was recorded on 2026-10-13 at 15:29 UTC on an Apple M1 Max, arm64, Darwin 25.6.0, 10 logical CPUs. Node 26.11.1; Emscripten 6.0.12-git (`-O2`); esbuild 0.28.2; Miniflare 5.20261006.1-alpha; workerd 1.20261006.1; compatibility date 2026-10-13.
 

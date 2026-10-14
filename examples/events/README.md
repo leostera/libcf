@@ -1,10 +1,9 @@
 # Queue and scheduled events from C++
 
 ```sh
-npm ci
-npm run test:events
-npm run build:events
-node scripts/dev-example.mjs events
+bazel test //:events_local_test
+bazel build //:events
+bazel run //:events_dev
 ```
 
 `createEventWorker(factory, wasm)` dispatches fetch, Queue and scheduled events to the same C++ `cf::handle`. `cf::worker_event(context.env)` selects the event; `queue_message()` and `scheduled_event()` parse platform metadata into owned typed values. Reserved metadata comes from the adapter, not HTTP headers or URL paths. Invocation state is isolated and Queue processing is bounded to eight concurrent messages per batch.

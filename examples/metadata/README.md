@@ -1,9 +1,8 @@
 # Version metadata and Secrets Store reads
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/metadata/wrangler.jsonc
-node --test examples/metadata/test/*.test.mjs
+bazel build //:metadata
+bazel test //:metadata_local_test
 ```
 
 Included in the default test suite. `cf::VersionMetadata(runtime, binding).get()` returns owned `WorkerVersion { id, tag, timestamp }` strings. Empty tags are valid. Timestamps retain the platform's string representation; this API does not parse time zones or implement a date parser. The version wire is bounded to 64 KiB.
@@ -14,7 +13,7 @@ Included in the default test suite. `cf::VersionMetadata(runtime, binding).get()
 
 Two workerd cases verify stable local version metadata and a local secret's absence, empty value, rotation, comparison and deletion. Tests seed only local Miniflare storage through its admin test API. Native/direct-adapter tests cover malformed wire data, empty/binary/UTF-8 values, bounds and provider-error redaction. No remote secrets are fetched by local tests.
 
-Live version metadata passed: the ID matched the uploaded version, the untagged value was empty, the timestamp was stable across calls and a missing binding failed explicitly. See [identities and verified cleanup](../../docs/live-verification.md). Build with `node scripts/build-live-worker.mjs metadata`, deploy from `build/live-metadata` after collision checks, then run `node scripts/test-live-metadata.mjs <host> <uploaded-version-uuid>`. The live configuration intentionally has no secret binding.
+Live version metadata passed: the ID matched the uploaded version, the untagged value was empty, the timestamp was stable across calls and a missing binding failed explicitly. See [identities and verified cleanup](../../docs/live-verification.md). Build with `bazel run //:prepare_live_worker -- metadata`, deploy from `build/live-metadata` after collision checks, then run `bazel run //:live_metadata -- <host> <uploaded-version-uuid>`. The live configuration intentionally has no secret binding.
 
 Live Secrets Store verification remains pending. A read-only store listing found an existing default account store; no existing secrets were listed, fetched, changed or deleted. A live secret test requires approval to create and later delete a uniquely named synthetic fixture secret in an appropriate store. Version metadata can be verified independently without adding a secret binding.
 

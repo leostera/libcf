@@ -1,10 +1,9 @@
 # R2 binary objects from C++
 
 ```sh
-npm ci
-npm run test:r2
-npm run build:r2
-node scripts/dev-example.mjs r2
+bazel test //:r2_local_test
+bazel build //:r2
+bazel run //:r2_dev
 ```
 
 `cf::R2Bucket` exposes get/head/put/erase/list. Metadata is typed (key, size, ETag, HTTP ETag and content type); binary bodies are not decoded as text. The example provides `PUT/GET/HEAD/DELETE /objects/:key` and `GET /list` for the `listed-` prefix. A GET with `x-offset` demonstrates a two-byte range (this is a demo control, not standard HTTP Range handling).

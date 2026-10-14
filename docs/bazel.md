@@ -111,8 +111,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **80 test targets**: 19 native suites,
-C++20/23 all-header checks, 24 example/benchmark integration targets, 32 JS
+The default graph currently contains **81 test targets**: 19 native suites,
+C++20/23 all-header checks, 24 example/benchmark integration targets, 33 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally and in Linux CI; the 21-target native/header suite also
 passes under `--config=cxx23`.
@@ -120,11 +120,10 @@ Integration targets consume declared Wasm outputs rather than spawning compilers
 The initial all-header attempt omitted `CF_CONSUMER_STANDARD`; the rules now
 provide the same explicit standard assertion selector as the previous consumer.
 
-The old CMake installed-package test is **not** counted or run by Bazel. Its
-[archive/external-consumer replacement](packaging.md) passes on macOS and Linux.
-External consumption runs separately through `bazel run //:verify_package`.
-Compiler-spawning integration wrapper files still exist pending command cleanup,
-but their example tests run directly through Bazel. Live-policy/readiness/artifact tests are
+The old CMake installed-package test and compiler-spawning integration wrappers
+have been removed. Their [archive/external-consumer replacement](packaging.md)
+passes on macOS and Linux. External consumption runs separately through
+`bazel run //:verify_package`; example tests run directly through Bazel. Live-policy/readiness/artifact tests are
 local simulations; their names do not imply account access or new live evidence.
 
 ## Bazel distribution and lockfile
@@ -155,7 +154,12 @@ No Cloudflare account resources were created. Later
 commit `58400d7`, also passed the new archive test (80 default targets total) and
 relocated external-consumer checks. The SDK archive matched both independent
 macOS builds byte-for-byte; [the report](builds/sdk-2026-10-14.json) records its
-source revision and digest. Removal of superseded commands remains unfinished.
+source revision and digest.
+
+[Run 38491371895](https://github.com/leostera/libcf/actions/runs/38491371895),
+commit `3eee351`, passed after CMake/compiler-wrapper removal and persistent live
+output preparation: all 81 default targets, C++23, sanitizers, external consumption
+and offline deployment preparation/dry-run. No live resource was created.
 GitHub reported a deprecation notice for the pinned checkout/setup-node v4 actions'
 internal Node runtime; the project's Node toolchain remains pinned and tested.
 

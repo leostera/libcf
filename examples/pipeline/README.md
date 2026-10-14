@@ -1,9 +1,8 @@
 # Pipelines JSON batch producer
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/pipeline/wrangler.jsonc
-node --test examples/pipeline/test/*.test.mjs
+bazel build //:pipeline
+bazel test //:pipeline_local_test
 ```
 
 Included in the default suite. `cf::Pipeline(runtime, binding).send_json(owned_json)` returns `AsyncResult<Unit>`. This is explicitly a serialized-JSON boundary, not a C++ JSON DOM or schema generator. JS parses the owned UTF-8 input into records before invoking the native binding.

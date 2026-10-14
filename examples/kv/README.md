@@ -3,10 +3,9 @@
 The application implements `cf::handle(Request, WorkerContext)` and uses `KvNamespace` coroutine operations. `src/worker.cpp` and the shared JS runtime own the ABI and request lifetime; the example has no hand-written storage JS.
 
 ```sh
-npm ci
-npm run test:kv
-npm run build:kv
-node scripts/dev-example.mjs kv
+bazel test //:kv_local_test
+bazel build //:kv
+bazel run //:kv_dev
 ```
 
 Requires the pinned Emscripten 6.0.12 toolchain. Routes:

@@ -1,12 +1,11 @@
 # C++ Durable Object WebSockets
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/websocket/wrangler.jsonc
-node --test examples/websocket/test/*.test.mjs
+bazel build //:websocket
+bazel test //:websocket_local_test
 ```
 
-The default `npm test` suite also builds and runs this example. Connect a WebSocket client to `/rooms/<name>/connect`; `/rooms/<name>/stats` reports durable message counts. The small JS frontend only routes to a named object and forwards the native upgrade response. Upgrade decisions and message/close handling run in C++.
+The default `bazel test //...` suite also builds and runs this example. Connect a WebSocket client to `/rooms/<name>/connect`; `/rooms/<name>/stats` reports durable message counts. The small JS frontend only routes to a named object and forwards the native upgrade response. Upgrade decisions and message/close handling run in C++.
 
 `createDurableObject()` consumes `cf::websocket_accept()` returned by the C++ fetch handler, validates a GET/WebSocket handshake and calls `ctx.acceptWebSocket()`. It retains native socket ownership outside Wasm. Subsequent hibernatable callbacks invoke C++ with trusted metadata, parsed by `cf::websocket_event()` into `WebSocketMessage` (text/bytes), `WebSocketClose` or `WebSocketError`. Check this event before the ordinary `durable_event()` parser; socket events have their own discriminator.
 

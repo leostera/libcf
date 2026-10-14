@@ -1,9 +1,8 @@
 # Buffered outbound HTTP from C++
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/http-client/wrangler.jsonc
-node --test examples/http-client/test/*.test.mjs
+bazel build //:http-client
+bazel test //:http-client_local_test
 ```
 
 Included in the default suite. Tests start an isolated loopback HTTP server and generate a temporary local configuration; no external origin or Cloudflare resource is contacted. For manual development, set `UPSTREAM_URL` to a controlled origin. The checked-in port 9 is a placeholder, not a required external service.
@@ -20,9 +19,9 @@ Live verification passed for binary/status/header forwarding, credential non-for
 
 ## Opt-in live probe
 
-After building the C++ example, run `node scripts/build-live-worker.mjs http-client`. Retain `build/live-http-client/test-deployment.json`; do not regenerate it while resources remain active. Verify **both** generated Worker names and exact hostnames are unused. From `build/live-http-client`, dry-run and deploy the upstream first using `cf deploy --prebuilt --worker <upstreamName>`, then the frontend using `cf deploy --prebuilt`. Both disable workers.dev/previews and have isolated custom domains under `libcf.leostera.dev`. No persistent resource bindings are needed.
+After building the C++ example, run `bazel run //:prepare_live_worker -- http-client`. Retain `build/live-http-client/test-deployment.json`; do not regenerate it while resources remain active. Verify **both** generated Worker names and exact hostnames are unused. From `build/live-http-client`, dry-run and deploy the upstream first using `cf deploy --prebuilt --worker <upstreamName>`, then the frontend using `cf deploy --prebuilt`. Both disable workers.dev/previews and have isolated custom domains under `libcf.leostera.dev`. No persistent resource bindings are needed.
 
-Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-http-client.mjs <frontend-host>` from the repository root. Both readiness waits run concurrently. The upstream performs no external fetches and bounds request bodies; the probe verifies binary/status/header forwarding, credential non-forwarding, redirect policies, oversized response rejection/recovery, 204 and a real 503 response. Connection-drop behavior remains local-only. An explicit manual probe redirect mode inspects 302 without following Location; all other probe requests reject redirects.
+Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 bazel run //:live_http_client -- <frontend-host>` from the repository root. Both readiness waits run concurrently. The upstream performs no external fetches and bounds request bodies; the probe verifies binary/status/header forwarding, credential non-forwarding, redirect policies, oversized response rejection/recovery, 204 and a real 503 response. Connection-drop behavior remains local-only. An explicit manual probe redirect mode inspects 302 without following Location; all other probe requests reject redirects.
 
 Delete the frontend and upstream after testing, including failures. Verify both Worker lookups return 404, both exact-host DNS listings are empty, and their certificates are absent from a complete listing. A deploy or readiness success alone is not runtime verification.
 

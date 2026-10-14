@@ -1,9 +1,8 @@
 # Workflows client from C++
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/workflow/wrangler.jsonc
-node --test examples/workflow/test/*.test.mjs
+bazel build //:workflow
+bazel test //:workflow_local_test
 ```
 
 Included in the default suite. This is a **client binding**, not a C++ WorkflowEntrypoint or durable step/replay implementation. The reference workflow is JavaScript, runs a native `step.do`, and optionally waits for an event.
@@ -27,9 +26,9 @@ Not implemented: generated IDs, retention settings, batch operations, pause/resu
 
 ## Opt-in live probe
 
-Build the example, then run `node scripts/build-live-worker.mjs workflow`. Retain `build/live-workflow/test-deployment.json` and verify the generated Worker, exact hostname **and Workflow definition name** are unused. From `build/live-workflow`, dry-run and deploy with `cf deploy --prebuilt`. This creates a same-worker JS Workflow definition plus the C++ client, with workers.dev/previews disabled and no Cron schedule.
+Build the example, then run `bazel run //:prepare_live_worker -- workflow`. Retain `build/live-workflow/test-deployment.json` and verify the generated Worker, exact hostname **and Workflow definition name** are unused. From `build/live-workflow`, dry-run and deploy with `cf deploy --prebuilt`. This creates a same-worker JS Workflow definition plus the C++ client, with workers.dev/previews disabled and no Cron schedule.
 
-Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-workflow.mjs <host>` from the repository root. The probe records caller-selected instance IDs before mutation, checks parameter readback, event-driven completion, lifecycle state, duplicate rejection and completed/active deletion. Each state wait has a separate 45-second elapsed budget; readiness has the configured budget. The local `cf` CLI also performs read-only instance-list checks: all three owned IDs must first be visible, and the unfiltered first page must become empty after C++ deletion acknowledgements, before any administrative cleanup. Each readback phase has a 45-second budget with 10-second command limits. Immediate binding-state responses after deletion are retained as diagnostics, not used as the absence oracle. These administrative reads are test evidence, not an added C++ account API. It uses only small synthetic payloads and does not retry ambiguous creation/event delivery.
+Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 bazel run //:live_workflow -- <host>` from the repository root. The probe records caller-selected instance IDs before mutation, checks parameter readback, event-driven completion, lifecycle state, duplicate rejection and completed/active deletion. Each state wait has a separate 45-second elapsed budget; readiness has the configured budget. The local `cf` CLI also performs read-only instance-list checks: all three owned IDs must first be visible, and the unfiltered first page must become empty after C++ deletion acknowledgements, before any administrative cleanup. Each readback phase has a 45-second budget with 10-second command limits. Immediate binding-state responses after deletion are retained as diagnostics, not used as the absence oracle. These administrative reads are test evidence, not an added C++ account API. It uses only small synthetic payloads and does not retry ambiguous creation/event delivery.
 
 After success **or failure**, inspect instances only in the newly owned Workflow and delete any leftovers with `cf workflows instances delete <id> --workflow-name <workflowName> --force`. Verify the owned instance listing is empty before `cf workflows delete <workflowName> --force`, then delete the Worker. Workflow deletion does not delete its associated Worker. Verify the Workflow and Worker are absent, exact-host DNS is empty and its certificate (including wildcard SANs) has disappeared. The probe's best-effort instance finalizer does not replace this resource cleanup. A dry-run/deployment is not a live runtime pass.
 

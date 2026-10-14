@@ -1,9 +1,8 @@
 # Rate-limit binding from C++
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/rate-limit/wrangler.jsonc
-node --test examples/rate-limit/test/*.test.mjs
+bazel build //:rate-limit
+bazel test //:rate-limit_local_test
 ```
 
 Included in the default test suite. `cf::RateLimiter(runtime, binding).limit(key)` returns `AsyncResult<RateLimitOutcome>`: `Allowed` or `Exceeded`. Binding/protocol errors remain failures, not fabricated quota denials. Empty keys are valid; keys are bounded to 64 KiB of UTF-8 bytes. Prefer stable application/user keys rather than IP addresses. The example accepts a key in `POST /limit`; `/other` uses an independent namespace, and `/missing` demonstrates binding failure.

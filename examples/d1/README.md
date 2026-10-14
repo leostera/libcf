@@ -1,10 +1,9 @@
 # D1 prepared statements from C++
 
 ```sh
-npm ci
-npm run test:d1
-npm run build:d1
-node scripts/dev-example.mjs d1
+bazel test //:d1_local_test
+bazel build //:d1
+bazel run //:d1_dev
 ```
 
 The C++ handler uses `cf::D1Database`, `prepare().bind().run()`, `all()`, `first()`, `batch()`, and `exec()` through the shared Wasm bridge. `POST /setup` creates a local table; `PUT/GET/DELETE /records/:id` stores binary values. `POST /constraint-probe` deliberately violates NOT NULL to demonstrate error handling.

@@ -6,17 +6,23 @@ Use the authenticated **cf CLI**, not Wrangler. All online test endpoints must b
 
 Current CLI baseline: `cf` **1.0.0-beta.6**. The prebuilt deployment adapter uses Cloudflare Build Output Specification **v0**, which is experimental and may change. It avoids depending on a Wrangler build/deploy command. Local tests and the benchmark launch Miniflare/workerd directly; CI deployment dry-runs use cf. Historical example config filenames remain `wrangler.jsonc`, but no Wrangler subprocess is needed by these test paths.
 
+Bazel preparation builds declared modules and writes to the source workspace's
+`build/live-<family>/`, not disposable runfiles. Existing directories are rejected
+without replacing manifests. Retain old directories; move them aside for a retry
+only after independently verifying every recorded resource is gone. Historical
+results below predate the Bazel cutover unless explicitly identified otherwise;
+changing these commands does not promote old results to Bazel-built evidence.
+
 ## Cache deployment probe
 
 ```sh
-npm run build:cache
-node scripts/build-live-worker.mjs cache
+bazel run //:prepare_live_worker -- cache
 cd build/live-cache
 cf deploy --prebuilt --dry-run
 # Inspect test-deployment.json; verify its random name/domain are unused.
 cf deploy --prebuilt
 # From the repository root:
-node scripts/test-live-cache.mjs <generated-hostname>
+bazel run //:live_cache -- <generated-hostname>
 # Always clean up, even when the probe fails:
 cf workers delete <generated-worker-name> --force
 cf dns records list --zone leostera.dev --name <generated-hostname>
@@ -30,14 +36,13 @@ The builder only emits artifacts; it neither deploys nor creates resources. Do n
 Create a uniquely named `libcf-d1-...` database with `cf d1 create --name <name>` and retain the returned UUID for cleanup. Never bind an existing application database. Then:
 
 ```sh
-npm run build:d1
-node scripts/build-live-worker.mjs d1 <isolated-database-uuid>
+bazel run //:prepare_live_worker -- d1 <isolated-database-uuid>
 cd build/live-d1
 cf deploy --prebuilt --dry-run
 # Inspect test-deployment.json and check for a hostname collision first.
 cf deploy --prebuilt
 # From the repository root:
-node scripts/test-live-d1.mjs <generated-hostname>
+bazel run //:live_d1 -- <generated-hostname>
 # Always clean up and verify absence:
 cf workers delete <generated-worker-name> --force
 cf d1 delete <isolated-database-uuid> --force
@@ -46,33 +51,33 @@ cf d1 get <isolated-database-uuid>
 cf dns records list --zone leostera.dev --name <generated-hostname>
 ```
 
-The probe covers setup/exec, binary CRUD, first/null/missing, transactional batch commit/rollback and constraint errors. Default local tests exercise hostname guards without any network calls. The live probe is never invoked by `npm test`.
+The probe covers setup/exec, binary CRUD, first/null/missing, transactional batch commit/rollback and constraint errors. Default local tests exercise hostname guards without any network calls. The live probe is never invoked by `bazel test //...`.
 
 ## KV and R2 deployment probes
 
-Create isolated resources with `cf kv namespaces create --title libcf-kv-<random-suffix>` and `cf r2 buckets create --name libcf-r2-<10-hex-digits>`. Retain their returned ID/name for cleanup. Build with `npm run build:kv` / `npm run build:r2`, followed by `node scripts/build-live-worker.mjs kv <namespace-id>` / `node scripts/build-live-worker.mjs r2 <bucket-name>`. Deploy with `cf deploy --prebuilt` from the corresponding `build/live-kv` / `build/live-r2` directory after checking the generated hostname is unused.
+Create isolated resources with `cf kv namespaces create --title libcf-kv-<random-suffix>` and `cf r2 buckets create --name libcf-r2-<10-hex-digits>`. Retain their returned ID/name for cleanup. Prepare with `bazel run //:prepare_live_worker -- kv <namespace-id>` / `bazel run //:prepare_live_worker -- r2 <bucket-name>`. Deploy with `cf deploy --prebuilt` from the corresponding `build/live-kv` / `build/live-r2` directory after checking the generated hostname is unused.
 
-Run `node scripts/test-live-kv.mjs <kv-host>` and `node scripts/test-live-r2.mjs <r2-host>` from the repository root. KV reads retry for up to 80 seconds to accommodate eventual consistency; mutations are not blindly retried. Neither probe establishes geographic behavior or TTL expiry.
+Run `bazel run //:live_kv -- <kv-host>` and `bazel run //:live_r2 -- <r2-host>` from the repository root. KV reads retry for up to 80 seconds to accommodate eventual consistency; mutations are not blindly retried. Neither probe establishes geographic behavior or TTL expiry.
 
 Cleanup order: probe deletes test keys/objects, `cf workers delete <worker-name> --force`, then `cf kv namespaces delete <namespace-id> --force` / `cf r2 buckets delete <bucket-name> --force`. Verify Worker/resource absence and exact-name DNS removal. Do not enable R2's public bucket domain.
 
 ## Core/Assets and service-binding probes
 
-Core needs a dedicated KV namespace for `waitUntil` readback. After `npm run build:core`, run `node scripts/build-live-worker.mjs core <isolated-namespace-id>` and deploy from `build/live-core`. Static files are copied into Build Output's assets directory. Probe with `node scripts/test-live-core.mjs <host>`; delete the Worker and namespace afterward (the background-write key is intentionally retained until namespace deletion).
+Core needs a dedicated KV namespace for `waitUntil` readback. Run `bazel run //:prepare_live_worker -- core <isolated-namespace-id>` and deploy from `build/live-core`. Static files are copied into Build Output's assets directory. Probe with `bazel run //:live_core -- <host>`; delete the Worker and namespace afterward (the background-write key is intentionally retained until namespace deletion).
 
-After `npm run build:service`, run `node scripts/build-live-worker.mjs service`. In `build/live-service`, deploy the **upstream first** with `cf deploy --prebuilt --worker <upstreamName-from-test-deployment.json>`, then deploy the default Worker with `cf deploy --prebuilt`. The upstream has no domains, workers.dev route or preview URL; access is through a native service binding only. Probe with `node scripts/test-live-service.mjs <frontend-host>`. Delete the frontend before its upstream, without forcing deletion of referenced resources, and verify both are absent.
+Run `bazel run //:prepare_live_worker -- service`. In `build/live-service`, deploy the **upstream first** with `cf deploy --prebuilt --worker <upstreamName-from-test-deployment.json>`, then deploy the default Worker with `cf deploy --prebuilt`. The upstream has no domains, workers.dev route or preview URL; access is through a native service binding only. Probe with `bazel run //:live_service -- <frontend-host>`. Delete the frontend before its upstream, without forcing deletion of referenced resources, and verify both are absent.
 
 ## C++ Durable Object probe
 
-`npm run build:durable` compiles the frontend and object to separate Wasm modules. Run `node scripts/build-live-worker.mjs durable`, check the generated hostname is unused, and deploy from `build/live-durable` with `cf deploy --prebuilt`. The cf export configuration creates an isolated SQLite `Counter` namespace; record its ID from `cf durable-objects namespaces list` (including all pages).
+`bazel run //:prepare_live_worker -- durable` compiles the frontend and object to separate Wasm modules. Run that target, check the generated hostname is unused, and deploy from `build/live-durable` with `cf deploy --prebuilt`. The cf export configuration creates an isolated SQLite `Counter` namespace; record its ID from `cf durable-objects namespaces list` (including all pages).
 
-Run `node scripts/test-live-durable.mjs <host>`. Cleanup with `cf workers delete <worker-name> --force`, then verify Worker 404, exact-name DNS absence, and absence of the recorded namespace ID from the complete namespace listing. Do not assume deleting only the hostname removes stored objects.
+Run `bazel run //:live_durable -- <host>`. Cleanup with `cf workers delete <worker-name> --force`, then verify Worker 404, exact-name DNS absence, and absence of the recorded namespace ID from the complete namespace listing. Do not assume deleting only the hostname removes stored objects.
 
 ## Queue and scheduled-event probes
 
-Create a unique queue with `cf queues create --queue-name libcf-events-<10-hex-digits>` and a dedicated D1 database. Record both resource IDs. Run `npm run build:events`, then `node scripts/build-live-worker.mjs events <database-uuid> <queue-name>`. Deploy from `build/live-events` after the usual hostname collision check. This attaches a Queue consumer (batch size 1, 1-second timeout/retry delay, 3 retries) and an every-minute Cron trigger.
+Create a unique queue with `cf queues create --queue-name libcf-events-<10-hex-digits>` and a dedicated D1 database. Record both resource IDs. Run `bazel run //:prepare_live_worker -- events <database-uuid> <queue-name>`. Deploy from `build/live-events` after the usual hostname collision check. This attaches a Queue consumer (batch size 1, 1-second timeout/retry delay, 3 retries) and an every-minute Cron trigger.
 
-Run `node scripts/test-live-events.mjs <host>`. It checks live text/binary delivery and explicit retry/redelivery, then waits up to 20 minutes for a **real Cron invocation** to write controller metadata into D1. No public route can manufacture a scheduled invocation. HTTP certificate readiness has its own bounded wait; Queue lookups also use bounded waits. A producer 202 is not delivery evidence—the probe reads the consumer's D1 write.
+Run `bazel run //:live_events -- <host>`. It checks live text/binary delivery and explicit retry/redelivery, then waits up to 20 minutes for a **real Cron invocation** to write controller metadata into D1. No public route can manufacture a scheduled invocation. HTTP certificate readiness has its own bounded wait; Queue lookups also use bounded waits. A producer 202 is not delivery evidence—the probe reads the consumer's D1 write.
 
 Always clean up: find the exact consumer with `cf queues consumers list --queue-id <id>`, remove it with `cf queues consumers delete <consumer-id> --queue-id <id> --force`, delete the Worker (including Cron triggers), delete the queue and D1 database, and verify all resources plus DNS/certificates are gone. Do not leave the every-minute trigger running after a probe failure.
 
@@ -80,9 +85,9 @@ Always clean up: find the exact consumer with `cf queues consumers list --queue-
 
 When Cron delivery is unresolved, compare plain JS and C++ against the same **new** database named `libcf-cron-db-<10-hex-digits>`. Create its schema with `cf d1 query <uuid> --sql 'CREATE TABLE cron_control(time INTEGER PRIMARY KEY,cron TEXT NOT NULL); CREATE TABLE schedules(id INTEGER PRIMARY KEY,cron TEXT NOT NULL,time TEXT NOT NULL);'`.
 
-Build the C++ event example, then run `node scripts/build-live-cron-control.mjs <uuid>`. From `build/live-cron-control`, deploy the default plain-JS Worker with `cf deploy --prebuilt`, then the C++ Worker with `cf deploy --prebuilt --worker <generated-cpp-name>`. Deploying the default does **not** deploy every Worker in the output. Both have no domains, disabled workers.dev/previews, and only a D1 binding plus an every-minute Cron trigger.
+Run `bazel run //:prepare_cron_control -- <uuid>`. From `build/live-cron-control`, deploy the default plain-JS Worker with `cf deploy --prebuilt`, then the C++ Worker with `cf deploy --prebuilt --worker <generated-cpp-name>`. Deploying the default does **not** deploy every Worker in the output. Both have no domains, disabled workers.dev/previews, and only a D1 binding plus an every-minute Cron trigger.
 
-Run `node scripts/test-live-cron-control.mjs build/live-cron-control/test-deployment.json --cleanup`. It queries D1 through `cf` for up to 20 minutes, requiring actual scheduled writes from both implementations. Its `finally` block deletes both Workers and D1, including after query/test failure, and verifies 404s. Resource names and the database's actual name are checked before taking ownership. The explicit `--cleanup` flag is destructive: only pass a manifest for newly created diagnostic resources. If the process is killed externally, perform that cleanup manually. Local fake-CLI tests cover successful observation, cleanup after query failure and refusal to own a non-test database; those tests make no network calls.
+Run `bazel run //:live_cron_control -- "$(pwd)/build/live-cron-control/test-deployment.json" --cleanup`. It queries D1 through `cf` for up to 20 minutes, requiring actual scheduled writes from both implementations. Its `finally` block deletes both Workers and D1, including after query/test failure, and verifies 404s. Resource names and the database's actual name are checked before taking ownership. The explicit `--cleanup` flag is destructive: only pass a manifest for newly created diagnostic resources. If the process is killed externally, perform that cleanup manually. Local fake-CLI tests cover successful observation, cleanup after query failure and refusal to own a non-test database; those tests make no network calls.
 
 ## Recorded attempt (2026-10-13)
 
@@ -198,7 +203,7 @@ A transient CLI 401 occurred when the previous OAuth access token expired. `cf a
 
 ## C++ WebSocket live verification (2026-10-13)
 
-Build with `node scripts/build-worker.mjs examples/websocket/wrangler.jsonc`, then `node scripts/build-live-worker.mjs websocket`. Deploy from `build/live-websocket` after checking the generated hostname for collisions. Run the opt-in `node scripts/test-live-websocket.mjs <hostname>`; all sockets use WSS under the approved namespace, with bounded waits and socket cleanup on failure.
+Prepare with `bazel run //:prepare_live_worker -- websocket`. Deploy from `build/live-websocket` after checking the generated hostname for collisions. Run the opt-in `bazel run //:live_websocket -- <hostname>`; all sockets use WSS under the approved namespace, with bounded waits and socket cleanup on failure.
 
 - Worker/host: `libcf-websocket-b97ef07352` / `libcf-websocket-b97ef07352.libcf.leostera.dev`.
 - Version: `fcc76296-97d5-4338-8316-3ffc3f3ea8f3`; SQLite namespace `93a50f4a341a43789f9420d3aa8750e1`, `libcf-websocket-b97ef07352_Room`.
@@ -210,7 +215,7 @@ Build with `node scripts/build-worker.mjs examples/websocket/wrangler.jsonc`, th
 
 ## Rate-limit live verification (2026-10-13)
 
-Build the example, run `node scripts/build-live-worker.mjs rate-limit`, deploy from `build/live-rate-limit` after the hostname collision check, then run `node scripts/test-live-rate-limit.mjs <host>`. The builder generates fresh numeric namespaces rather than using local fixture IDs, and records them in `test-deployment.json`.
+Run `bazel run //:prepare_live_worker -- rate-limit`, deploy from `build/live-rate-limit` after the hostname collision check, then run `bazel run //:live_rate_limit -- <host>`. The builder generates fresh numeric namespaces rather than using local fixture IDs, and records them in `test-deployment.json`.
 
 - Worker/host: `libcf-rate-limit-029c7d471b` / `libcf-rate-limit-029c7d471b.libcf.leostera.dev`.
 - Version: `0666203d-a4a8-42d4-bdf6-a9173999aad7`; namespaces `7123489905606445` and `7123489905606446`, each configured for 2 requests/10 seconds.
@@ -234,7 +239,7 @@ Build the example, run `node scripts/build-live-worker.mjs rate-limit`, deploy f
 - Deployment succeeded without resource bindings. The bounded 15-minute HTTPS readiness loop ended with Node `getaddrinfo ENOTFOUND`; no digest assertions ran.
 - Fresh diagnostic Worker/host: `libcf-crypto-c7e8207ab0` / `libcf-crypto-c7e8207ab0.libcf.leostera.dev`; version `e3f86775-695f-4028-b34c-6362b0121554`.
 - During the second deployment, the DNS API showed its read-only, proxied AAAA record (`100::`), ID `4bf68c68968a233d454855252297886a`. DNS queries sent through the system resolver and to public/authoritative addresses still returned `NXDOMAIN`, with a negative SOA TTL initially 1800 seconds. A read-only HTTPS DNS diagnostic could not establish TLS (`SSL_ERROR_ZERO_RETURN`). No TLS bypass, IP-based Worker request, DNS-setting change or alternate test domain was used.
-- Root cause remains unresolved: this does not establish a Crypto runtime limitation or distinguish provisioning from resolver-path/caching issues. Live digest coverage remains pending. The opt-in probe is `node scripts/test-live-crypto.mjs <host>`.
+- Root cause remains unresolved: this does not establish a Crypto runtime limitation or distinguish provisioning from resolver-path/caching issues. Live digest coverage remains pending. The current opt-in probe is `bazel run //:live_crypto -- <host>`.
 - Upload 122.92 KiB / gzip 34.35 KiB; reported startup 3 ms then 4 ms (not benchmarks). Implementation CI `38416367551` passed, including native sanitizers; full local tests passed.
 - Both Workers were deleted and lookup returned 404/code 10007; both exact-host DNS listings became empty. Certificates transitioned through pending deletion and disappeared. Each final complete listing contained 24 entries and no libcf hosts. No active test deployment remains.
 

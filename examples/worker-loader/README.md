@@ -1,9 +1,8 @@
 # Isolated dynamic Workers from C++
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/worker-loader/wrangler.jsonc
-node --test examples/worker-loader/test/*.test.mjs
+bazel build //:worker-loader
+bazel test //:worker-loader_local_test
 ```
 
 Included in the default suite. `cf::WorkerLoader(runtime, binding).fetch(source, request)` loads one JavaScript ES module and returns a bounded HTTP response. The parent is C++/Wasm; this first subset does not load additional JS/Wasm modules into the child.

@@ -1,9 +1,8 @@
 # Synchronous wall clock from C++
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/clock/wrangler.jsonc
-node --test examples/clock/test/*.test.mjs
+bazel build //:clock
+bazel test //:clock_local_test
 ```
 
 Included in the default local suite. `<cf/clock.hpp>` supplies `cf::WallClock`; `context.clock.now()` returns `Result<WallClock::TimePoint>` synchronously through the `libcf_host_now` f64 import. There is no binding-operation number, Promise completion or coroutine suspension for the clock read itself.
@@ -14,7 +13,7 @@ Included in the default local suite. `<cf/clock.hpp>` supplies `cf::WallClock`; 
 
 Two workerd cases verify a plausible Unix timestamp across the actual f64 import, unchanged samples during a synchronous turn, samples around awaited I/O and concurrent requests. C++ samples are bracketed by JS `Date.now()` headers taken before and after the C++ handler. A full-suite run demonstrated a 1-ms difference between C++ and a later JS sample: `await cpp.fetch()` can cross an I/O turn, so exact equality across that await is not a valid requirement. Same-machine plausibility checks are not remote clock synchronization evidence, and samples around sleep do not assert precise elapsed time. Native tests cover range endpoints, invalid samples, backwards steps and missing providers; a JS host-import test checks fresh reads and preservation of values beyond i32. The corrected live probe passed on 2026-10-13: plausible f64 Unix milliseconds, same-turn frozen samples, post-I/O sampling, same-invocation JS brackets and eight concurrent requests. Worker, DNS and certificate cleanup were verified; see [dated evidence](../../docs/live-verification.md). No precision, monotonicity or synchronization guarantee is inferred.
 
-For an opt-in live test, build the example, run `node scripts/build-live-worker.mjs clock`, preflight the generated Worker and exact hostname, then deploy with `cf deploy --prebuilt` from `build/live-clock`. Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 node scripts/test-live-clock.mjs <host>` from the repository root. No resource binding is needed. The live plausibility window permits five minutes of client/server skew; the same-invocation JS bracket checks sample ordering during the probe, assuming no intervening clock step. This is an observation, not a monotonicity or synchronization guarantee. Verify Worker, DNS and certificate cleanup after success or failure.
+For an opt-in live test, build the example, run `bazel run //:prepare_live_worker -- clock`, preflight the generated Worker and exact hostname, then deploy with `cf deploy --prebuilt` from `build/live-clock`. Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 bazel run //:live_clock -- <host>` from the repository root. No resource binding is needed. The live plausibility window permits five minutes of client/server skew; the same-invocation JS bracket checks sample ordering during the probe, assuming no intervening clock step. This is an observation, not a monotonicity or synchronization guarantee. Verify Worker, DNS and certificate cleanup after success or failure.
 
 `WorkerContext` now includes an explicit `WallClock` member. Code that manually aggregate-constructs a context must supply that provider; normal Worker handlers receive it from the adapter.
 

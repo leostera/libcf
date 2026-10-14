@@ -1,9 +1,8 @@
 # Analytics Engine from C++
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/analytics/wrangler.jsonc
-node --test examples/analytics/test/*.test.mjs
+bazel build //:analytics
+bazel test //:analytics_local_test
 ```
 
 Included in the default test suite. `cf::AnalyticsEngine(runtime, binding).write(point)` returns `AsyncResult<Unit>` after the native binding accepts a data point. **This is not a persistence or query-visibility receipt:** native `writeDataPoint()` returns synchronously and the platform performs ingestion in the background.

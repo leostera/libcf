@@ -1,12 +1,12 @@
 # C++/Emscripten Workers feasibility spike
 
-This is a **working experimental bridge**, not the public libcf API. Prerequisites: Emscripten **6.0.12**, Node.js **26.11.1** (`.node-version`) and `npm ci` (Miniflare **5.20261006.1-alpha** pinned in the root lockfile).
+This is a **working experimental bridge**, not the public libcf API. Prerequisite: official **Bazel 9.3.0**, directly or through Bazelisk. Emscripten **6.0.12**, Node.js **26.11.1** and Miniflare **5.20261006.1-alpha** are pinned and downloaded by Bazel.
 
 ```sh
-npm run test:spike        # compile C++, start local workerd, test six behaviors
-npm run bench:spike       # optional local/rough comparison to plain JS
-npm run build:spike
-node scripts/dev-example.mjs hello
+bazel test //:hello_local_test # compile C++, start local workerd, test six behaviors
+bazel run //:benchmark_spike   # optional local/rough comparison to plain JS
+bazel build //:spike
+bazel run //:hello_dev
 # Use the printed local URL for /?a=17&b=25, /asset, or /stream?count=3.
 # Live deployment uses cf; see docs/live-verification.md.
 ```
@@ -26,4 +26,4 @@ Historical run (before the launcher migration): 2026-10-13, macOS arm64, Node 26
 | Plain JS comparator | 329 bytes JS | 824.5 ms | 91.01 ms | 1.55 ms |
 | C++ C-ABI Wasm | 7,131 bytes generated JS + 10,015 bytes Wasm | 823.8 ms | 110.13 ms | 1.74 ms |
 
-Numbers include Wrangler startup/local HTTP/network and are noisy, not isolate cold starts or pure bridge timings. The JS comparator only implements arithmetic; the C++ artifact also implements KV, asset fetch, streaming, and waitUntil. The current benchmark uses Miniflare directly. One post-migration run measured JS/C++ local medians of 0.67/0.73 ms and bundle+runtime+readiness of 94.7/91.0 ms. These are different harness timings, not comparable production startup measurements. Re-run `npm run bench:spike` for the current machine; measure matched functionality and allocations before performance claims.
+Numbers include Wrangler startup/local HTTP/network and are noisy, not isolate cold starts or pure bridge timings. The JS comparator only implements arithmetic; the C++ artifact also implements KV, asset fetch, streaming, and waitUntil. The current benchmark uses Miniflare directly. One post-migration run measured JS/C++ local medians of 0.67/0.73 ms and bundle+runtime+readiness of 94.7/91.0 ms. These are different harness timings, not comparable production startup measurements. Re-run `bazel run //:benchmark_spike` for the current machine; measure matched functionality and allocations before performance claims.

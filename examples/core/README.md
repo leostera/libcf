@@ -3,12 +3,11 @@
 A bounded HTTP Worker built with the header-only `include/cf/` types, reusable [`lib/runtime.mjs`](../../lib/runtime.mjs), and [`lib/emscripten-host.js`](../../lib/emscripten-host.js) for Emscripten host imports. Its C++ router serves `/hello/:name`, `/echo`, `/header`, `/env/:name`, `/uuid`, `/stream/:count` and `/background/:key`; `/asset` awaits an Assets binding fetch in a C++ coroutine. `worker.mjs` wires the generated Wasm module into the runtime shim, which converts Worker events into owned C++ request data over a length-prefixed ABI and turns C++ responses into JS `Response`s.
 
 ```sh
-npm ci
-npm run test:native
-npm run test:core
+bazel test //:native_tests
+bazel test //:core_local_test
 # or inspect manually:
-npm run build:core
-node scripts/dev-example.mjs core
+bazel build //:core
+bazel run //:core_dev
 curl http://localhost:8787/hello/Ada
 curl http://localhost:8787/asset
 curl http://localhost:8787/uuid

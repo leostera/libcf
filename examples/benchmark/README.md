@@ -1,13 +1,12 @@
 # Matched C++ / plain-JS local benchmark
 
 ```sh
-npm ci
-node scripts/bench-sdk.mjs
+bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json
 # Short diagnostic run, not a replacement for the recorded baseline:
-node scripts/bench-sdk.mjs --rounds 2 --samples 5 --warmups 0
+bazel run //:benchmark_sdk -- /tmp/libcf-benchmark-smoke.json --rounds 2 --samples 5 --warmups 0
 ```
 
-The runner builds the C++ fixture, starts and disposes both local Workers in alternating order, verifies every response, and writes `build/benchmark/report.json`. No Cloudflare credentials or network deployments are involved. The default suite separately verifies matching successful responses without timing thresholds.
+Bazel builds the C++ fixture before the runner starts. The runner starts and disposes both local Workers in alternating order, verifies every response, and writes to the supplied new absolute report path (existing files are never overwritten). Compilation time is excluded and reported as `null` in schema 2. No Cloudflare credentials or network deployments are involved. The default suite separately verifies matching successful responses without timing thresholds.
 
 Both fixtures expose hello, binary echo and one/16 SHA-256 operations with the same request data, body bound, response bytes and content type. C++ uses the normal libcf coroutine/operation bridge. JS uses native Web Crypto directly and the same bounded body reader. All buffering, copies, allocations and client HTTP work remain in the latency measurements.
 

@@ -1,10 +1,9 @@
 # C++ Durable Objects: SQLite, transactions and alarms
 
 ```sh
-npm ci
-npm run test:durable
-npm run build:durable
-node scripts/dev-example.mjs durable
+bazel test //:durable_local_test
+bazel build //:durable //:durable-object
+bazel run //:durable_dev
 ```
 
 Both the frontend (`src/main.cpp`) and object (`src/object.cpp`) are C++. They compile to separate Wasm modules. The JS entrypoint exports `Counter = createDurableObject(objectFactory, objectWasm)`; the adapter creates a separate Wasm instance for each object and gates initialization with `blockConcurrencyWhile`.

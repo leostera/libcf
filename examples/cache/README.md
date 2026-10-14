@@ -1,10 +1,9 @@
 # Cache API from C++
 
 ```sh
-npm ci
-npm run test:cache
-npm run build:cache
-node scripts/dev-example.mjs cache
+bazel test //:cache_local_test
+bazel build //:cache
+bazel run //:cache_dev
 ```
 
 `cf::Cache` exposes `match`, `put`, and `erase` for URL-keyed GET responses, using the default cache or a named cache. `cf::CachedResponse` preserves status, headers and binary bytes. This example uses `PUT/GET/DELETE /entries/:key`; `x-cache-name` selects a named cache. Responses are made cacheable with `Cache-Control: public, max-age=300`.

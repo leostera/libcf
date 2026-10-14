@@ -1,12 +1,11 @@
 # C++ inbound email events
 
 ```sh
-npm ci
-node scripts/build-worker.mjs examples/email/wrangler.jsonc
-node --test examples/email/test/*.test.mjs
+bazel build //:email
+bazel test //:email_local_test
 ```
 
-The default `npm test` also builds/runs this example. Tests use Miniflare's local email simulator with `format=json`; **no real mail is sent**. Reserved `example.test` addresses are local fixtures only, not live destinations.
+The default `bazel test //...` also builds/runs this example. Tests use Miniflare's local email simulator with `format=json`; **no real mail is sent**. Reserved `example.test` addresses are local fixtures only, not live destinations.
 
 `createEmailWorker(factory, wasm)` dispatches email and fetch events to C++ `cf::handle`. Check `context.env.var("__LIBCF_EMAIL_EVENT") == "email"`, then call `cf::email_message(env, request)` to obtain owned SMTP envelope strings, logical headers and opaque raw MIME bytes. This is a separate adapter from the Queue/scheduled adapter. It does not parse multipart MIME or authenticate senders: envelope/header addresses alone are not proof of identity.
 
