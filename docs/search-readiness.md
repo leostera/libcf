@@ -2,7 +2,8 @@
 
 Audit date2026-10-14. No C++ search/memory API, managed-index experiment or profile
 operation is implemented/verified here. This audit separates native Worker APIs,
-local policy checks and future provider evidence.
+local policy checks and future provider evidence. A JS-only keyword adapter
+prototype now exists; it is not wired into the C++ runtime or operation enum yet.
 
 ## Worker-accessible scope
 
@@ -35,6 +36,43 @@ projection/lifetime policy. libcf's JSON encoder deliberately rejects Date/toJSO
 and unsupported capabilities. Inspect/dispose native returned handles/promises as
 appropriate; a plain-object mock alone cannot establish those semantics. Limits
 on owned results cannot bound provider-side processing or earlier materialization.
+
+## Keyword adapter prototype
+
+`lib/ai-search.mjs` projects only text chunk ID, overall score, source key and text.
+It does not serialize query echoes, timestamps, metadata, scoring details or
+capabilities. The fixed request asks for keyword AND retrieval with threshold0,
+context expansion0, text included and return_on_failure:false; rewriting,
+reranking and cache are explicitly disabled. These are forwarded options, not
+verified provider policy, ranking or billing behavior. A keyword-enabled instance
+will be required; the adapter does not switch retrieval backends automatically.
+
+SDK subset caps: query1–4096 UTF-8 bytes, results1–50, local deadline1–60000ms.
+Projected IDs are1–256 bytes, source keys1–2048, text0–16384; overall scores must
+be finite and0–1. UTF-8 round trips reject lone surrogates and preserve a leading
+BOM. Keys remain opaque identifiers, not authorized URLs or filesystem paths.
+Oversize/unsupported results reject rather than silently truncate.
+
+Proposed wire: empty key, raw UTF-8 query body, decimal `count:timeout_ms` options.
+Reply is little-endian u32 count followed by each length-prefixed ID, binary64
+score, length-prefixed source key and text. Maximum is4+count×18708 bytes
+(935404 at50). No operation number or C++ API has been allocated yet.
+
+Owned returned promises/results exposing synchronous Symbol.dispose are released
+at most once; the borrowed binding is excluded. Abort/deadline settles locally,
+observes late rejection and disposes late values. Cleanup failure rejects an
+otherwise successful call without masking a primary error; late cleanup cannot
+change an already-settled call. No native AbortSignal/raw-response option is
+invented. Native parsing/materialization, provider work and billing remain outside
+these caps; cooperative timers cannot preempt a blocked event loop.
+
+Unit tests cover wire bounds, UTF-8/ownership, explicit options, malformed values,
+late completion and cleanup. A real local WorkerEntrypoint RPC fixture returns a
+nested capability and Date in ignored metadata: success/rejection/abort/deadline
+leave delivered capabilities disposed and the borrowed service usable. This proves
+that ownership mechanism on native RPC, **not** the AI Search binding's actual
+implementation, C++/Wasm dispatch, indexing, retrieval or remote cancellation.
+No account operation or managed index/profile was created.
 
 ## Local behavior and source disagreements
 
