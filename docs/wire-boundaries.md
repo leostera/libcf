@@ -17,6 +17,23 @@ are1–32 bytes; headers are separately capped at64KiB. The dispatch integration
 exposed the previous mismatch at an exactly1MiB raw request body; it was rejected
 by the bridge, not by Workers for Platforms. The correction retains the bridge cap.
 
+UTF-8 method/header fields retain leading U+FEFF during decoding. A BOM must not
+silently turn an invalid method or header name into a valid token. Methods and
+header names must be nonempty ASCII HTTP tokens; values reject C0 controls other
+than HTAB and reject DEL. Body bytes are not decoded. Native Request/Headers
+normalization of otherwise valid fields (such as name case/outer whitespace)
+remains in effect.
+
+This validation cannot be delegated entirely to the host: pinned workerd accepted
+the tested U+FEFF-prefixed header name that Node rejected. Workerd also preserved
+a U+FEFF-prefixed **value**, while Node's ByteString API rejected it. The codec
+preserves Unicode values where the native host supports them rather than stripping
+code points to force acceptance. Tests cover both hosts, forbidden tokens/controls,
+internal HTAB, raw binary/BOM bodies and recovery. Native probes use the actual
+adapter source with an in-process fake fetcher, owned temporary state and no
+network/provider calls; they prove native HTTP-object behavior, not routing or
+remote header acceptance. The initial BOM regression failed before the fix.
+
 Buffered replies permit a1MiB body and64KiB header wire, plus the three prefixes
 and a three-digit status. C++ rejects oversized aggregate replies before decoding,
 and rejects oversized individual fields. Boundary tests use forged replies and
