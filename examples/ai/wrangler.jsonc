@@ -1,0 +1,9 @@
+{
+  "name": "libcf-ai",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "ai": { "binding": "AI" },
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}

@@ -1,8 +1,8 @@
 # Binding-operation verification
 
-Snapshot: 2026-10-13. This ledger enumerates every numeric `cf::Operation` in the version-1 C++/JS binding protocol. It does **not** imply complete product coverage. The broader [capability ledger](coverage.md) also covers entrypoints, direct host imports, streams, event delivery and unimplemented APIs that are outside this enum.
+Snapshot: 2026-10-14. This ledger enumerates every numeric `cf::Operation` in the version-1 C++/JS binding protocol. It does **not** imply complete product coverage. The broader [capability ledger](coverage.md) also covers entrypoints, direct host imports, streams, event delivery and unimplemented APIs that are outside this enum.
 
-`L` means a real local workerd fixture exercises the operation. `A` means workerd accepts dispatch but its pinned provider is a no-op: not persistence or ingestion evidence. `V` means the named subset passed an isolated live probe; consult [dated deployment and cleanup evidence](live-verification.md). `Pending` and `Approval` are not passes or verified platform limitations. The Workflow retry verified deletion through independent instance-list readback; immediate binding lookups returned `terminated`, not absence. The earlier incomplete run is retained separately. Live results are single-client/location observations, not global consistency, exactly-once delivery or full production parity.
+`L` means a real local workerd fixture exercises the operation. `A` means workerd accepts dispatch but its pinned provider is a no-op: not persistence or ingestion evidence. `M` means the C++/Wasm bridge runs in workerd with an explicitly mocked provider, not the native binding or remote service. `V` means the named subset passed an isolated live probe; consult [dated deployment and cleanup evidence](live-verification.md). `Pending` and `Approval` are not passes or verified platform limitations. The Workflow retry verified deletion through independent instance-list readback; immediate binding lookups returned `terminated`, not absence. The earlier incomplete run is retained separately. Live results are single-client/location observations, not global consistency, exactly-once delivery or full production parity.
 
 Every row below is implemented; its fixture links to local runtime tests. Native codecs and adapter boundary tests supplement those fixtures, but a row does not claim every possible failure or parameter combination is tested.
 
@@ -48,8 +48,8 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 274 | `WorkflowDelete` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Completed/active deletion acknowledged; independent instance list empty before administrative cleanup. Not physical erasure or rollback. |
 | 275 | `WorkflowSendEvent` | [Workflows](../examples/workflow/test/worker.test.mjs) | L | V | Null/array payload readback and JS workflow completion; no C++ durable replay. |
 | 288 | `ImageInfoGet` | [Images](../examples/images/test/worker.test.mjs) | L | V | PNG dimensions/size, SVG category, invalid/empty/missing/oversized failures and recovery; no transforms/uploads. |
-
 | 304 | `RpcCallJson` | [JSON service RPC](../examples/rpc/test/worker.test.mjs) | L | Pending | Owned bounded JSON arguments/results, concurrent calls, errors and recovery. Separate JS workerd tests verify rejected/late capability disposal; no C++ RPC exports. |
+| 320 | `AiRunJson` | [AI JSON](../examples/ai/test/worker.test.mjs) | M | Approval | Bounded JSON object input and raw JSON response, errors, owned concurrent dispatch. No real inference; account usage needs approval. Streaming/binary/advanced options remain gaps. |
 
 ## Scope not represented by binding-operation numbers
 
@@ -57,6 +57,6 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 - DO initialization, alarm callbacks and hibernating WebSocket events have local/live evidence in the capability ledger; object tags/attachments and arbitrary RPC remain gaps.
 - Queue consumer dispositions have delivery/retry evidence. Real Cron remains unresolved after both C++ and plain-JS controls failed to produce a scheduled write within their bounded windows.
 - Inbound email is locally tested only; real sender/destination approval is still needed. Outbound email is not implemented.
-- AI, Hyperdrive/networking, dispatch, broader storage/crypto, media transforms, search and the other planned inventory rows are **not** made complete by this table.
+- AI has only the bounded JSON subset above; real inference, streaming/binary output and advanced options remain gaps. Hyperdrive/networking, dispatch, broader storage/crypto, media transforms, search and the other planned inventory rows are **not** made complete by this table.
 
 `tests/operation-ledger.test.mjs` checks that the table has exactly one row for every enum name/number, no invented or duplicated operations, and existing fixture links. It does not infer test success from source text or automatically promote live status. Evidence and subset notes require review when behavior changes.

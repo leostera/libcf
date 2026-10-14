@@ -7,7 +7,7 @@ const names = [
   'core', 'kv', 'd1', 'r2', 'cache', 'service', 'durable', 'events',
   'websocket', 'email', 'rate-limit', 'analytics', 'metadata', 'worker-loader',
   'crypto', 'benchmark', 'http-client', 'pipeline', 'timer', 'workflow',
-  'images', 'clock', 'rpc', 'hello', 'hello-js', 'benchmark-js',
+  'images', 'clock', 'rpc', 'ai', 'hello', 'hello-js', 'benchmark-js',
   'service-upstream', 'http-upstream', 'rpc-reference',
 ];
 const plainJs = new Set(['hello-js', 'benchmark-js', 'service-upstream', 'http-upstream', 'rpc-reference']);

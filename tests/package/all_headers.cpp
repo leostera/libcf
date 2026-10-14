@@ -1,6 +1,7 @@
 #include <cf/analytics.hpp>
 #include <cf/async.hpp>
 #include <cf/cache.hpp>
+#include <cf/ai.hpp>
 #include <cf/clock.hpp>
 #include <cf/rpc.hpp>
 #include <cf/context.hpp>

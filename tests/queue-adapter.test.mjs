@@ -23,13 +23,15 @@ test('Queue producer uses a decimal 128-KB exclusive body boundary', async () =>
 });
 
 test('Queue rejects invalid delays, UTF-8 and operations before calling a binding', async () => {
-  const queue = { async send() { assert.fail('invalid input reached the binding'); } };
+  let calls = 0;
+  const queue = { async send() { calls++; } };
   for (const delay of ['', '-1', '0.5', '86401', '9007199254740992', 'Infinity']) {
     await assert.rejects(performQueue(113, queue, Uint8Array.of(1), delay));
   }
   await assert.rejects(performQueue(112, queue, Uint8Array.of(255), '0'), /encoded data/);
   await assert.rejects(performQueue(112, queue, new TextEncoder().encode('é'.repeat(64_000)), '0'), /payload/);
   await assert.rejects(performQueue(999, queue, Uint8Array.of(1), '0'), /unknown Queue/);
+  assert.equal(calls, 0, 'invalid input must not invoke a binding');
 });
 
 test('Queue byte payload is owned before awaiting the binding', async () => {

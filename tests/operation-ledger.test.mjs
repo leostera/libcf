@@ -26,6 +26,6 @@ test('binding-operation ledger exactly matches the explicit versioned enum and f
     const fixture = /\]\((\.\.\/examples\/[^)]+)\)/.exec(row[3])?.[1];
     assert(fixture, `missing fixture for ${row[2]}`);
     assert((await stat(new URL(fixture, documentUrl))).isFile(), fixture);
-    assert.match(row[3], /\|\s*(?:L|A)\s*\|\s*(?:V|Pending|Approval)\s*\|/);
+    assert.match(row[3], /\|\s*(?:L|A|M)\s*\|\s*(?:V|Pending|Approval)\s*\|/);
   }
 });
