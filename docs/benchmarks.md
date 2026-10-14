@@ -8,7 +8,51 @@ bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json
 
 See [`examples/benchmark`](../examples/benchmark/README.md). Bazel builds the fixture first; the runner writes to the supplied new absolute report path and refuses to overwrite an existing file. Schema 2 excludes compilation time (`buildMilliseconds: null`). It makes only local requests, validates every response, disposes every runtime in `finally`, and rejects changed source inputs. No performance threshold is imposed on CI.
 
-The results below predate the Bazel cutover; they are not Bazel-built benchmark evidence. A two-round/five-sample Bazel smoke verified execution/report generation only. A full matched Bazel rerun remains required before release.
+## Bazel-built matched reruns (2026-10-14)
+
+[First raw report](benchmarks/bazel-2026-10-14.json) ·
+[Repeat raw report](benchmarks/bazel-2026-10-14-repeat.json).
+Both runs used clean source `8f99864`, official Bazel 9.3.0 via Bazelisk 1.29.0,
+Emscripten 6.0.12, Node 26.11.1, esbuild 0.28.2, Miniflare 5.20261006.1-alpha
+and workerd 1.20261006.1 on Apple M1 Max/Darwin 25.6.0. Compatibility: 2026-10-13.
+Each run alternated variants for six rounds, with 10 warmups and 80 measured
+requests per scenario/variant/round: **6,720 checked samples per run**.
+Both retained the same 82-input fingerprint and identical measured artifact hashes.
+
+Median localhost HTTP latency, milliseconds (first run / repeat):
+
+| Scenario | Plain JS | C++ |
+| --- | ---: | ---: |
+| Hello | 0.598 / 0.603 | 0.714 / 0.688 |
+| Echo 1 KiB | 0.732 / 0.761 | 0.851 / 0.818 |
+| Echo 64 KiB | 1.275 / 1.268 | 1.447 / 1.371 |
+| Echo 1 MiB | 7.771 / 7.738 | 7.995 / 7.931 |
+| SHA-256 once, 1 KiB | 0.728 / 0.724 | 0.832 / 0.811 |
+| SHA-256 16 times, 1 KiB | 0.757 / 0.775 | 0.976 / 0.924 |
+| SHA-256 once, 64 KiB | 0.979 / 0.994 | 1.123 / 1.086 |
+
+- Local setup medians were JS/C++ **74.71/84.57 ms**, then **73.24/83.45 ms**.
+  The first run includes a **3,225.60 ms JS setup outlier**, retained in full.
+  Setup includes bundling, workerd and first-response Wasm initialization; it is
+  not isolated engine startup or an edge cold-start measurement.
+- Artifact totals were JS **1,911 bytes / 849 gzip**, C++ **118,118 / 35,516 gzip**.
+  C++ comprises 54,729 bytes of Wasm and 63,389 bytes of ESM. Gzip is per-module
+  level 9; upload framing is excluded.
+- The incremental digest estimate's median was **8.82 µs**, then **5.78 µs**;
+  per-round ranges were **−2.11..12.36 µs** and **−1.61..11.82 µs**.
+  This includes copies, allocation and coroutine scheduling, not only ABI work.
+  Negative estimates and run-to-run variation prohibit a precise attribution.
+- These are sequential, local end-to-end measurements, not throughput, memory,
+  production latency or statistical-significance claims. Background load and
+  thermal state were not isolated; a live Queue/Cron probe was also running.
+  Compilation precedes measurement and is explicitly `null`, not a measured zero.
+- The runtime/API changed since the older reports below. Comparing their numbers
+  does **not** isolate the performance effect of changing build systems.
+
+## Pre-Bazel baseline (2026-10-13)
+
+The following historical results are retained with their original provenance;
+they are not Bazel-built evidence.
 
 [Recorded raw data](benchmarks/local-2026-10-13.json) includes 6,720 measured request samples, per-round statistics, module hashes, source fingerprint and tool versions. It was recorded on 2026-10-13 at 15:29 UTC on an Apple M1 Max, arm64, Darwin 25.6.0, 10 logical CPUs. Node 26.11.1; Emscripten 6.0.12-git (`-O2`); esbuild 0.28.2; Miniflare 5.20261006.1-alpha; workerd 1.20261006.1; compatibility date 2026-10-13.
 
