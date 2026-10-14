@@ -12,6 +12,7 @@
 #include <cf/flagship.hpp>
 #include <cf/artifacts.hpp>
 #include <cf/analytics_sql.hpp>
+#include <cf/ai_gateway.hpp>
 #include <cf/ai_search.hpp>
 #include <cf/stream_video.hpp>
 #include <cf/clock.hpp>

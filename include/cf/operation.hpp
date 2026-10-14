@@ -70,6 +70,7 @@ enum class Operation : std::uint32_t {
   FlagshipBooleanDetails = 480,
   ArtifactsRepositoryInfo = 496,
   AnalyticsSqlQuery = 512,
+  AiGatewayUrl = 528,
 };
 
 struct OperationCall {

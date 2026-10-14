@@ -3,8 +3,8 @@
 Audited2026-10-14 against Miniflare5.20261006.1-alpha/workerd1.20261006.1 and
 current public docs. P11 remains incomplete: bounded C++ Analytics SQL scalar
 query/results now have an explicit-mock Wasm example. Native account verification
-is approval-dependent. AI Gateway has a JS URL lookup prototype only; no C++ API
-or example is wired yet. This audit makes no account query, model/provider call,
+is approval-dependent. AI Gateway has a bounded C++ URL lookup subset with an
+explicit-mock Wasm example; other methods and native verification remain open. This audit makes no account query, model/provider call,
 gateway/log lookup, mutation or credential request.
 
 ## Analytics SQL is not Analytics Engine writeDataPoint
@@ -202,6 +202,24 @@ not the AI binding/backend. Delivered gateway capability disposal and borrowed
 service survival are transport evidence, not server disposer timing or provider
 verification. No native lookup, inference, private log or account operation ran.
 
+### C++ Gateway URL vertical (mock only)
+
+`<cf/ai_gateway.hpp>` adds `cf::AiGateway::lookup_url(id, options)`, operation528
+`AiGatewayUrl`, returning owned `AiGatewayEndpoint::url`. Options distinguish
+absent provider from an explicitly supplied nonempty string and include timeout.
+Validation precedes bounded snapshots of ID/provider/options. The C++ decoder
+independently checks reply kind,41–295-byte bounds, the exact canonical prefix,
+account syntax and echoed ID/provider; no normalization or tenant-ownership claim.
+
+`tests/native/ai_gateway.cpp` covers snapshots, absence/universal, exact min/max,
+truncations, wrong kind, selector injection, cross-selector/alternate-origin output,
+credentials/ports/query/fragment/controls/UTF-8 rejection and host errors.
+[The actual Wasm example](../examples/ai-gateway/README.md) uses fake gateways
+only: omitted/explicit universal,8 concurrent IDs,295-byte maximum, invalid inputs,
+backend/shape/cleanup failures, both-stage deadlines and recovery. Generic502
+responses do not publish provider diagnostics. No native lookup, endpoint fetch,
+inference, private log, account resource or configuration operation was performed.
+
 ### Gateway privacy and cost gates
 
 Core Gateway features are published as free on all plans, not provider inference.
@@ -230,8 +248,9 @@ configs. The existing local Analytics Engine write fixture remains allowed;
 it is a separate no-op acceptance test. `tests/analytics-gateway-policy.test.mjs`
 checks rejection order only, not isolation of arbitrary code.
 
-Next: typed C++ Gateway URL API and explicit-mock Wasm example, plus broader
-approved Analytics SQL validation. Model provider error metadata explicitly before
+Next: broader approved Analytics SQL/Gateway validation and remaining methods.
+URL lookup does not establish support for inference, log reads/mutations or custom
+endpoint shapes. Model provider error metadata explicitly before
 claiming C++ retryability support. No native read should be attempted without the applicable account,
 data, provider and cost plan. P11 remains open, not platform-unavailable.
 
