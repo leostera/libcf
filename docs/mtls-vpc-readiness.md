@@ -2,7 +2,8 @@
 
 Audited 2026-10-14 against Miniflare5.20261006.1-alpha / workerd1.20261006.1,
 compatibility date2026-10-13 and current public documentation. P10 remains open:
-no dedicated libcf API/example/native verification yet. No account lookup,
+a bounded policy-selected C++ GET200 byte subset and mock Wasm example exist,
+but native product identity/routing verification remains approval-gated. No account lookup,
 certificate/key generation or upload, tunnel/route discovery, connector startup,
 private address connection or deployment was performed.
 
@@ -122,7 +123,7 @@ path semantics, DNS ownership/rebinding, actual route selection and server TLS
 validation still require application/deployment review. Private IP literals are
 not forbidden: their presence is neither access permission nor a connectivity test.
 
-The intended follow-up is GET-only with no caller URL/path/header/body overrides.
+The dedicated clients below are GET-only with no caller URL/path/header/body overrides.
 No method, redirect, credential or header customization is accepted in policy
 records. GET is not proof of side-effect-free behavior. Tests cover boundaries,
 role collisions, opaque ownership and rejection paths in Node; native workerd
@@ -130,7 +131,7 @@ also parses/selects synthetic policies without a provider binding or outbound
 fetch. This is parser evidence, not mTLS/VPC transport verification. Existing
 remote-declaration guards and account-operation approval requirements remain.
 
-## Bounded GET transport prototype (mock product evidence)
+## Bounded GET transport mechanics (mock product evidence)
 
 `lib/outbound-get.mjs::performBoundHttpsGet` selects the exact policy endpoint
 before accessing the binding's fetch method, validates an empty byte body and
@@ -146,7 +147,7 @@ All other statuses (including other2xx), redirects and malformed results fail;
 headers, redirect destinations and error bodies are not projected. Accepted bodies
 are null/empty or a real byte ReadableStream, incrementally copied into owned
 bytes0–1MiB. The return shape is `{status:0,bytes}` for the prospective host bridge;
-there is no C++ operation/header/example yet.
+the C++ clients independently validate this raw-byte reply below.
 
 Pending/Response/body roots remain owned through reading; borrowed bindings are
 excluded and cleanup is reverse/identity-deduplicated. Body access is cached once,
@@ -166,10 +167,38 @@ redirect/error responses without a second-hop call, timeout and concurrent recov
 This establishes forwarding mechanics, **not native mTLS authentication, VPC
 connectivity, verify_full or private DNS/TLS**. No account/provider network is used.
 
-## Recommended next implementation
+## C++/Wasm vertical and remaining verification
 
-Start with an explicitly bounded HTTP fetch subset and separate mTLS/VPC Service/
-VPC Network identities or options. Parse exact allowed absolute destinations
+`<cf/outbound_http.hpp>` exposes distinct `MtlsHttp`, `VpcServiceHttp` and
+`VpcNetworkHttp` types with `(BindingRuntime,bindingName)` constructors and
+`get_bytes(endpointName, BoundHttpsGetOptions{timeout}) -> AsyncResult<Bytes>`.
+Operations560/576/592 fix the role at dispatch; callers cannot supply a role
+string, URL, headers or body through this API. C++ validates binding/endpoint
+selectors and timeout before operation snapshots, then accepts only Value replies
+with0–1MiB owned bytes. Missing/unknown kinds and oversized values reject. Empty
+HTTP200 bytes remain a successful value. Native20/23 tests exercise all three
+distinct types, snapshots, bounds, kinds and error propagation.
+
+`createWorker(..., { outboundPolicy: trustedJsonText })` parses policy once before
+factory initialization. Missing policy, role mismatch, unknown endpoint and
+unavailable binding fail closed. This policy applies to these dedicated operations,
+**not arbitrary application code or other binding/fetch APIs**; it is not an
+egress sandbox or proof of native binding provenance.
+
+[The combined example](../examples/outbound-https/README.md) runs actual C++/Wasm
+with explicit fake providers for all three roles. It checks binary/empty/exact1MiB,
+oversize,64-byte names,9 concurrent mixed-role calls, invalid inputs, missing/wrong
+policy, unavailable binding, non200/redirect/malformed/provider/cleanup failures,
+fetch/body deadlines and recovery. Public responses are octet-stream/nosniff or
+generic502, never private provider diagnostics. Test-only configuration switches
+are not in the production entry. Native declaration placeholders remain guarded
+and intentionally invalid; synthetic `.invalid` destinations are not deployable
+origin plans. Evidence for560/576/592 is **M**, not native certificate/routing proof.
+
+## Remaining HTTP scope and native approval plan
+
+The initial bounded HTTPS GET200 subset keeps mTLS/VPC Service/VPC Network roles
+separate. General methods, statuses, headers, plaintext HTTP and raw TCP remain open. Parse exact allowed absolute destinations
 before effects, reject URL credentials and unsupported schemes, preserve receiver
 identity, cap body/headers, set manual redirects, and make any subsequent hop an
 explicit authorization decision. Never turn inbound user URL/Host/Authorization

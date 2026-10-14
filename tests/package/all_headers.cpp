@@ -14,6 +14,7 @@
 #include <cf/analytics_sql.hpp>
 #include <cf/ai_gateway.hpp>
 #include <cf/sites.hpp>
+#include <cf/outbound_http.hpp>
 #include <cf/ai_search.hpp>
 #include <cf/stream_video.hpp>
 #include <cf/clock.hpp>

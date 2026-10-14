@@ -72,6 +72,9 @@ enum class Operation : std::uint32_t {
   AnalyticsSqlQuery = 512,
   AiGatewayUrl = 528,
   LegacySitesGet = 544,
+  MtlsGet = 560,
+  VpcServiceGet = 576,
+  VpcNetworkGet = 592,
 };
 
 struct OperationCall {

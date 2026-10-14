@@ -40,7 +40,7 @@ bridge with esbuild, and executes C++ addition through Wasm in local workerd.
 It declares both generated JS/Wasm artifacts and npm dependencies. It does not
 read the old source `build/` artifacts, use Cloudflare credentials, or deploy.
 
-`//:all_workers` builds all 40 existing module pairs: 38 Worker examples,
+`//:all_workers` builds all 41 existing module pairs: 39 Worker examples,
 the separate Durable Object implementation and the hello bridge spike. The shared
 `src/worker.cpp` compiles once per configuration. The original cutover action-graph
 inspection found26 C++ compilation actions, exactly one belonging to
@@ -48,7 +48,7 @@ inspection found26 C++ compilation actions, exactly one belonging to
 `//tools:worker.bzl` provides the declared compile/link/extraction rule. Public
 runtime files are exposed through `//:runtime_modules` and `//:host_library`.
 
-`//:all_bundles` emits 46 JS/Wasm module bundles, including the private upstreams
+`//:all_bundles` emits 47 JS/Wasm module bundles, including the private upstreams
 and plain-JS baselines. Each `bazel-bin/bundles/<name>/` contains `worker.mjs`, a
 versioned `bundle.json` inventory and content-addressed static Wasm imports.
 Current inventory schema2 includes `mainModule`, `wasmModules` and
@@ -64,7 +64,7 @@ For example, `bazel build //:rpc_bundle` builds only that bundle's dependencies.
 The bundler is a declared Node action with no deployment, account access or random
 resource identity. Bindings, assets and ownership manifests are separate deployment
 inputs; these module bundles are not complete prebuilt `cf deploy` directories.
-`//:bundles_test` validates all 46 inventories, Wasm hashes/validity and static
+`//:bundles_test` validates all 47 inventories, Wasm hashes/validity and static
 imports, then executes the emitted C++ and JS benchmark bundles in workerd.
 
 The upstream Bazel Emscripten toolchain defaults to `-fno-exceptions`, unlike the
@@ -155,8 +155,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **165 test targets**: 34 native suites,
-C++20/23 all-header checks, 39 example/benchmark integration targets, 87 JS
+The default graph currently contains **167 test targets**: 35 native suites,
+C++20/23 all-header checks, 40 example/benchmark integration targets, 87 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
 The native/header suite now contains 31 targets, also tested with `--config=cxx23`.

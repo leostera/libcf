@@ -1,0 +1,11 @@
+{
+  "name": "libcf-outbound-https",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  // Guarded, invalid approval placeholders. Not a deployment/resource plan.
+  "mtls_certificates": [{ "binding": "CERT", "certificate_id": "approval-required" }],
+  "vpc_services": [{ "binding": "SERVICE", "service_id": "approval-required" }],
+  "vpc_networks": [{ "binding": "NETWORK", "network_id": "approval-required" }]
+}
