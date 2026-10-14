@@ -22,6 +22,22 @@ and a three-digit status. C++ rejects oversized aggregate replies before decodin
 and rejects oversized individual fields. Boundary tests use forged replies and
 explicit mocks; these are not observations of malformed provider output.
 
+## Stream chunk ownership
+
+`readBounded` copies each observed Uint8Array before requesting another chunk.
+The regression producer reuses one byte buffer with highWaterMark0: retaining
+chunk references until EOF returned `[3,3,3]` instead of the observed `[1,2,3]`.
+The reader now grows an owned accumulator up to its byte limit and trims the final
+buffer; it retains neither producer views nor a per-chunk/empty-chunk list.
+Invalid byte chunks, byte overflow and abort cancel at most once, best effort,
+without awaiting stalled cleanup. Limits/signals are checked before locking.
+
+This is not an enqueue-time snapshot guarantee: the producer can change an object
+before the read observes it. Producer queues, native provider allocation and
+transient accumulator growth/final copying are outside a strict heap-size claim.
+An endless stream still needs caller cancellation or an appropriate deadline;
+a byte limit alone does not bound elapsed time or CPU work from empty chunks.
+
 ## JSON result preparation
 
 The internal `encodeBoundedJson` helper accepts only ordinary JSON-compatible values: finite numbers, strings, booleans, null, dense ordinary arrays, and ordinary/null-prototype records. It rejects accessors without invoking them, `toJSON` functions, non-enumerable data, extra array properties, unsupported prototypes/capabilities, cycles and unsupported primitive values. Repeated references are serialized by value. Proxy traps and modified JS intrinsics are outside this ordinary-data contract; this is not a JavaScript sandbox.

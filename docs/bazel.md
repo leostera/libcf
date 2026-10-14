@@ -245,6 +245,13 @@ Vectorize coverage is explicitly mock-only, not native index/ranking evidence.
 The Linux archive integrity was `sha256-vn9hnLhNXYTn/KNL43NSb1kB56OvKXlOFNl4kSKDSuE=`;
 no new cross-host equality claim is made.
 
+[Run 38519905008](https://github.com/leostera/libcf/actions/runs/38519905008),
+commit `031b8c1`, passed 101 defaults, 25 C++23 native/header targets,
+25 ASan/UBSan targets and relocated consumers of the 86-file SDK. Dispatch
+namespace coverage is explicitly mocked; native WfP behavior is not established.
+The Linux archive integrity was `sha256-UpLWVj4qLJIlLOfhwux6xn/lvJeCMvmCl3S/OFd7X0c=`;
+it is revision-specific, not a new cross-host reproducibility claim.
+
 ## Current evidence
 
 On 2026-10-13, the two toolchain tests passed with
