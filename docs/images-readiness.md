@@ -55,9 +55,10 @@ Verified through the native binding, not a replacement fake Images object:
   decompresses with an exact size bound, reconstructs all scanline filter modes,
   and verifies every expected red/green RGBA pixel in the resulting3x2 image.
   This is more than signature/IHDR proof, but only for this synthetic raster case.
-- Malformed input bytes reject with a local generic Error beginning
+- Malformed input bytes reject with name `Error`, code9523, and a message beginning
   `Unexpected error response 500: Error: Input buffer contains unsupported image format`.
-  This is not proof of production ImagesError codes or every malformed-input case.
+  An Error name alone does not establish absence of a typed code. This local
+  fallback code is not proof of the production code for malformed image data.
 - Hosted upload of one explicit owned ID, details, original-byte equality, creator
   listing, metadata replacement, delete, null details/bytes readback, empty listing
   and a second delete returning false. A preexisting fixture ID aborts the probe.
@@ -65,6 +66,25 @@ Verified through the native binding, not a replacement fake Images object:
   failures are preserved together. Owned handles are conditionally disposed.
 - The first test incorrectly expected result `.metadata`; correcting it to `.meta`
   followed both official docs and pinned source, not a runtime compatibility shim.
+
+## Builder and output ownership
+
+Native probes also establish that `transform()` aliases its input builder, repeated
+`result.image()` calls return the same stream, and `result.response().body` aliases
+that stream. These are not independent image copies. The probe fully consumes the
+body before returning. A second `.output()` rejects with code9525 after either a
+successful output or the malformed-input failure above; do not retry a consumed
+builder or share one across requests.
+
+The workerd tag matching the runtime version corroborates these observations:
+`ImageTransformerImpl.transform()` pushes the supplied options object and returns
+`this`; output marks the builder consumed before fetching. `TransformationResultImpl`
+retains a Response; default `image()` exposes its body without starting a transform,
+and `response()` wraps that same stream. A future adapter must snapshot options,
+retain roots through body consumption, deduplicate alias cleanup, and use only the
+known result accessor to cancel late/unconsumed output. The source's output fetch
+has no caller AbortSignal forwarding. A local deadline is not evidence of stopped
+provider work or billing. This source review is not binary reproducibility proof.
 
 ## Limits and unsupported claims
 
@@ -110,3 +130,6 @@ Sources: [optimization binding](https://developers.cloudflare.com/images/optimiz
 `141080338caec736dd681d442ed6d00b28406dbb68a10e4acaad5265acc41482`,
 `workers/images/images.worker.js` SHA256
 `af2899ca6a60f748d82ade88cdfcf1cb6b87d04855f838ed2cbe71fbcfb34ef6`.
+Tagged [workerd Images implementation](https://github.com/cloudflare/workerd/blob/v1.20261006.1/src/cloudflare/internal/images-api.ts)
+SHA256 `056a9523d3479b162ffa426d7c0cf4aee8a2a2716654c4a232c7be5c67113553`;
+reviewed as source evidence, not added as a build dependency.
