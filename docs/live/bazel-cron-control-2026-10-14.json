@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "73fc3a27517a24af8e5901791dbc584f5bc2edb8",
+  "sourceDirty": false,
+  "excludedGeneratedPaths": [".cloudflare/"],
+  "bazel": "official 9.3.0 via Bazelisk",
+  "emscripten": "6.0.12",
+  "node": "26.11.1",
+  "compatibilityDate": "2026-10-13",
+  "started": "2026-10-14T02:13:13.739Z",
+  "finished": "2026-10-14T02:58:54.213Z",
+  "preparation": "bazel run //:prepare_cron_control -- <owned-database-uuid>",
+  "probe": "LIBCF_LIVE_CRON_TIMEOUT_MS=2700000 bazel run //:live_cron_control -- <absolute-generated-manifest> --cleanup",
+  "observationTimeoutMs": 2700000,
+  "lastLoggedObservationMs": 2688909,
+  "result": "failed: observation deadline expired without observed durable writes from either implementation",
+  "termination": "ABORT_ERR caused by the configured TimeoutError while awaiting retry sleep; cleanup retained independent command budgets",
+  "workers": [
+    {
+      "kind": "js",
+      "name": "libcf-cron-js-33aaf96c9a",
+      "version": "c8e5cc1c-c670-41ca-a715-d51f6f5f9dcf",
+      "schedulePutStatus": 200,
+      "scheduleAcknowledgedAt": "2026-10-14T02:13:29.916Z",
+      "bundleSha256": "51cab3781591bd126401918997012c51901c4bc1a323b614f8a0193395aaf33e"
+    },
+    {
+      "kind": "cpp",
+      "name": "libcf-cron-cpp-33aaf96c9a",
+      "version": "21a7b87a-5a24-4c2f-aef6-05906b47d176",
+      "schedulePutStatus": 200,
+      "scheduleAcknowledgedAt": "2026-10-14T02:13:33.899Z",
+      "wasmSha256": "0a38194a8b54224bcaecc19fcf75dd017f3ab0e4645a1e18b79942d6eed3d353",
+      "bundleSha256": "e5cb791cf9eb01ae5fa1d9136effaf232b9dea959bc42b85f3e9c2ea82be9192"
+    }
+  ],
+  "database": {
+    "name": "libcf-cron-db-4e87ef1df6",
+    "uuid": "c89506b0-bcfc-430e-931b-125bfb268cfc"
+  },
+  "exposure": { "publicDomains": [], "workersDev": false, "previews": false },
+  "observabilityReadback": {
+    "bothWorkersExistedBeforeCleanup": true,
+    "logsEnabled": true,
+    "invocationLogsEnabled": true,
+    "tracesEnabled": true,
+    "samplingRate": 1
+  },
+  "telemetry": {
+    "dry": true,
+    "timeframeFrom": 1791943993739,
+    "timeframeTo": 1791946734213,
+    "scope": "separate exact Worker-name filters, all event types",
+    "limitPerWorker": 100,
+    "returnedEvents": { "js": 0, "cpp": 0 },
+    "possiblyTruncated": false
+  },
+  "ownershipPreflight": {
+    "databaseNameAbsentFromBoundedCompleteFilteredListing": true,
+    "bothWorkers404Code10007": true
+  },
+  "cleanup": {
+    "bothWorkers404Code10007": true,
+    "database404Code7404": true,
+    "independentOuterReadback": true,
+    "failures": []
+  },
+  "limitations": [
+    "HTTP acknowledgement is not schedule activation or delivery proof; current schedule GET readback was not obtained through cf.",
+    "No durable write was observed in the bounded probe; absence of matching retained logs does not establish absence of invocation.",
+    "The same failure in the plain-JS control is not evidence of a C++-specific cause, but it does not establish the platform root cause.",
+    "Cron remains locally verified and live unresolved, not classified as unsupported.",
+    "The first preparation failed before Worker deployment on a runfile-path guard. Its separate D1 was deleted and absence verified before this isolated retry."
+  ]
+}

@@ -82,3 +82,11 @@ JS before/after brackets and eight concurrent requests. Worker, DNS and certific
 absence were verified after cleanup. Local workerd instead reads the system clock:
 its tests check each sample against JS brackets, not production-only freezing.
 Neither test path establishes precision, monotonicity or synchronization.
+
+The [45-minute Bazel JS/C++ Cron control](live/bazel-cron-control-2026-10-14.json)
+observed no durable writes from either implementation. Both schedule PUTs were
+captured with HTTP 200; enabled invocation logs and full-window, exact-name
+telemetry queries supplied no delivery evidence. Both Workers and D1 were
+independently verified absent after cleanup. This is an unresolved account/runtime
+verification gap, not a successful live handler test or an unsupported-platform
+classification. Email live verification still requires approved sender/destination.

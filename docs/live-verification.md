@@ -19,6 +19,14 @@ post-I/O sampling, JS brackets and concurrency. Worker, DNS and certificate
 absence were independently verified. This retains the production check while
 correcting the invalid assumption that standalone local workerd freezes time.
 
+The [45-minute Bazel Cron control](live/bazel-cron-control-2026-10-14.json) failed
+to observe a durable write from either JS or C++, despite captured HTTP 200
+schedule acknowledgements. Both Workers had invocation logs/traces enabled;
+full-window, exact-name log queries returned no events (not proof of no invocation).
+The internal-only Workers and isolated D1 were deleted, with independent absence
+checks. Schedule activation/delivery remains unresolved; repeated deployment alone
+is not a remedy or evidence of platform incompatibility.
+
 ## Cache deployment probe
 
 ```sh

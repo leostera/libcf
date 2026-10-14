@@ -214,6 +214,9 @@ No retry hides the original failure; error messages retain response body/path.
 commit `0c3b229`, passed all 84 default tests, C++23, sanitizers, package consumers
 and offline dry-run after this correction. The revised
 [clock live probe](live/bazel-clock-2026-10-14.json) also passed with cleanup.
+[Run 38503312280](https://github.com/leostera/libcf/actions/runs/38503312280),
+commit `a7a624f`, then passed 85 default tests and the remaining CI checks after
+the documented decimal-KB Queue producer guard correction.
 
 ## Current evidence
 
