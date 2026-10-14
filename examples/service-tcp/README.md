@@ -41,7 +41,12 @@ failure or cancellation does not establish that the peer received no bytes or
 rolled back its effects. The peer must implement a half-close/EOF protocol; a
 persistent interactive peer will eventually hit the deadline instead.
 
-**Live verification is pending.** No live deployment helper is enabled yet. Both
-configs disable workers.dev/previews and have no public routes. Do not deploy the
-static fixture names over existing resources. See [networking scope](../../docs/networking-readiness.md)
+**Live verification is pending.** Build isolated artifacts with
+`bazel run //:prepare_live_worker -- service-tcp` (no deployment). The retained
+manifest names the private upstream and approved HTTPS frontend. Deploy the
+private upstream first using cf CLI, then the frontend; run
+`bazel run //:live_service_tcp -- <manifest-hostname>`. Always verify deletion of
+both owned Workers plus frontend DNS/certificate cleanup, including on failure.
+workers.dev/previews stay disabled. Do not deploy static fixture names over
+existing resources. See [networking scope](../../docs/networking-readiness.md)
 for managed-platform versus standalone experimental capabilities.

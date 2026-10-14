@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { readBounded } from '../lib/body.mjs';
 
 export function liveHttp(host, family) {
-  if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'http-upstream', 'workflow', 'clock', 'rpc'].includes(family) ||
+  if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'http-upstream', 'workflow', 'clock', 'rpc', 'service-tcp'].includes(family) ||
       typeof host !== 'string' ||
       new RegExp(`^libcf-${family}-[a-f0-9]{10}\\.libcf\\.leostera\\.dev$`).exec(host)?.[0] !== host)
     throw new Error('Expected an isolated test hostname under libcf.leostera.dev');
