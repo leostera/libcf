@@ -71,6 +71,7 @@ enum class Operation : std::uint32_t {
   ArtifactsRepositoryInfo = 496,
   AnalyticsSqlQuery = 512,
   AiGatewayUrl = 528,
+  LegacySitesGet = 544,
 };
 
 struct OperationCall {

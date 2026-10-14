@@ -9,7 +9,7 @@ const names = [
   'crypto', 'benchmark', 'http-client', 'pipeline', 'timer', 'workflow',
   'images', 'clock', 'rpc', 'ai', 'service-tcp', 'hello', 'hello-js', 'benchmark-js',
   'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference',
-  'vectorize', 'dispatch', 'dispatch-reference', 'media', 'ai-search', 'stream', 'browser', 'agent-memory', 'container', 'flagship', 'artifacts', 'analytics-sql', 'ai-gateway',
+  'vectorize', 'dispatch', 'dispatch-reference', 'media', 'ai-search', 'stream', 'browser', 'agent-memory', 'container', 'flagship', 'artifacts', 'analytics-sql', 'ai-gateway', 'legacy-sites',
 ];
 const plainJs = new Set(['hello-js', 'benchmark-js', 'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference', 'dispatch-reference']);
 const manifests = new Map();
@@ -18,7 +18,7 @@ for (const name of names) {
   const manifest = JSON.parse(await readFile(`${directory}/bundle.json`, 'utf8'));
   assert.deepEqual(Object.keys(manifest).sort(), ['mainModule', 'requiredTextModules', 'schemaVersion', 'wasmModules']);
   assert.equal(manifest.schemaVersion, 2);
-  assert.deepEqual(manifest.requiredTextModules, []);
+  assert.deepEqual(manifest.requiredTextModules, name === 'legacy-sites' ? ['__STATIC_CONTENT_MANIFEST'] : []);
   assert.equal(manifest.mainModule, 'worker.mjs');
   assert.equal(manifest.wasmModules.length, plainJs.has(name) ? 0 : name === 'durable' ? 2 : 1, name);
   assert.deepEqual(manifest.wasmModules, [...new Set(manifest.wasmModules)].sort());

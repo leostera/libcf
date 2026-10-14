@@ -2,8 +2,8 @@
 
 Snapshot2026-10-14, Miniflare5.20261006.1-alpha/workerd1.20261006.1,
 compatibility date2026-10-13. P12 remains an **optional, incomplete compatibility
-track**. A bounded JS manifest/stream-read prototype is now tested with native
-local Sites; there is no C++ API/operation/example or live verification.
+track**. A bounded C++/Wasm manifest/stream-read vertical is tested with native
+local Sites; production upload/cache behavior and live verification remain open.
 Modern Assets support is not legacy manifest/KV behavior.
 
 ## Product and runtime scope
@@ -123,9 +123,27 @@ restore Wrangler subprocesses or a CMake build to work around this gap.
 
 ## Remaining implementation and verification
 
-Next: wire the bounded prototype into a typed C++ read-only manifest-key API and
-strict owned-byte decoder, preserving binary/empty/missing semantics. Prefer module
-format; no need to claim classic-worker parity.
+`<cf/sites.hpp>` provides `LegacySites(BindingRuntime, binding="__STATIC_CONTENT")`
+and `get_bytes(logicalKey, LegacySitesReadOptions{timeout})`, returning
+`AsyncResult<std::optional<Bytes>>`. Operation544 `LegacySitesGet` returns Missing
+only with empty payload; Value is owned bytes0–1MiB, including a distinct present
+empty file. Other kinds, Missing with payload and oversize values fail decoding.
+C++ independently validates the exact logical-path subset and timeout before
+snapshotting inputs; native20/23 tests cover invalid UTF-8/control/path forms,
+boundaries, snapshots, kinds and host errors.
+
+`createWorker(..., { sitesManifest: trustedJsonText })` parses the deployment
+manifest once, before factory initialization. No env/request-map fallback or
+reserved binding injection. Without configuration, Sites calls fail closed.
+The optional namespace override changes lookup identity, not authority.
+
+[The C++ example](../examples/legacy-sites/README.md) executes the **emitted Bazel
+bundle** against the native local manifest/namespace: text, Unicode binary,
+empty/missing/excluded keys,8 concurrent reads, exact1MiB, oversize rejection,
+invalid keys, unavailable binding, stale manifest after owned file removal and
+recovery. A separately supplied malformed text module rejects startup with the
+same bundle. Responses redact failures and use octet-stream/nosniff; this is a
+literal-key read endpoint, not a URL asset server or classic-worker parity.
 
 The Bazel bundler now preserves the exact `__STATIC_CONTENT_MANIFEST` import and
 records it in schema2 `bundle.json.requiredTextModules`, derived from emitted
@@ -134,8 +152,8 @@ imports after tree shaking. It does not fabricate or upload the text module.
 text module and verifies missing-module startup failure. This is module linkage
 proof, not native Sites namespace/upload verification.
 
-A dedicated Bazel C++/Wasm example must still connect the native manifest/namespace
-and test owned mapping failures, encoded/Unicode keys and response limits.
+The dedicated example connects the native manifest/namespace; generic KV and
+modern Assets examples remain separate capabilities.
 Do not relabel generic KV or Assets tests as Sites verification. Full asset-serving
 semantics and production content-hash uploads/cache invalidation are separate work.
 Before live work, define the explicit cf deployment path, owned namespace/files,

@@ -73,7 +73,7 @@ EXAMPLES = [
     "core", "kv", "d1", "r2", "cache", "service", "durable", "events",
     "websocket", "email", "rate-limit", "analytics", "metadata", "worker-loader",
     "crypto", "benchmark", "http-client", "pipeline", "timer", "workflow",
-    "images", "clock", "rpc", "ai", "service-tcp", "vectorize", "dispatch", "media", "ai-search", "stream", "browser", "agent-memory", "container", "flagship", "artifacts", "analytics-sql", "ai-gateway",
+    "images", "clock", "rpc", "ai", "service-tcp", "vectorize", "dispatch", "media", "ai-search", "stream", "browser", "agent-memory", "container", "flagship", "artifacts", "analytics-sql", "ai-gateway", "legacy-sites",
 ]
 
 [cf_worker(name = name, srcs = ["examples/%s/src/main.cpp" % name]) for name in EXAMPLES]
@@ -149,7 +149,8 @@ LOCAL_EXAMPLES = [name for name in EXAMPLES if name != "benchmark"] + ["hello"]
     name = name + "_local_test",
     entry_point = "examples/%s/test/worker.test.mjs" % name,
     data = JS_TEST_DATA + [":spike" if name == "hello" else ":" + name] +
-           ([":durable-object"] if name == "durable" else []),
+           ([":durable-object"] if name == "durable" else []) +
+           ([":legacy-sites_bundle"] if name == "legacy-sites" else []),
 ) for name in LOCAL_EXAMPLES]
 
 filegroup(
@@ -236,7 +237,7 @@ test_suite(
 NATIVE_SUITES = [
     "core", "storage", "d1", "events", "websocket", "email", "rate_limit",
     "analytics", "metadata", "worker_loader", "subtle_crypto", "http_client",
-    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp", "vectorize", "dispatch", "media", "ai_search", "stream_video", "browser", "agent_memory", "container", "flagship", "artifacts", "analytics_sql", "ai_gateway",
+    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp", "vectorize", "dispatch", "media", "ai_search", "stream_video", "browser", "agent_memory", "container", "flagship", "artifacts", "analytics_sql", "ai_gateway", "sites",
 ]
 
 [cc_test(
