@@ -220,6 +220,13 @@ and offline dry-run after this correction. The revised
 commit `a7a624f`, then passed 85 default tests and the remaining CI checks after
 the documented decimal-KB Queue producer guard correction.
 
+[Run 38507665288](https://github.com/leostera/libcf/actions/runs/38507665288),
+commit `5a00b22`, passed 88 default tests, 22 C++23 native/header targets,
+22 ASan/UBSan targets and relocated native20/23 plus Worker23 consumers of the
+80-file SDK. The added AI integration is explicitly **mock-only**, not real
+inference or native AI service verification. No account usage or live resources
+were involved. This revision has no new cross-host archive-identity claim.
+
 ## Current evidence
 
 On 2026-10-13, the two toolchain tests passed with
