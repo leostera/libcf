@@ -106,13 +106,43 @@ Hosted simulator source also has important differences/limits:
 - Local deletion/readback is not production cache invalidation, retention cleanup,
   stopped billing or erasure of previously issued URLs/capabilities.
 
-## Next bounded subset and live gate
+## Bounded JS rotation prototype
 
-A narrow PNG-input rotate/resize-to-PNG client is feasible locally. Keep SVG,
-text/font sources and their external-resource interpretation outside the first subset. It still needs bounded
-owned input snapshots, supported dimensions/options, output-stream limits, explicit
-pending/transformer/result ownership, alias-aware cleanup and cooperative abort/
-deadline handling, native codecs and an actual C++/Wasm example. Dimension/byte
+`lib/image-rotate.mjs` now implements `performImageRotate(binding, bytes, timeout,
+signal?)`: one fixed clockwise90-degree rotation, PNG output and `anim:false`.
+This is not yet dispatched through the Wasm host ABI or exposed as a C++ method.
+
+- Canonical decimal timeout1–60000ms; input/output at most1MiB; declared width and
+  height1–1024;8-bit RGB/RGBA only. Interlace0/1 accepted. PNG signature, first IHDR,
+  chunk framing/types, at most1024 chunks, consecutive nonempty aggregate IDAT,
+  optional palette placement and final IEND checked. APNG control/frame chunks,
+  unknown critical chunks, trailing bytes and unsupported headers reject.
+- Input is copied before provider access/yield. Output is copied incrementally via
+  `readBounded`; output dimensions must swap the input dimensions. These are
+  **framing checks, not CRC or pixel/decompression validation**. Ancillary metadata
+  is not stripped; declared bounds do not establish provider decode memory/CPU.
+- Fresh per-call builder; fixed fresh options; preserved method receivers; retained
+  input/builder/pending/result/body roots; reverse identity-deduplicated conditional
+  disposal excluding the borrowed binding. Known late image access is cleanup
+  only. Reentrant access is cached once, late rejections drained, streams canceled
+  best-effort without awaiting producer cancellation. Cleanup rejects success but
+  preserves a primary error. No retry or implicit cache.
+- Unit tests cover framing/bounds, snapshots, aliases/order, malformed output,
+  primary errors, deadlines, active and late cancellation, synchronous reentrant
+  abort and malformed Promise rejection drainage. Mock framed output is explicitly
+  not evidence of decoded pixels. The bundled JS prototype also runs against the
+  native binding: independently decoded rotation pixels plus8 concurrent calls.
+
+SVG, text/fonts, arbitrary URLs, other angles/resize/formats and hosted mutations
+are not part of this prototype. No account operation or live transform occurred.
+
+## Remaining implementation and live gate
+
+The JS rotation prototype still needs a strict C++ codec, opcode dispatch and an
+actual emitted-bundle C++/Wasm example. Broader resize/format APIs remain open.
+Keep SVG, text/font sources and their external-resource interpretation outside
+this first subset. Preserve the JS ownership and boundary guarantees across that
+C++/Wasm call graph rather than relying on caller discipline. Dimension/byte
 projection caps do not prove bounded provider decompression or processing cost.
 Do not introduce arbitrary URL/font fetch, implicit caching or hosted writes as
 part of transformation convenience methods.

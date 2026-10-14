@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import test from 'node:test';
 import { Miniflare } from 'miniflare';
+import { build } from 'esbuild';
+import { fileURLToPath } from 'node:url';
 import { png } from '../examples/images/test/fixtures.mjs';
 
 // Independent tiny non-interlaced PNG decoder: check CRCs and fully reconstruct
@@ -54,12 +56,21 @@ function decodeTinyPng(bytes) {
 test('native local Images transform and hosted owned-data lifecycle feasibility', { timeout: 20000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'libcf-images-platform-')); let runtime;
   try {
+    const adapter = await build({ stdin: {
+      contents: `export { performImageRotate } from './lib/image-rotate.mjs';`,
+      resolveDir: fileURLToPath(new URL('../', import.meta.url)),
+    }, bundle: true, format: 'esm', platform: 'neutral', target: 'es2022', write: false });
     runtime = new Miniflare({ host: '127.0.0.1', port: 0, resourcePersistencePath: root, unsafeEnableSharedStorage: false, workers: [{ config: {
       name: 'images-platform', compatibilityDate: '2026-10-13', env: { IMAGES: { type: 'images' } },
-      manifest: { mainModule: 'worker.mjs', modulesRoot: join(root, 'modules'), modules: { 'worker.mjs': { type: 'esm', contents: `
+      manifest: { mainModule: 'worker.mjs', modulesRoot: join(root, 'modules'), modules: { 'adapter.mjs': { type: 'esm', contents: adapter.outputFiles[0].text }, 'worker.mjs': { type: 'esm', contents: `
+        import { performImageRotate } from './adapter.mjs';
         const png = new Uint8Array(${JSON.stringify([...png])});
         export default { async fetch(request, env) {
           const path = new URL(request.url).pathname;
+          if (path === '/adapter') {
+            const result = await performImageRotate(env.IMAGES, png, '5000');
+            return new Response(result.bytes, {headers:{'content-type':'image/png'}});
+          }
           if (path === '/rotate') {
             const result = await env.IMAGES.input(new Blob([png]).stream()).transform({rotate:90}).output({format:'image/png'});
             const response = result.response();
@@ -122,6 +133,10 @@ test('native local Images transform and hosted owned-data lifecycle feasibility'
     const fetchLocal = path => runtime.dispatchFetch('https://example.test' + path, { signal: AbortSignal.timeout(10000) });
     const rotated = await fetchLocal('/rotate'); assert.equal(rotated.status, 200); assert.equal(rotated.headers.get('content-type'), 'image/png');
     assert.deepEqual(decodeTinyPng(Buffer.from(await rotated.arrayBuffer())), [255,0,0,255,255,0,0,255,255,0,0,255,0,255,0,255,0,255,0,255,0,255,0,255]);
+    const adapted = await fetchLocal('/adapter'); assert.equal(adapted.status, 200);
+    assert.deepEqual(decodeTinyPng(Buffer.from(await adapted.arrayBuffer())), [255,0,0,255,255,0,0,255,255,0,0,255,0,255,0,255,0,255,0,255,0,255,0,255]);
+    const parallel = await Promise.all(Array.from({length:8}, () => fetchLocal('/adapter')));
+    for (const response of parallel) { assert.equal(response.status, 200); decodeTinyPng(Buffer.from(await response.arrayBuffer())); }
     const ownership = await fetchLocal('/ownership'); assert.equal(ownership.status, 200);
     assert.deepEqual(await ownership.json(), {transformAlias:true,bodyAlias:true,responseAlias:true,reuseCode:9525});
     const invalid = await fetchLocal('/invalid'); assert.equal(invalid.status, 422); const failure = await invalid.json(); assert.equal(failure.name, 'Error'); assert.match(failure.message, /^Unexpected error response 500: Error: Input buffer contains unsupported image format/);
