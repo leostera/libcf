@@ -128,11 +128,15 @@ expiry/revocation, timeout behavior and independent deletion/absence checks.
 
 ## Default-test safety and next steps
 
-The ordinary fixture harness rejects `artifacts` and currently unmapped
-`flagship` declarations before bundling the affected worker. Empty/null fields
-also reject rather than silently dropping capabilities. Additional worker
-configs receive the same checks. Flagship's dedicated platform test is explicitly
-local; Artifacts requires explicit mock fixtures until a native plan is approved.
+The ordinary fixture harness rejects `artifacts` before bundling the affected
+worker. Flagship requires a nonempty array of explicit `remote: false` fixtures,
+unique binding names (ASCII letter followed by ≤63 alphanumeric/underscore
+characters), and app IDs (1–128 ASCII alphanumeric/underscore/hyphen characters).
+Unknown fields, omitted/true remote settings and empty/null declarations reject.
+These are fixture-harness restrictions, not platform naming limits. Additional
+worker configs receive the same checks. Mapping sets native `dev.remote: false`;
+no account configuration is fetched. Artifacts still requires explicit mock
+fixtures until a native plan is approved.
 `tests/flagship-artifacts-policy.test.mjs` checks rejection order, not isolation
 of arbitrary caller-supplied Worker code.
 
@@ -147,15 +151,21 @@ variant/reason/error_code/error_message. The strict20–4516-byte decoder reject
 wrong reply kind, noncanonical booleans/presence, invalid text, truncation and
 trailing data. Native tests include1MiB invalid lvalues and mutation after call.
 
-The actual C++/Wasm example currently uses an **explicit mock evaluator**:
-concurrency, input/output maxima, absent/empty fields, UTF-8/BOM/NUL output,
-fallback, malformed reply, cleanup/deadline failure and recovery are tested.
-The emitted bundle health route also executes without bindings. Native local
-Flagship support is established separately at the JS adapter layer, not yet
-through this example. Do not combine these into a native C++ verification claim.
+The actual C++/Wasm example now has a **native local evaluator fixture** using
+an explicit local synthetic app/flag and private simulator seed hook. C++ requests
+verify static false versus true fallback, one targeting-key equality rule with
+eight concurrent matching/nonmatching calls, absent context, disabled-rule
+behavior, missing/type-mismatch fallbacks, update/recovery and deletion followed
+by fresh FLAG_NOT_FOUND readback. No real flag definitions are downloaded.
 
-Next: native local binding through the C++ example, broader typed evaluation and
-context capabilities, then separately approved live verification. Artifacts still
+Separate **mock evaluator** tests retain input/output maxima, absent/empty fields,
+UTF-8/BOM/NUL output, malformed replies and cleanup/deadline failure. The emitted
+bundle health route also executes without bindings. Native evidence is confined
+to this local subset: not full targeting/rollout parity, production propagation,
+account authorization or native cancellation.
+
+Next: broader typed evaluation and context capabilities, then separately approved
+live verification. Artifacts still
 has no C++ API/example; design its metadata projection and RPC lifetime tests.
 P09 remains partial, not complete.
 

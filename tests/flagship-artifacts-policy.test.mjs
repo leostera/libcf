@@ -5,15 +5,24 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { startLocalWorker } from '../examples/test/local-worker.mjs';
 
-test('unmapped Flagship and remote Artifacts declarations cannot silently disappear from local tests', async () => {
+test('remote Artifacts and non-explicit or malformed Flagship fixtures fail before bundling', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'libcf-flagship-artifacts-policy-'));
   try {
     const path = join(directory, 'worker.jsonc');
-    for (const [family, message, binding] of [
-      ['artifacts', /Artifacts uses a remote service/, { binding: 'ARTIFACTS', namespace: 'owned-only', remote: false }],
-      ['flagship', /Flagship requires explicit local seeding/, { binding: 'FLAGS', app_id: 'owned-only', remote: false }],
-    ]) {
-      for (const declaration of [null, [], [binding], [{ ...binding, remote: true }]]) {
+    const local = { binding: 'FLAGS', app_id: 'owned-only', remote: false };
+    const cases = [
+      ['artifacts', /Artifacts uses a remote service/, [null, [],
+        [{ binding: 'ARTIFACTS', namespace: 'owned-only', remote: false }],
+        [{ binding: 'ARTIFACTS', namespace: 'owned-only', remote: true }]]],
+      ['flagship', /Flagship requires explicit local seeding/, [null, [], {}, [null],
+        [{ binding: 'FLAGS', app_id: 'owned-only' }],
+        ...[true, null, 'false', 0].map(remote => [{ ...local, remote }]),
+        ...['', 'bad\n', '__proto__', 'f'.repeat(65), 1].map(binding => [{ ...local, binding }]),
+        ...['', 'bad\n', 'bad/id', 'a'.repeat(129), 1].map(app_id => [{ ...local, app_id }]),
+        [{ ...local, unknown: true }], [local, local]]],
+    ];
+    for (const [family, message, declarations] of cases) {
+      for (const declaration of declarations) {
         await writeFile(path, JSON.stringify({ name: 'binding-policy', main: 'missing.mjs', [family]: declaration }));
         // Reject before bundling; this intentionally has no usable entrypoint.
         await assert.rejects(startLocalWorker(path), message);

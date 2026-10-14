@@ -12,8 +12,19 @@ async function workerOptions(configPath, root) {
     throw new Error('Containers require an explicit local engine/image and cleanup plan; use a separate approved harness');
   if (Object.hasOwn(config, 'artifacts'))
     throw new Error('Artifacts uses a remote service; use an explicit local mock configuration');
-  if (Object.hasOwn(config, 'flagship'))
-    throw new Error('Flagship requires explicit local seeding; use a separate local harness');
+  const flagship = {};
+  if (Object.hasOwn(config, 'flagship')) {
+    const invalid = () => { throw new Error('Flagship requires explicit local seeding, remote:false, unique binding names and valid app IDs'); };
+    if (!Array.isArray(config.flagship) || config.flagship.length === 0) invalid();
+    for (const item of config.flagship) {
+      if (!item || typeof item !== 'object' || Array.isArray(item) || item.remote !== false ||
+          typeof item.binding !== 'string' || /^[A-Za-z][A-Za-z0-9_]{0,63}$/.exec(item.binding)?.[0] !== item.binding ||
+          typeof item.app_id !== 'string' || /^[A-Za-z0-9_-]{1,128}$/.exec(item.app_id)?.[0] !== item.app_id ||
+          Object.keys(item).some(key => !['binding', 'app_id', 'remote'].includes(key)) ||
+          Object.hasOwn(flagship, item.binding)) invalid();
+      flagship[item.binding] = { type: 'flagship', id: item.app_id, dev: { remote: false } };
+    }
+  }
   if (config.ai) throw new Error('Workers AI is remote inference; use an explicit local mock configuration');
   if (config.vectorize) throw new Error('Vectorize requires a remote index; use an explicit local mock configuration');
   if (config.dispatch_namespaces) throw new Error('Dispatch namespaces require remote Workers for Platforms; use an explicit local mock configuration');
@@ -65,6 +76,7 @@ async function workerOptions(configPath, root) {
       ...Object.fromEntries((config.workflows ?? []).map(x => [x.class_name, { type: 'workflow', name: x.name }])),
     },
     env: {
+      ...flagship,
       ...(config.images ? { [config.images.binding]: { type: 'images' } } : {}),
       ...(config.stream ? { [config.stream.binding]: { type: 'stream' } } : {}),
       ...Object.fromEntries((config.workflows ?? []).map(x => [x.binding, {

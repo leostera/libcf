@@ -67,7 +67,7 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 
 | 464 | `ContainerInspect` | [Container inspection](../examples/container/test/worker.test.mjs) | M | Approval | Owned nullable image/label projection through actual C++/Wasm DO with explicit fake capability. Native ordinary DO missing-capability and reserved-slot rejection; no engine/process/readiness/lifecycle proof. Invocation activity may extend idle retention; no start/stop/exec or native cancellation claim. |
 
-| 480 | `FlagshipBooleanDetails` | [Flagship boolean details](../examples/flagship/test/worker.test.mjs) | M | Approval | Required fallback, optional targeting key, bounded owned optional provider strings through C++/Wasm with explicit fake evaluator. Separate JS adapter test uses native local evaluator; native binding through C++ example still pending. No propagation, arbitrary context, native cancellation or account authorization claim. |
+| 480 | `FlagshipBooleanDetails` | [Flagship boolean details](../examples/flagship/test/worker.test.mjs) | L | Approval | Required fallback, optional targeting key and bounded owned details through C++/Wasm with native local Flagship: static/disabled, one equality rule, concurrent matching/nonmatching calls, missing/type fallback, update and delete/readback. Separate mocks retain bounds/cleanup/deadline tests. No propagation, general targeting/rollout parity, native cancellation or account authorization claim. |
 
 ## Scope not represented by binding-operation numbers
 

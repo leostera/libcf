@@ -1,0 +1,6 @@
+{
+  "name": "libcf-flagship-native-local",
+  "main": "native.mjs",
+  "compatibility_date": "2026-10-13",
+  "flagship": [{ "binding": "FLAGS", "app_id": "libcf-owned-native-local", "remote": false }]
+}

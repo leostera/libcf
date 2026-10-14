@@ -1,9 +1,9 @@
 # Flagship boolean details
 
 Typed `<cf/flagship.hpp>` client, operation480, through actual C++/Wasm. The
-example currently uses an **explicit fake evaluator**, not a native binding.
-Separate JS adapter tests exercise the pinned native local evaluator. Neither
-establishes live propagation or account authorization.
+tests use both the **native local Flagship evaluator** and an **explicit fake
+evaluator** for boundary/failure cases. Neither establishes live propagation or
+account authorization.
 
 ```sh
 bazel test //:flagship_local_test //:native_flagship_test
@@ -33,11 +33,21 @@ Returned BOM/NUL are opaque data. Wire20–4516 bytes; strict C++ decoder reject
 wrong kind/booleans/presence/UTF-8/length/truncation/trailing data. Timeout/disposal
 does not establish stopped native work or stopped billing.
 
-Local fake fixtures cover concurrency, maxima, UTF-8/BOM/NUL output, absent/empty
-fields, provider fallback, malformed results, cleanup failure and recovery. The
-production config is an unapproved app placeholder and is refused by the default
-harness. Do not deploy this unauthenticated demonstration as-is. Native C++/Wasm
-binding verification is the next step; live use needs owned app/flag/data, pricing,
-authentication and cleanup approval. No flag administration API is exposed.
+The native fixture (`test/native.wrangler.jsonc`) explicitly declares
+`remote: false` with a synthetic app ID. Its local-only wrapper seeds one owned
+flag via Miniflare's private admin hook. C++ requests test STATIC/DISABLED results,
+eight concurrent matching/nonmatching targeting keys (one equality rule), missing
+flag and type-mismatch fallbacks, update/recovery, then deletion and fresh
+FLAG_NOT_FOUND readback. This is local simulator evidence, not production
+propagation, arbitrary targeting or rollout-hash parity.
+
+Separate fake fixtures cover maxima, UTF-8/BOM/NUL output, absent/empty fields,
+malformed results, cleanup failure and deadlines. The ordinary harness accepts
+only explicit local Flagship fixtures with validated unique binding names and
+app IDs; it refuses omitted/true remote settings and malformed declarations.
+The production config is an unapproved app placeholder and remains refused.
+Do not deploy this unauthenticated demonstration or its private fixture endpoints.
+Live use needs owned app/flag/data, pricing, authentication and cleanup approval.
+No flag administration API is exposed by libcf.
 
 See [access-model audit](../../docs/flagship-artifacts-readiness.md).
