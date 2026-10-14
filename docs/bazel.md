@@ -51,6 +51,15 @@ runtime files are exposed through `//:runtime_modules` and `//:host_library`.
 `//:all_bundles` emits 45 JS/Wasm module bundles, including the private upstreams
 and plain-JS baselines. Each `bazel-bin/bundles/<name>/` contains `worker.mjs`, a
 versioned `bundle.json` inventory and content-addressed static Wasm imports.
+Current inventory schema2 includes `mainModule`, `wasmModules` and
+`requiredTextModules` (sorted unique module specifiers). The latter records actual
+emitted imports of `__STATIC_CONTENT_MANIFEST`, when present; the bundler preserves
+that import and does not invent its contents. A deployment/runtime must supply the
+text module separately. Existing examples currently require no such text module.
+Historical schema1 evidence is retained unchanged. `//:js_bundle-modules_test`
+executes a generated bundle with an explicitly supplied synthetic text module,
+checks startup failure without it, and excludes tree-shaken imports from requirements.
+This verifies bundling/module linkage, not Sites uploading or namespace access.
 For example, `bazel build //:rpc_bundle` builds only that bundle's dependencies.
 The bundler is a declared Node action with no deployment, account access or random
 resource identity. Bindings, assets and ownership manifests are separate deployment
@@ -146,8 +155,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **159 test targets**: 33 native suites,
-C++20/23 all-header checks, 38 example/benchmark integration targets, 83 JS
+The default graph currently contains **160 test targets**: 33 native suites,
+C++20/23 all-header checks, 38 example/benchmark integration targets, 84 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
 The native/header suite now contains 31 targets, also tested with `--config=cxx23`.

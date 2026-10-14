@@ -16,8 +16,9 @@ const manifests = new Map();
 for (const name of names) {
   const directory = `bundles/${name}`;
   const manifest = JSON.parse(await readFile(`${directory}/bundle.json`, 'utf8'));
-  assert.deepEqual(Object.keys(manifest).sort(), ['mainModule', 'schemaVersion', 'wasmModules']);
-  assert.equal(manifest.schemaVersion, 1);
+  assert.deepEqual(Object.keys(manifest).sort(), ['mainModule', 'requiredTextModules', 'schemaVersion', 'wasmModules']);
+  assert.equal(manifest.schemaVersion, 2);
+  assert.deepEqual(manifest.requiredTextModules, []);
   assert.equal(manifest.mainModule, 'worker.mjs');
   assert.equal(manifest.wasmModules.length, plainJs.has(name) ? 0 : name === 'durable' ? 2 : 1, name);
   assert.deepEqual(manifest.wasmModules, [...new Set(manifest.wasmModules)].sort());

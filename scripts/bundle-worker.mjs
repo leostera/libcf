@@ -13,12 +13,17 @@ const result = await build({
   outfile: resolve(output, 'worker.mjs'),
   bundle: true,
   write: false,
+  metafile: true,
   format: 'esm',
   platform: 'browser',
   external: ['cloudflare:*'],
   plugins: [{
-    name: 'static-wasm',
+    name: 'static-runtime-modules',
     setup(builder) {
+      // Supplied by the Sites manifest/upload pipeline, never fabricated here.
+      builder.onResolve({ filter: /^__STATIC_CONTENT_MANIFEST$/ }, () => ({
+        path: '__STATIC_CONTENT_MANIFEST', external: true,
+      }));
       builder.onResolve({ filter: /\.wasm$/ }, async args => {
         const bytes = await readFile(resolve(args.resolveDir, args.path));
         // Content names, not callback ordering or absolute sandbox paths, determine
@@ -33,11 +38,18 @@ const result = await build({
   }],
 });
 const names = [...wasm.keys()].sort();
+// Derive dependencies from emitted imports, not just onResolve callbacks: dead
+// code must not invent a required runtime module after tree shaking.
+const requiredTextModules = [...new Set(Object.values(result.metafile.outputs)
+  .flatMap(output => output.imports)
+  .filter(item => item.external && item.path === '__STATIC_CONTENT_MANIFEST')
+  .map(item => item.path))].sort();
 await mkdir(output, { recursive: true });
 await writeFile(resolve(output, 'worker.mjs'), result.outputFiles[0].contents);
 for (const name of names) await writeFile(resolve(output, name), wasm.get(name));
 await writeFile(resolve(output, 'bundle.json'), JSON.stringify({
-  schemaVersion: 1,
+  schemaVersion: 2,
   mainModule: 'worker.mjs',
   wasmModules: names,
+  requiredTextModules,
 }) + '\n');

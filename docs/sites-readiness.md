@@ -127,8 +127,15 @@ Next: wire the bounded prototype into a typed C++ read-only manifest-key API and
 strict owned-byte decoder, preserving binary/empty/missing semantics. Prefer module
 format; no need to claim classic-worker parity.
 
-A dedicated Bazel C++/Wasm example must preserve the special manifest module across
-bundling and test owned mapping failures, encoded/Unicode keys and response limits.
+The Bazel bundler now preserves the exact `__STATIC_CONTENT_MANIFEST` import and
+records it in schema2 `bundle.json.requiredTextModules`, derived from emitted
+imports after tree shaking. It does not fabricate or upload the text module.
+`tests/bundle-modules.test.mjs` runs the emitted bundle with a supplied synthetic
+text module and verifies missing-module startup failure. This is module linkage
+proof, not native Sites namespace/upload verification.
+
+A dedicated Bazel C++/Wasm example must still connect the native manifest/namespace
+and test owned mapping failures, encoded/Unicode keys and response limits.
 Do not relabel generic KV or Assets tests as Sites verification. Full asset-serving
 semantics and production content-hash uploads/cache invalidation are separate work.
 Before live work, define the explicit cf deployment path, owned namespace/files,
