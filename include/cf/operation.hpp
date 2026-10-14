@@ -60,6 +60,7 @@ enum class Operation : std::uint32_t {
   ServiceTcpExchange = 336,
   VectorizeQuery = 352,
   DispatchFetch = 368,
+  MediaFramePng = 384,
 };
 
 struct OperationCall {

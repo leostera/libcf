@@ -1,7 +1,8 @@
 # Stream, Media Transformations and Browser Run readiness
 
 Audited 2026-10-14 using current docs, Miniflare 5.20261006.1-alpha and Workers
-types 5.20261010.1. No C++ media/browser API or live resource was added in this audit.
+types 5.20261010.1. The subsequent bounded Media frame subset is described below;
+Stream and Browser C++ APIs remain unimplemented. No live resource was created.
 These are distinct products and must not inherit one another's support or pricing.
 
 ## Stream library binding
@@ -34,6 +35,24 @@ storage or enable a subscription implicitly.
 chain; the input cannot be reused across transformations. Results expose media
 streams, Responses and content type. A bounded C++ subset must own input bytes,
 cap output consumption and handle cancellation without claiming remote rollback.
+
+The implemented subset is `cf::Media::frame_png(MediaFrameRequest)`, operation384:
+first frame at `0s`, PNG, contain fit, 10–512 requested width/height (default 128),
+1 MiB owned input/output and a cooperative local 1–60000 ms deadline (default 5000).
+It invokes input/transform/output/response once, never reuses the chain or disposes
+the borrowed environment binding, and keeps builders request-local. MIME and PNG
+signature checks are not a full decoder or actual output-dimension verification.
+No generic native-handle disposal method or undocumented signal option is assumed.
+The wire key is empty, body is raw video bytes, options are decimal
+`width:height:timeout_ms`, and the value reply is raw PNG bytes.
+
+The [example](../examples/media/README.md) runs actual C++/Wasm with an explicit
+provider mock returning a fixed PNG, not a native decoder. Native/adapter tests
+cover malformed input/output, receiver preservation, ownership, bounds, pre/active
+abort, late response/rejection cleanup, body-read deadline and recovery. Input
+cancellation is best effort when unlocked; output readers own their cancellation.
+Native buffers/codec memory, blocked event loops and continued remote work are
+not bounded by these SDK limits. No live transformation has been verified.
 
 Pinned Miniflare's Media plugin is remote-only. The local harness rejects its
 production config before bundling; future explicit mocks are M, not provider L.
