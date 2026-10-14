@@ -10,6 +10,8 @@ async function workerOptions(configPath, root) {
   if (Object.hasOwn(config, 'containers') || Object.values(config.exports ?? {}).some(
     value => value && typeof value === 'object' && Object.hasOwn(value, 'container')))
     throw new Error('Containers require an explicit local engine/image and cleanup plan; use a separate approved harness');
+  if (['mtls_certificates', 'vpc_services', 'vpc_networks'].some(name => Object.hasOwn(config, name)))
+    throw new Error('mTLS and VPC require an owned certificate/network and approval plan; use explicit local mocks');
   if (Object.hasOwn(config, 'artifacts'))
     throw new Error('Artifacts uses a remote service; use an explicit local mock configuration');
   const flagship = {};

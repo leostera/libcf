@@ -146,8 +146,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **145 test targets**: 31 native suites,
-C++20/23 all-header checks, 36 example/benchmark integration targets, 73 JS
+The default graph currently contains **146 test targets**: 31 native suites,
+C++20/23 all-header checks, 36 example/benchmark integration targets, 74 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
 The native/header suite now contains 31 targets, also tested with `--config=cxx23`.

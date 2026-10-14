@@ -15,6 +15,17 @@ A [bounded C++ service TCP client](../examples/service-tcp/README.md) now has na
 | Experimental standalone UDP | Pinned workerd contains UDP ingress and datagram streams behind `workerd_experimental`. This is not evidence of a supported managed Workers UDP API or a working C++/Emscripten UDP path. Keep this separate from the public binding track. |
 | `node:net` server | Current Node compatibility docs say `net.Server` is unsupported. Do not infer public listen/accept support from successful module import or from service-forwarded connect handlers. |
 
+## mTLS and VPC are separate capabilities
+
+See the [mTLS/VPC audit](mtls-vpc-readiness.md). Generic fetch/socket shapes and
+service-forwarded TCP evidence do not establish client-certificate authentication
+or private-network routing. VPC Services fix routing while retaining Host/SNI
+semantics; VPC Networks grant broader runtime-selected reachability. Pinned
+plugins are remote proxies; ordinary tests reject their declarations. No
+certificate, tunnel, private route or account resource was inspected or created
+for that audit. Network TCP versus newer Service TCP/TLS documentation requires
+separate contract verification, not inferred parity.
+
 ## Local proof and the deadlock it exposed
 
 ```sh
