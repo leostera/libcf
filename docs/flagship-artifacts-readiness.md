@@ -48,6 +48,44 @@ synthetic attributes. A live probe needs explicit owned app/flag permission,
 bounded evaluation volume, pricing/entitlement review, and independently checked
 flag/app cleanup. Do not pull a user's real flag definitions into fixtures.
 
+## Bounded Flagship JS prototype
+
+`lib/flagship.mjs::performFlagshipBooleanDetails` now projects the typed boolean
+method. It is not yet wired to a runtime operation or a C++ header/example.
+
+- Request key: 1–128 UTF-8 bytes, no C0/C1 controls. Body: empty for no context,
+  otherwise 1–256 UTF-8 bytes containing a single `targetingKey`, also without
+  C0/C1 controls. Arbitrary context attributes/JSON are not supported. These are
+  libcf subset limits, not platform-wide limits. The body is decoded before the
+  first asynchronous yield, so caller mutation cannot alter the eventual context.
+- Options: canonical `0:timeout` or `1:timeout` for explicit boolean fallback;
+  timeout 1–60000 ms. No default is silently chosen by the bridge. Calls preserve
+  the borrowed binding receiver; an absent context omits the third argument.
+- Result: exact matching `flagKey`, boolean `value`, and four optional owned UTF-8
+  strings: variant ≤256 bytes, reason ≤64, errorCode ≤64, errorMessage ≤4096.
+  Undefined is absent; empty strings remain present; null is rejected. Unknown
+  reasons/codes and BOM/NUL in returned strings are preserved, not interpreted
+  as proof of evaluation success or used to manufacture a fallback. Only selected
+  fields are read, once; no enumeration or JSON serialization of provider objects.
+- Wire: LE u32 boolean 0/1, then four optional strings in the order above. Each
+  optional string has a u32 presence 0/1 and, if present, u32 byte length plus
+  bytes. Minimum 20, maximum **4516 bytes**. The echoed key is checked, not copied
+  into the wire. Provider-side materialization may occur before these caps.
+- At most two owned roots (pending call/result), retained through projection and
+  released in reverse via conditional synchronous `Symbol.dispose`, identity
+  deduplicated. The borrowed binding is excluded. Cleanup failure rejects success;
+  primary projection/transport errors survive cleanup failure. Deadline/abort
+  drains late results/rejections; disposal does not prove native work stopped.
+
+`tests/flagship-adapter.test.mjs` covers bounded input/output, owned context/output,
+optional fields, fallback versus transport errors, cleanup/aliasing and deadlines.
+`tests/flagship-rpc-lifetime.test.mjs` separately tests real service RPC with a
+**fake evaluator** (including disposal of a nested unused capability) and the
+**real local Flagship evaluator** with eight concurrent seeded-flag calls followed
+by deletion and missing-flag fallback. The native test proves this JS adapter can
+call the pinned local binding; it does not prove C++ plumbing, production
+propagation, arbitrary targeting, server-disposer timing or remote cancellation.
+
 ## Artifacts: remote repository capability, not local filesystem
 
 The current public Worker binding is broader than older summaries: namespace
@@ -96,8 +134,8 @@ local; Artifacts requires explicit mock fixtures until a native plan is approved
 `tests/flagship-artifacts-policy.test.mjs` checks rejection order, not isolation
 of arbitrary caller-supplied Worker code.
 
-Next: implement bounded boolean Flagship details with owned context and explicit
-failure semantics, then a runnable C++/Wasm local example. Separately design an
+Next: add the typed C++ boolean details decoder/runtime operation and a runnable
+C++/Wasm local example for this bounded JS projection. Separately design an
 Artifacts metadata projection and RPC lifetime tests. Neither family has a
 libcf operation/header/example yet; no P09 completion claim follows from this audit.
 
