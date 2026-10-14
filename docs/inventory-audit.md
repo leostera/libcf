@@ -18,7 +18,7 @@ implemented subsets, not the gaps below. No account operations were run for this
 | --- | --- | --- |
 | F01 | [Bazel build](bazel.md), hello/core examples, [matched benchmarks](benchmarks.md) | Already checked in inventory; benchmark revisions are not the current release revision. |
 | F02 | [Ownership contract](request-lifetime.md), [wire checks](wire-boundaries.md), native/JS boundaries and sanitizer CI | General JS-value escape hatch and generated adapter checks remain open; per-operation review is still required. |
-| F03 | Coroutine bridge, owned requests, waitUntil, stream bytes/cancel in core/hello | JS stream-controller cleanup/trap and one-chunk demand tests pass; end-to-end transport backpressure is unverified, and buffered binding clients are not streaming clients. |
+| F03 | Coroutine bridge, owned requests, waitUntil, stream bytes/cancel in core/hello | JS cleanup/trap tests plus an explicit C++23 native probe verify source lifetime, owned chunks, EOF and signal-enabled HTTP cancellation; finite loopback pause/resume observations are not universal transport buffering/budget proof. Buffered binding clients are not streaming clients. |
 | F04 | HTTP/headers/router/env/result/context and event handlers | W05/W07 and broader stream/HTTP ergonomics remain partial. |
 | F05 | Explicit numeric-operation ledger with enum/fixture consistency test | No generated comparison of all adapters to pinned TS declarations/config schema. |
 | F06 | Bazel9.3.0-only builds, CI, packaging and relocated consumers | Generated type checks, formatting integration, explicit bundle/latency budgets and final-revision release checks remain open. |
@@ -33,7 +33,7 @@ a verified platform limitation.
 | ID | Implementation/example anchor | Remaining implementation or verification work |
 | --- | --- | --- |
 | W01 | [core](../examples/core/README.md), [http.hpp](../include/cf/http.hpp) | CF request geo/bot/TLS metadata; final-revision HTTP rerun. |
-| W02 | [core](../examples/core/README.md), [stream.hpp](../include/cf/stream.hpp) | Transport backpressure proof and complete inbound/outbound streaming binding paths. |
+| W02 | [core](../examples/core/README.md), [stream.hpp](../include/cf/stream.hpp) | Native finite loopback pause/resume and signal-enabled cancellation have narrow evidence; general transport budgets, async producers and complete inbound/outbound streaming binding paths remain open. |
 | W03 | [HTTP client](../examples/http-client/README.md), [cache](../examples/cache/README.md), [service](../examples/service/README.md) | Buffered subset only; historical live passes need Bazel reruns. |
 | W04 | [WebSocket](../examples/websocket/README.md) | No general outbound client/pair API; Bazel live DO-mediated subset passed, not full WebSocket parity. |
 | W05 | [router.hpp](../include/cf/router.hpp), [http.hpp](../include/cf/http.hpp) | Multipart/files, dedicated CORS/cookie/URL APIs and examples remain gaps. |

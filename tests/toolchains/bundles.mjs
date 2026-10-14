@@ -8,7 +8,7 @@ const names = [
   'websocket', 'email', 'rate-limit', 'analytics', 'metadata', 'worker-loader',
   'crypto', 'benchmark', 'http-client', 'pipeline', 'timer', 'workflow',
   'images', 'clock', 'rpc', 'ai', 'service-tcp', 'hello', 'hello-js', 'benchmark-js',
-  'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference',
+  'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference', 'stream-lifecycle-probe',
   'vectorize', 'dispatch', 'dispatch-reference', 'media', 'ai-search', 'stream', 'browser', 'agent-memory', 'container', 'flagship', 'artifacts', 'analytics-sql', 'ai-gateway', 'legacy-sites', 'outbound-https',
 ];
 const plainJs = new Set(['hello-js', 'benchmark-js', 'service-upstream', 'http-upstream', 'rpc-reference', 'service-tcp-reference', 'dispatch-reference']);

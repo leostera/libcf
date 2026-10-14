@@ -79,10 +79,11 @@ EXAMPLES = [
 [cf_worker(name = name, srcs = ["examples/%s/src/main.cpp" % name]) for name in EXAMPLES]
 cf_worker(name = "durable-object", srcs = ["examples/durable/src/object.cpp"])
 bridge_spike(name = "spike")
+cf_worker(name = "stream-lifecycle-probe", srcs = ["tests/stream-lifecycle/main.cpp"], cxx_standard = 23)
 
 filegroup(
     name = "all_workers",
-    srcs = [":" + name for name in EXAMPLES] + [":durable-object", ":spike"],
+    srcs = [":" + name for name in EXAMPLES] + [":durable-object", ":spike", ":stream-lifecycle-probe"],
 )
 
 js_binary(
@@ -119,9 +120,23 @@ JS_ENTRIES = {
     out_dirs = ["bundles/" + name],
 ) for name, entry in JS_ENTRIES.items()]
 
+js_run_binary(
+    name = "stream-lifecycle-probe_bundle",
+    tool = ":bundle_tool",
+    srcs = ["tests/stream-lifecycle/worker.mjs", ":runtime_modules", ":stream-lifecycle-probe"],
+    args = ["tests/stream-lifecycle/worker.mjs", "bundles/stream-lifecycle-probe"],
+    out_dirs = ["bundles/stream-lifecycle-probe"],
+)
+
 filegroup(
     name = "all_bundles",
-    srcs = [":" + name + "_bundle" for name in EXAMPLES + JS_ENTRIES.keys()],
+    srcs = [":" + name + "_bundle" for name in EXAMPLES + JS_ENTRIES.keys()] + [":stream-lifecycle-probe_bundle"],
+)
+
+js_test(
+    name = "stream_lifecycle_local_test",
+    entry_point = "tests/stream-lifecycle/worker.test.mjs",
+    data = [":stream-lifecycle-probe_bundle", ":node_modules/miniflare"],
 )
 
 js_test(

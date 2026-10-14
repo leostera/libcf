@@ -46,15 +46,16 @@ bridge with esbuild, and executes C++ addition through Wasm in local workerd.
 It declares both generated JS/Wasm artifacts and npm dependencies. It does not
 read the old source `build/` artifacts, use Cloudflare credentials, or deploy.
 
-`//:all_workers` builds all 41 existing module pairs: 39 Worker examples,
-the separate Durable Object implementation and the hello bridge spike. The shared
+`//:all_workers` builds 42 module pairs: 39 Worker examples,
+the separate Durable Object implementation, the hello bridge spike and an explicit
+C++23 stream-lifecycle test probe (with a compile-time standard assertion). The shared
 `src/worker.cpp` compiles once per configuration. The original cutover action-graph
 inspection found26 C++ compilation actions, exactly one belonging to
 `//:worker_runtime`; later example additions increase the total.
 `//tools:worker.bzl` provides the declared compile/link/extraction rule. Public
 runtime files are exposed through `//:runtime_modules` and `//:host_library`.
 
-`//:all_bundles` emits 47 JS/Wasm module bundles, including the private upstreams
+`//:all_bundles` emits 48 JS/Wasm module bundles, including the private upstreams
 and plain-JS baselines. Each `bazel-bin/bundles/<name>/` contains `worker.mjs`, a
 versioned `bundle.json` inventory and content-addressed static Wasm imports.
 Current inventory schema2 includes `mainModule`, `wasmModules` and
@@ -161,8 +162,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **170 test targets**: 35 native suites,
-C++20/23 all-header checks, 40 example/benchmark integration targets, 90 JS
+The default graph currently contains **171 test targets**: 35 native suites,
+C++20/23 all-header checks, 41 example/benchmark/probe integration targets, 90 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
 The native/header suite now contains 31 targets, also tested with `--config=cxx23`.
