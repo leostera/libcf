@@ -130,6 +130,42 @@ also parses/selects synthetic policies without a provider binding or outbound
 fetch. This is parser evidence, not mTLS/VPC transport verification. Existing
 remote-declaration guards and account-operation approval requirements remain.
 
+## Bounded GET transport prototype (mock product evidence)
+
+`lib/outbound-get.mjs::performBoundHttpsGet` selects the exact policy endpoint
+before accessing the binding's fetch method, validates an empty byte body and
+canonical1–60000ms timeout, then invokes the captured method with its original
+receiver. It constructs a fresh GET Request from the fixed URL, manual redirects
+and combined request/deadline signal. It does not copy an inbound Request, headers
+or body, accept caller URLs, follow Location, retry, or inspect response URL as an
+identity assertion. Runtime/transport-added metadata is not an anonymity guarantee;
+`credentials:omit` is not substituted for reviewing certificate identity.
+
+Only a real Response observed with status200 and redirected=false is supported.
+All other statuses (including other2xx), redirects and malformed results fail;
+headers, redirect destinations and error bodies are not projected. Accepted bodies
+are null/empty or a real byte ReadableStream, incrementally copied into owned
+bytes0–1MiB. The return shape is `{status:0,bytes}` for the prospective host bridge;
+there is no C++ operation/header/example yet.
+
+Pending/Response/body roots remain owned through reading; borrowed bindings are
+excluded and cleanup is reverse/identity-deduplicated. Body access is cached once,
+including throwing or synchronously aborting accessors. Late/rejected response
+bodies are canceled without waiting for producer cleanup. Only acquired provider
+Response roots expose a body: malformed nested Responses do not trigger recursive
+metadata traversal. Cleanup failures reject success, never replace primary errors.
+Cooperative deadlines/abort and disposal do not prove stopped work, rollback,
+server disposer timing, identity, routing or billing limits.
+
+`tests/outbound-get.test.mjs` covers request construction, role/input rejection,
+byte limits, reused chunks, metadata non-traversal, child ownership, cleanup and
+fetch/body/synchronous cancellation plus late rejection. Native workerd tests use
+Worker-to-Worker **fake mTLS/VPC providers**: three role selections, no caller
+credential/body forwarding, empty/binary/1MiB/oversize outputs, rejection of
+redirect/error responses without a second-hop call, timeout and concurrent recovery.
+This establishes forwarding mechanics, **not native mTLS authentication, VPC
+connectivity, verify_full or private DNS/TLS**. No account/provider network is used.
+
 ## Recommended next implementation
 
 Start with an explicitly bounded HTTP fetch subset and separate mTLS/VPC Service/
