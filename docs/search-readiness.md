@@ -2,7 +2,9 @@
 
 Audit date2026-10-14. A bounded C++ direct-instance keyword text-search subset is
 implemented with explicit provider mocks. No managed-index experiment, native
-AI Search provider verification or Agent Memory operation has been performed.
+AI Search provider verification or native Agent Memory operation has been performed.
+A scoped Agent Memory list projection now has JS boundary and native RPC mechanism
+coverage with explicit mocks, but no C++ API/runtime operation/example yet.
 This audit separates implementation, local policy/mechanism tests and provider evidence.
 
 ## Worker-accessible scope
@@ -80,6 +82,54 @@ implementation, indexing, retrieval or remote cancellation. Separate C++/Wasm
 mock tests cover dispatch, concurrent Unicode/NUL results, input/output errors,
 provider failures, local deadline and subsequent recovery.
 No account operation or managed index/profile was created.
+
+## Agent Memory list prototype (profile creation is explicit)
+
+`lib/agent-memory.mjs::performAgentMemoryListCreatingProfile` calls `getProfile(name)`
+then `profile.list({limit, cursor?})`. **This can create a missing profile**, including
+when a deadline subsequently rejects. It must not become a misleading read-only
+lookup or deletion-absence check. A future C++ API should require an explicitly
+named get-or-create profile selection, not hide creation behind an ordinary ID.
+Profile-name syntax is not tenant authorization. No delete, remember, ingest,
+recall or getSummary method is invoked by this subset.
+
+SDK subset: profile names1..100 ASCII alnum/underscore/hyphen; count1..50;
+optional nonempty cursor1..2048 UTF-8 bytes; local cooperative timeout1..60000ms.
+Request key is the profile name, body is cursor UTF-8 (empty means no cursor), and
+options are canonical `count:timeout_ms`. Cursor decoding snapshots before suspension.
+These are conservative SDK bounds, not verified provider acceptance limits.
+
+Projection includes ID1..128 UTF-8 bytes, type enum (fact/event/instruction/task),
+summary0..4096 bytes, nullable session ID0..64 bytes, and created/updated Dates.
+Empty session string remains distinct from null. Dates use the intrinsic getTime,
+not overrides/toJSON; valid integer epoch milliseconds in ±8640000000000000 are
+encoded as signed64-bit values. Do not convert that entire range to nanoseconds.
+Content, arbitrary properties and nested capabilities are not traversed. Native
+provider parsing/materialization still precedes these owned projection caps.
+
+Reply: LE u32 count; optional cursor (u32 presence0/1, then length-prefixed text
+if present); each record has length-prefixed ID, u32 type0..3, length-prefixed
+summary, optional session (same presence/text encoding), i64 created milliseconds,
+and i64 updated milliseconds. Maximum2060+count×4324 =218260 bytes at50. Unknown
+types, invalid Dates/UTF-8, oversized results or empty returned cursors reject;
+there is no silent truncation, date-string fallback or automatic pagination.
+
+Acquisition promise, profile scope, list promise and result stay owned through
+projection and are conditionally synchronously disposed at most once in reverse
+order. The borrowed binding is excluded. Late acquisitions are released without
+starting list; late results/rejections are observed. No profile deletion is issued,
+and lease disposal does not establish deletion, undo creation or stop billing.
+Cleanup errors reject success without replacing a primary failure; late cleanup
+cannot change a settled result. No native AbortSignal option is invented.
+
+[Boundary mocks](../tests/agent-memory-adapter.test.mjs) cover exact limits,
+Date endpoints/overrides, nullable fields, input snapshots, malformed values,
+identity aliases, deadlines and cleanup. A [real workerd RPC fixture](../tests/agent-memory-rpc-lifetime.test.mjs)
+returns profile capabilities, Date-bearing records and an ignored nested capability:
+success/invalid records/abort/deadlines dispose delivered roots while the borrowed
+service remains callable; late acquisition starts no list. It is a fake memory
+service, not Agent Memory storage, generation, privacy or provider verification.
+No native Agent Memory namespace/profile or account operation was performed.
 
 ## Local behavior and source disagreements
 
