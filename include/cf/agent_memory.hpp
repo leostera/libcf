@@ -40,7 +40,7 @@ class AgentMemory {
   // Calls getProfile then list. A profile may be created even if listing fails
   // or times out. No rollback/deletion, native-work cancellation or billing bound.
   [[nodiscard]] AsyncResult<AgentMemoryPage> list_memories(
-      GetOrCreateMemoryProfile profile, const AgentMemoryListOptions& options = {}) const {
+      const GetOrCreateMemoryProfile& profile, const AgentMemoryListOptions& options = {}) const {
     const auto timeout = options.timeout.count();
     if (!valid_profile(profile.name) || options.limit < 1 || options.limit > 50 || timeout < 1 || timeout > 60000 ||
         (options.cursor && !detail::bounded_utf8(*options.cursor, 1, 2048)))
@@ -50,7 +50,7 @@ class AgentMemory {
     Bytes cursor;
     if (options.cursor) cursor.assign(options.cursor->begin(), options.cursor->end());
     return runtime_.call<AgentMemoryPage>(
-        {Operation::AgentMemoryListCreatingProfile, binding_, std::move(profile.name), std::move(cursor),
+        {Operation::AgentMemoryListCreatingProfile, binding_, profile.name, std::move(cursor),
          std::to_string(options.limit) + ":" + std::to_string(timeout)},
         [limit = options.limit](OperationReply reply) { return decode(std::move(reply), limit); });
   }

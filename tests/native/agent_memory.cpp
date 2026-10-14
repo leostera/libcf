@@ -55,6 +55,9 @@ int main() {
     assert(co_await pending);
     assert(observed.key == "owned-profile" && observed.body == Bytes(cursor.begin(), cursor.end()) && observed.options == "20:5000");
     const int baseline = calls;
+    GetOrCreateMemoryProfile oversized_profile{std::string(1048576, 'p')};
+    auto oversized = co_await memory.list_memories(oversized_profile);
+    assert(!oversized && oversized.error().code == ErrorCode::InvalidInput);
     for (const auto& name : std::vector<std::string>{"", std::string(101, 'p'), "bad/name", "猫", "p\n"}) {
       auto bad = co_await memory.list_memories(GetOrCreateMemoryProfile{name});
       assert(!bad && bad.error().code == ErrorCode::InvalidInput);
