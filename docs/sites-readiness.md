@@ -2,7 +2,8 @@
 
 Snapshot2026-10-14, Miniflare5.20261006.1-alpha/workerd1.20261006.1,
 compatibility date2026-10-13. P12 remains an **optional, incomplete compatibility
-track**. There is no libcf Sites API/operation/C++ example or live verification.
+track**. A bounded JS manifest/stream-read prototype is now tested with native
+local Sites; there is no C++ API/operation/example or live verification.
 Modern Assets support is not legacy manifest/KV behavior.
 
 ## Product and runtime scope
@@ -56,6 +57,51 @@ path-normalization policy, symlink/traversal isolation or live KV verification.
 The test permits either a rejected or timed-out mutation so CI does not manufacture
 a portable timing claim. Mutations are not a proposed libcf Sites API.
 
+## Bounded read-only JS prototype
+
+`lib/sites.mjs::parseSitesManifest` transforms JSON text into an opaque frozen
+manifest token backed by a private mapping. At most1MiB UTF-8 JSON and1024 own
+string entries; logical and physical keys1–512UTF8bytes. JSON parsing follows JS
+duplicate-key semantics and the shared depth/node bounds, not lossless duplicate
+rejection. Caller code cannot mutate/forge the token's internal mapping without
+parsing a new manifest. Parsing establishes structure, **not mapping authority**:
+use a trusted deployment manifest, never request-supplied mappings. Native manifest
+generation/module loading precedes these parser caps.
+
+Logical keys and non-local physical keys use a deliberate relative-path subset:
+no empty/dot/dot-dot segments, leading/trailing slash, segment-edge ASCII spaces,
+backslash, percent, colon, query/fragment characters, C0/C1/DEL controls or BOM.
+Unicode and internal spaces are preserved; there is **no URL decoding or
+normalization**. This excludes some legal filenames/KV keys, not a complete path
+or filesystem-isolation policy. Local-prefixed values must exactly equal the
+simulator prefix plus encodeURIComponent(logical key), within the512-byte bound;
+other physical keys are not verified content hashes.
+
+`performSitesGet(namespace, token, key, emptyBody, timeout, signal)` performs only
+`namespace.get(mappedKey, 'stream')`. Timeout is canonical decimal1–60000ms. A
+manifest miss makes no namespace access and never falls back to the raw key;
+that does not prove a namespace exists. A mapped KV null also returns Missing.
+An empty stream returns present empty bytes, distinct from Missing.
+
+The result is owned raw bytes0–1MiB, copied incrementally through `readBounded`;
+not an arrayBuffer materialization before checking the output cap. It requires a
+real ReadableStream with byte chunks, retains pending/result roots through reading,
+excludes the borrowed namespace, and disposes owned roots in reverse with identity
+deduplication. Late/unconsumed streams are canceled best-effort; active readers
+receive the combined deadline/abort signal. Cancellation promises are not awaited,
+so hanging producer cleanup cannot replace the size/deadline failure. Cleanup
+errors reject success while preserving primary failure. Upstream buffers/read
+work, KV billing and actual stopped work are not bounded/proved by this projection.
+Deadline handling is cooperative JS scheduling, not CPU preemption of producers.
+
+`tests/sites-adapter.test.mjs` covers exact manifest/entry/key/body bounds, own prototype-named keys,
+canonical local mappings, missing/empty differences, reused chunks, disposal and
+lookup/read cancellation. `tests/sites-adapter-platform.test.mjs` uses the actual
+pinned Sites namespace and imported manifest: native stream text/binary/empty reads,
+8 concurrent reads, exact1MiB output, oversize rejection, excluded/unmapped keys,
+invalid paths, stale manifest after owned local file removal and recovery. No
+production hash/cache/consistency claim, raw namespace fallback or mutation API.
+
 ## Harness and deployment boundaries
 
 The ordinary fixture harness now rejects every own `site` declaration, including
@@ -77,12 +123,9 @@ restore Wrangler subprocesses or a CMake build to work around this gap.
 
 ## Remaining implementation and verification
 
-If pursuing this optional track, implement a narrow read-only manifest-key API:
-bound manifest materialization/projection, entry/name/key/body sizes, require own
-mapping entries, never fall back to arbitrary raw namespace keys, and define URL
-versus logical-key handling. Preserve binary/empty/missing semantics, borrowed
-namespace identity, request lifetime, deadlines and late-result cleanup. Prefer
-module format; no need to claim classic-worker parity.
+Next: wire the bounded prototype into a typed C++ read-only manifest-key API and
+strict owned-byte decoder, preserving binary/empty/missing semantics. Prefer module
+format; no need to claim classic-worker parity.
 
 A dedicated Bazel C++/Wasm example must preserve the special manifest module across
 bundling and test owned mapping failures, encoded/Unicode keys and response limits.
