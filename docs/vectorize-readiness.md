@@ -1,8 +1,9 @@
 # Vectorize binding readiness
 
 Audited 2026-10-14 against current Cloudflare documentation and workerd
-1.20261006.1 / Miniflare5.20261006.1-alpha. **No C++ Vectorize API is implemented
-or live verified yet.** This is a boundary/design audit, not provider test evidence.
+1.20261006.1 / Miniflare5.20261006.1-alpha. A bounded C++ IDs/scores-only query
+is now implemented with [an explicit mock example](../examples/vectorize/README.md).
+No native-provider or live Vectorize verification is claimed.
 
 ## Supported platform surface
 
@@ -15,7 +16,7 @@ IDs are control-plane operations, not methods of the pinned binding.
 
 The pinned Miniflare plugin wraps the native binding with a **remote proxy**, not
 a local vector index. The local harness therefore rejects a `vectorize` config
-before bundling or runtime startup. A future explicit JS mock must be classified
+before bundling or runtime startup. The explicit JS query mock is classified
 **M**, not native local provider coverage. The refusal test uses no credentials,
 index or network service.
 

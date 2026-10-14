@@ -73,7 +73,7 @@ EXAMPLES = [
     "core", "kv", "d1", "r2", "cache", "service", "durable", "events",
     "websocket", "email", "rate-limit", "analytics", "metadata", "worker-loader",
     "crypto", "benchmark", "http-client", "pipeline", "timer", "workflow",
-    "images", "clock", "rpc", "ai", "service-tcp",
+    "images", "clock", "rpc", "ai", "service-tcp", "vectorize",
 ]
 
 [cf_worker(name = name, srcs = ["examples/%s/src/main.cpp" % name]) for name in EXAMPLES]
@@ -235,7 +235,7 @@ test_suite(
 NATIVE_SUITES = [
     "core", "storage", "d1", "events", "websocket", "email", "rate_limit",
     "analytics", "metadata", "worker_loader", "subtle_crypto", "http_client",
-    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp",
+    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp", "vectorize",
 ]
 
 [cc_test(

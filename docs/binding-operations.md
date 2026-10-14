@@ -51,6 +51,7 @@ Every row below is implemented; its fixture links to local runtime tests. Native
 | 304 | `RpcCallJson` | [JSON service RPC](../examples/rpc/test/worker.test.mjs) | L | Pending | Owned bounded JSON arguments/results, concurrent calls, errors and recovery. Separate JS workerd tests verify rejected/late capability disposal; no C++ RPC exports. |
 | 320 | `AiRunJson` | [AI JSON](../examples/ai/test/worker.test.mjs) | M | Approval | Bounded JSON object input and raw JSON response, errors, owned concurrent dispatch. No real inference; account usage needs approval. Streaming/binary/advanced options remain gaps. |
 | 336 | `ServiceTcpExchange` | [Service TCP](../examples/service-tcp/test/worker.test.mjs) | L | V | Empty/binary/1MiB and concurrent bounded half-close/EOF exchanges, invalid address, overflow, deadline and recovery passed in an isolated Bazel live pair; cleaned. No persistent sockets, socket TLS, C++ ingress or general outbound TCP. |
+| 352 | `VectorizeQuery` | [Vectorize query](../examples/vectorize/test/worker.test.mjs) | M | Approval | Finite float32 input, bounded owned IDs/binary64 scores, empty/concurrent/error/deadline recovery via explicit mock. Native pre-parsing remains outside SDK caps; no provider cancellation/ranking/mutation claim. |
 
 ## Scope not represented by binding-operation numbers
 

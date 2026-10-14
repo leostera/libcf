@@ -3,6 +3,7 @@
 #include <cf/cache.hpp>
 #include <cf/ai.hpp>
 #include <cf/service_tcp.hpp>
+#include <cf/vectorize.hpp>
 #include <cf/clock.hpp>
 #include <cf/rpc.hpp>
 #include <cf/context.hpp>
