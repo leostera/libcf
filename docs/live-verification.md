@@ -37,6 +37,15 @@ This proves the bounded C++ service-binding client, not general outbound TCP,
 socket TLS, public TCP ingress or a C++ server. A later manual TLS/certificate
 check occurred after cleanup and is not evidence of a failed readiness phase.
 
+The [Bazel Media probe](live/bazel-media-2026-10-14.json) passed on clean source
+`4bdcf17`: authenticated synthetic-GIF first-frame requests returned PNG
+MIME/signature and128x128 IHDR, with invalid cases and recovery. Worker404/code10007,
+exact DNS absence and a complete matching certificate-pack readback verified
+cleanup; the private token was then removed. Only its hash was deployed. This is
+not full PNG decoding, pixel-content, MP4, other Media modes or live cancellation
+proof. Binding-beta pricing was checked separately from URL/zone pricing; no
+subscription or zone setting was changed.
+
 ## Cache deployment probe
 
 ```sh

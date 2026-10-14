@@ -1,4 +1,4 @@
-// Fail closed before body ingestion or provider invocation. Only the SHA-256 of
+// Fail closed before SDK body consumption or provider invocation. Only the SHA-256 of
 // a fresh 256-bit bearer token is deployed; the token itself stays in a local file.
 export function authenticatedMediaWorker(worker) {
   return { async fetch(request, env, context) {

@@ -2,7 +2,9 @@
 
 Audited 2026-10-14 using current docs, Miniflare 5.20261006.1-alpha and Workers
 types 5.20261010.1. The subsequent bounded Media frame subset is described below;
-Stream and Browser C++ APIs remain unimplemented. No live resource was created.
+Stream and Browser C++ APIs remain unimplemented. The named Media GIF subset has
+[now passed a clean-source live probe](live/bazel-media-2026-10-14.json), with
+Worker, DNS and matching certificate absence independently verified.
 These are distinct products and must not inherit one another's support or pricing.
 
 ## Stream library binding
@@ -52,7 +54,10 @@ cover malformed input/output, receiver preservation, ownership, bounds, pre/acti
 abort, late response/rejection cleanup, body-read deadline and recovery. Input
 cancellation is best effort when unlocked; output readers own their cancellation.
 Native buffers/codec memory, blocked event loops and continued remote work are
-not bounded by these SDK limits. No live transformation has been verified.
+not bounded by these SDK limits. Live source `4bdcf17` returned PNG MIME/signature
+and 128×128 IHDR from the synthetic GIF, rejected unauthorized and invalid calls,
+and recovered afterward. This does not establish full PNG decoding, pixel colors,
+MP4, other modes, live concurrency, caller-abort or response-overflow behavior.
 
 Pinned Miniflare's Media plugin is remote-only. The local harness rejects its
 production config before bundling; future explicit mocks are M, not provider L.

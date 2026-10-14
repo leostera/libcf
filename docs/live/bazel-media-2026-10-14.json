@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "4bdcf17231081e09d67e5e3b01023d83b8421e03",
+  "sourceDirty": false,
+  "excludedGeneratedPaths": [".cloudflare/"],
+  "bazel": "official 9.3.0 via Bazelisk",
+  "emscripten": "6.0.12",
+  "node": "26.11.1",
+  "compatibilityDate": "2026-10-13",
+  "preparation": "bazel run //:prepare_live_worker -- media",
+  "probe": "bazel run //:live_media -- libcf-media-fd829df032.libcf.leostera.dev",
+  "credentialTransport": "Private mode-0600 token file, bound to deployment metadata; only SHA-256 deployed; no token in arguments, URLs or reports",
+  "started": "2026-10-14T08:24:37.466Z",
+  "finished": "2026-10-14T08:29:00.370Z",
+  "frontend": {
+    "worker": "libcf-media-fd829df032",
+    "hostname": "libcf-media-fd829df032.libcf.leostera.dev",
+    "version": "8e938d08-468a-4d69-8bcc-c48e163bb7d8"
+  },
+  "workersDev": false,
+  "previewUrls": false,
+  "artifactSha256": {
+    "media.wasm": "943e629bc1062ade3d544755137ce7050287da686f4fcb8757e6a6762d744097",
+    "worker.mjs": "731545d8bb2607b1dc3ec264f43b4bffe532d0bed5146f1bca67d34b83f636f3"
+  },
+  "fixture": {
+    "kind": "Original synthetic GIF89a; two opaque 16x16 frames, red then blue, 100ms each",
+    "bytes": 448,
+    "sha256": "bdecc09b4408b0b92989fc52c4fa01ef506534fd3f61dc55af91616ef5639641",
+    "independentLocalDecoder": "Pinned Images/Sharp; not a local Media emulator"
+  },
+  "output": { "bytes": 424, "mediaType": "image/png", "ihdrWidth": 128, "ihdrHeight": 128 },
+  "maxBindingProcessingAttempts": 3,
+  "transformationRetries": 0,
+  "passed": [
+    "missing and wrong bearer tokens rejected with 401",
+    "authenticated C++ first-frame request against the native Media binding returned PNG MIME/signature and 128x128 IHDR",
+    "empty input, missing binding, C++ oversized input and invalid requested dimensions rejected",
+    "malformed video rejected through the native provider path",
+    "subsequent valid frame request recovered"
+  ],
+  "ownershipPreflight": {
+    "worker404Code10007": true,
+    "exactDnsEmpty": true,
+    "hostnameAndWildcardAbsentFromCompleteCertificatePackListing": true
+  },
+  "cleanup": {
+    "worker404Code10007": true,
+    "exactDnsEmpty": true,
+    "hostnameAndWildcardAbsentFromCompleteCertificatePackListing": true,
+    "privateProbeTokenRemovedAfterResourceCleanup": true,
+    "failures": []
+  },
+  "limitations": [
+    "This verifies the named GIF first-frame subset, not MP4/H.264, other formats, clips, audio, spritesheets, Stream storage or Browser Run.",
+    "PNG MIME, signature and IHDR dimensions were checked; full PNG decoding and pixel colors were not verified live.",
+    "Concurrency, exact maximum successful input/output, response overflow and deadline/caller-abort behavior remain local/mock evidence, not live Media guarantees.",
+    "Cancellation does not prove stopped processing, billing, rollback or physical erasure of provider-internal data.",
+    "The binding-specific beta docs stated transformations were unbilled when checked; no invoice/remaining-quota audit, subscription purchase or zone-setting mutation was performed. URL/zone transformation pricing is separate.",
+    "Normal HTTPS certificate verification was used. Run timestamps include preflight, deployment, readiness, probe and resource cleanup, not transformation latency.",
+    "Cleanup independently checked Worker, exact DNS and matching certificate-pack absence. No separate Workers custom-domain list command was located through cf CLI discovery; no independent domain-list result is claimed."
+  ]
+}
