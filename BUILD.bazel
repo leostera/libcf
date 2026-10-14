@@ -157,7 +157,7 @@ filegroup(
 
 JS_TEST_FILES = glob(
     ["tests/*.test.mjs"],
-    exclude = ["tests/*-integration.test.mjs", "tests/installed-package.test.mjs"],
+    exclude = ["tests/benchmark-integration.test.mjs"],
 )
 
 [js_test(
@@ -176,6 +176,34 @@ js_binary(
     name = "prepare_live_worker",
     entry_point = "scripts/build-live-worker.mjs",
     data = JS_TEST_DATA + [":all_workers"],
+    tags = ["manual"],
+)
+
+DEV_EXAMPLES = ["hello", "core", "kv", "d1", "r2", "cache", "service", "durable", "events"]
+
+[js_binary(
+    name = name + "_dev",
+    entry_point = "scripts/dev-example.mjs",
+    args = [name],
+    data = JS_TEST_DATA + [":spike" if name == "hello" else ":" + name] +
+           ([":durable-object"] if name == "durable" else []),
+    tags = ["manual"],
+) for name in DEV_EXAMPLES]
+
+js_binary(
+    name = "benchmark_spike",
+    entry_point = "scripts/bench-spike.mjs",
+    data = JS_TEST_DATA + [":spike"],
+    tags = ["manual"],
+)
+
+js_binary(
+    name = "benchmark_sdk",
+    entry_point = "scripts/bench-sdk.mjs",
+    data = JS_TEST_DATA + [
+        ":benchmark", ":sdk_archive", "scripts/benchmark-support.mjs",
+        "pnpm-lock.yaml", "MODULE.bazel", "MODULE.bazel.lock", "BUILD.bazel", ".bazelversion", ".bazelrc",
+    ] + glob(["include/cf/**/*.hpp", "src/*.cpp", "examples/benchmark/src/*.cpp"]),
     tags = ["manual"],
 )
 

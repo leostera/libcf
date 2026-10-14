@@ -1,20 +1,24 @@
 # libcf
 
-Experimental C++20/Wasm bindings for authoring Cloudflare Workers. **libcf** is the project name; the C++ library is **`cf`** (namespace `cf`, headers `<cf/...>`, CMake `find_package(cf)` and target `cf::cf`). **Work in progress:** this is not a complete or production-ready platform SDK. The current code proves a C++/Emscripten module Worker, introduces a small header-only HTTP/router/fetch/crypto API and exercises a subset of bindings locally. See [INVENTORY.md](INVENTORY.md) and [the operation ledger](docs/coverage.md) for planned vs verified scope. Local performance results and methodology are in [benchmarks](docs/benchmarks.md).
+Experimental C++20/23/Wasm bindings for authoring Cloudflare Workers and Durable Objects. **libcf** is the project name; the C++ library is **`cf`** (namespace `cf`, headers `<cf/...>`, Bazel module `cf` and consumer target `@cf//:cf`). **Work in progress:** this is not a complete or production-ready platform SDK. The current code proves a C++/Emscripten module Worker, introduces a small header-only HTTP/router/fetch/crypto API and exercises a subset of bindings locally. See [INVENTORY.md](INVENTORY.md) and [the operation ledger](docs/coverage.md) for planned vs verified scope. Local performance results and methodology are in [benchmarks](docs/benchmarks.md).
 
 ## Try the working examples
 
-Use Emscripten **6.0.12** (`em++` on `PATH`) and Node **26.11.1** (`.node-version`):
+Use official **Bazel 9.3.0**, directly or through Bazelisk. Bazel downloads pinned Emscripten **6.0.12**, Node **26.11.1** and JS dependencies; native C++ still requires a host compiler/SDK. CMake and npm build/test workflows are no longer supported.
 
 ```sh
-npm ci
-npm test            # C++ unit + installed-package + all local Worker suites
-npm run test:spike   # proof of KV, assets, streaming and waitUntil
-npm run test:core    # HTTP/router/Env/coroutine fetch/stream/crypto
-npm run bench:spike  # optional rough local comparison to plain JS
-node scripts/bench-sdk.mjs # matched local latency, setup and bundle comparison
+bazel test //...                         # native, headers, adapters, examples, archive
+bazel test //:core_local_test            # one independently runnable example
+bazel test --config=cxx23 //:native_tests
+bazel build //:all_bundles //:sdk_archive
+bazel run //:verify_package -- "$(command -v bazel)"
+bazel run //:core_dev                    # local workerd; stop with Ctrl-C
+bazel run //:benchmark_spike             # optional rough local comparison
+bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json # choose a new report path
 ```
+
+See [Bazel development and verification](docs/bazel.md) and [SDK consumption](docs/packaging.md). The benchmark target requires a new absolute report path and does not include compilation time.
 
 [Core](examples/core/README.md) · [KV](examples/kv/README.md) · [D1](examples/d1/README.md) · [R2](examples/r2/README.md) · [Cache](examples/cache/README.md) · [Service bindings](examples/service/README.md) · [Durable Objects](examples/durable/README.md) · [Queues/scheduling](examples/events/README.md) · [bridge spike](examples/hello/README.md).
 
-The reusable [JS runtime shim](lib/runtime.mjs) adapts Worker events and bindings; C++ runs as an imported `CompiledWasm` module. See [request ownership and cancellation](docs/request-lifetime.md). The C++ headers are installable via CMake (`cf::cf`); the package test installs them and compiles an independent consumer. See [installed-package paths and relocation checks](docs/packaging.md). No account, login, remote binding or live deployment is used by these default tests. Live tests and more binding families are planned, and every supported method must have its own verification level before a release claim. Do not use the proof-of-concept KV namespace ID for deployment.
+The reusable [JS runtime shim](lib/runtime.mjs) adapts Worker events and bindings; C++ runs as an imported `CompiledWasm` module. See [request ownership and cancellation](docs/request-lifetime.md). The Bazel SDK archive contains the headers, runtime and Worker build rule; package checks compile and run independent native and Wasm consumers. See [SDK packaging and relocation checks](docs/packaging.md). No account, login, remote binding or live deployment is used by these default tests. Live tests and more binding families are planned, and every supported method must have its own verification level before a release claim. Do not use the proof-of-concept KV namespace ID for deployment.

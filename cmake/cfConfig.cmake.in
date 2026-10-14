@@ -1,5 +1,0 @@
-@PACKAGE_INIT@
-include("${CMAKE_CURRENT_LIST_DIR}/cfTargets.cmake")
-set_and_check(cf_RUNTIME_DIR "@PACKAGE_CMAKE_INSTALL_DATADIR@/cf")
-set_and_check(cf_WORKER_SOURCE "${cf_RUNTIME_DIR}/src/worker.cpp")
-check_required_components(cf)

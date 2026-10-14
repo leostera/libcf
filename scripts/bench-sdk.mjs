@@ -2,24 +2,36 @@ import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
-import { basename, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, resolve } from 'node:path';
+import { createRequire } from 'node:module';
 import { arch, cpus, platform, release } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { gzipSync } from 'node:zlib';
 import { startLocalWorker } from '../examples/test/local-worker.mjs';
 import { benchmarkCases, parseOptions, sample, summarize } from './benchmark-support.mjs';
 
-const options = parseOptions(process.argv.slice(2));
+const [reportPath, ...args] = process.argv.slice(2);
+if (!reportPath || !isAbsolute(reportPath)) throw new Error('Pass a new absolute report path, followed by benchmark options');
+const options = parseOptions(args);
 const variants = {
   js: { entry: 'examples/benchmark/plain.mjs', config: 'examples/benchmark/plain.wrangler.jsonc' },
   cpp: { entry: 'examples/benchmark/worker.mjs', config: 'examples/benchmark/wrangler.jsonc' },
 };
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const command = (name, args) => execFileSync(name, args, { encoding: 'utf8' }).trim();
+function revisionInfo() {
+  const workspace = process.env.BUILD_WORKSPACE_DIRECTORY;
+  if (!workspace) return { baseRevision: null, dirtyWorktree: null };
+  try {
+    return { baseRevision: command('git', ['-C', workspace, 'rev-parse', 'HEAD']),
+      dirtyWorktree: Boolean(command('git', ['-C', workspace, 'status', '--porcelain'])) };
+  } catch { return { baseRevision: null, dirtyWorktree: null }; }
+}
 
 async function sourceFingerprint() {
-  const files = ['scripts/bench-sdk.mjs', 'scripts/benchmark-support.mjs', 'scripts/build-worker.mjs',
-    'examples/test/local-worker.mjs', 'examples/test/jsonc.mjs', 'package-lock.json', '.node-version'];
+  const files = ['scripts/bench-sdk.mjs', 'scripts/benchmark-support.mjs',
+    'examples/test/local-worker.mjs', 'examples/test/jsonc.mjs', 'pnpm-lock.yaml',
+    'MODULE.bazel', 'MODULE.bazel.lock', 'BUILD.bazel', '.bazelversion', '.bazelrc', 'cf-0.1.0.tar.gz'];
   async function visit(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = `${directory}/${entry.name}`;
@@ -57,9 +69,9 @@ async function bundleMetrics(label, entry) {
 }
 
 const before = await sourceFingerprint();
-const compileStart = performance.now();
-execFileSync(process.execPath, ['scripts/build-worker.mjs', variants.cpp.config], { stdio: 'inherit' });
-const buildMilliseconds = performance.now() - compileStart;
+// Bazel completes compilation before this process starts; do not present run-time
+// setup as compiler time or depend on a compiler installed on PATH.
+const buildMilliseconds = null;
 const artifacts = {};
 for (const [label, variant] of Object.entries(variants)) artifacts[label] = await bundleMetrics(label, variant.entry);
 const scenarios = benchmarkCases();
@@ -108,12 +120,14 @@ for (let round = 0; round < options.rounds; round++) {
   incremental.push(cost('cpp') - cost('js'));
 }
 const version = async name => JSON.parse(await readFile(`node_modules/${name}/package.json`, 'utf8')).version;
+const require = createRequire(import.meta.url);
+const miniflareRequire = createRequire(require.resolve('miniflare'));
+const workerdVersion = JSON.parse(await readFile(miniflareRequire.resolve('workerd/package.json'), 'utf8')).version;
 const report = {
-  schemaVersion: 1, measuredAt: new Date().toISOString(), baseRevision: command('git', ['rev-parse', 'HEAD']),
-  dirtyWorktree: Boolean(command('git', ['status', '--porcelain'])), sourceFingerprint: before,
+  schemaVersion: 2, measuredAt: new Date().toISOString(), ...revisionInfo(), sourceFingerprint: before,
   host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model, logicalCpus: cpus().length },
-  versions: { node: process.version, emscripten: command('em++', ['--version']).split('\n')[0],
-    esbuild: await version('esbuild'), miniflare: await version('miniflare'), workerd: await version('workerd') },
+  versions: { node: process.version, emscripten: '6.0.12 (pinned Bazel emsdk)',
+    esbuild: await version('esbuild'), miniflare: await version('miniflare'), workerd: workerdVersion },
   compatibilityDate: '2026-10-13', options, buildMilliseconds, artifacts, summary, comparisons,
   incrementalDigestBridgeEstimateMilliseconds: summarize(incremental), runs,
   limitations: [
@@ -123,13 +137,14 @@ const report = {
     'Quantiles use linear interpolation; no confidence intervals or statistical-significance claims.',
     'Bundle bytes sum ESM and Wasm; gzip uses per-module level 9, excluding upload/config framing.',
     'Alternating variant order reduces but does not eliminate host load, cache, thermal and order effects.',
-    'No CPU/memory profiling or production cold-start measurement; source hashes record the dirty worktree actually measured.',
+    'No CPU/memory profiling or production cold-start measurement; source hashes record declared runfile inputs, and artifact hashes identify the measured modules.',
+    'Bazel compilation completes before measurement; buildMilliseconds is null, not a measured build duration.',
   ],
 };
-await mkdir('build/benchmark', { recursive: true });
-await writeFile('build/benchmark/report.json', JSON.stringify(report, null, 2) + '\n');
+await mkdir(dirname(reportPath), { recursive: true });
+await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
 console.table(scenarios.map(scenario => ({ scenario: scenario.name,
   jsMedianMs: summary.js.scenarios[scenario.name].median.toFixed(3),
   cppMedianMs: summary.cpp.scenarios[scenario.name].median.toFixed(3),
   pairedDeltaMs: comparisons[scenario.name].pairedMedianDeltaMilliseconds.median.toFixed(3) })));
-console.log('Wrote build/benchmark/report.json (raw samples, versions, hashes and limitations).');
+console.log(`Wrote ${reportPath} (raw samples, versions, hashes and limitations).`);
