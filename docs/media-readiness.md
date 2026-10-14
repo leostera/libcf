@@ -146,11 +146,29 @@ Browser worker source gate the test before startup; dependency changes require
 routing/launch review, not a blind hash refresh. It never acquires/connects a
 browser, launches Chrome, downloads binaries or uses a personal profile.
 
-The default example harness refuses browser configurations before bundling. A
-future bounded HTML-only PNG client can use an explicit mock, request JavaScript
-and subresource blocking, and disable cache. Forwarded options are not verified
-network isolation; byte/deadline caps cannot bound native rendering memory or
-promise stopped billing. No Browser C++ API is implemented yet.
+The default example harness refuses browser configurations before bundling.
+`lib/browser.mjs` now prototypes bounded HTML-only PNG through the documented
+`quickAction('screenshot', options)` method. It snapshots1..65536 UTF-8 input bytes
+before suspension, accepts1..512 viewport dimensions and1..60000ms local timeout,
+and caps the returned PNG payload at1MiB. MIME/signature checks are not full PNG
+decoding or dimension verification. It requests binary PNG, viewport scale1,
+no full-page/beyond-viewport capture, JavaScript disabled, rejection of all request
+URL patterns, cacheTTL0, bestAttempt false and explicit navigation/action timeouts.
+There is no URL, cookie, arbitrary header, selector or backend-selection option.
+
+Explicit mocks verify options, Unicode/BOM/NUL, bounds, ownership, errors and
+cancellation. A separate real workerd service-RPC test returns a fixture Response:
+its streamed body stays usable until consumed, owned promises are disposed once,
+late calls are observed and the borrowed service remains callable. This is native
+RPC transport/lifetime evidence with a **mock renderer**, not Browser rendering.
+Conditional synchronous disposal retains owned promise/result roots through reads;
+late response bodies are discarded. Cleanup failure rejects otherwise-successful
+calls, preserves primary failures, and cannot change already-settled calls.
+
+Forwarded options are not verified network isolation; byte/deadline caps cannot
+bound native rendering memory, establish stopped billing or erase remote effects.
+No native AbortSignal option is invented. No Browser C++ API, operation number or
+runnable C++ Browser example is implemented yet.
 
 Miniflare supports local browser sessions via raw Fetcher routes as well as remote proxy mode.
 Typed session-method parity has not been verified. Its pinned
@@ -178,6 +196,8 @@ JavaScript execution, external subresources or AI-backed extraction.
 - [Screenshot endpoint and binding](https://developers.cloudflare.com/browser-run/quick-actions/screenshot-endpoint/)
 - [No-launch local Browser regression](../tests/browser-platform.test.mjs)
 - [Default Browser policy](../tests/browser-policy.test.mjs)
+- [Browser adapter prototype](../lib/browser.mjs), [boundary mocks](../tests/browser-adapter.test.mjs)
+- [Native RPC Response lifetime with mock renderer](../tests/browser-rpc-lifetime.test.mjs)
 - [Browser pricing](https://developers.cloudflare.com/browser-run/pricing/)
 - Pinned Miniflare STREAM_PLUGIN, MEDIA_PLUGIN, BROWSER_RENDERING_PLUGIN,
   stream/binding.worker.js, ensureBrowserInstalled/launchBrowser and BROWSER_VERSION.
