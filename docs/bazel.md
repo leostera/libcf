@@ -87,7 +87,10 @@ ownership evidence merely to clear an `EEXIST` error.
 The events probe has a separate elapsed Cron-observation budget: 20 minutes by
 default, configurable with `LIBCF_LIVE_CRON_TIMEOUT_MS` (1..3600000 ms). That
 single deadline covers HTTP, bounded 64-KiB response bodies and retry sleeps.
-Longer observation is opt-in and does not constitute delivery evidence.
+Longer observation is opt-in and does not constitute delivery evidence. The internal
+Cron control uses the same timeout setting, interrupts in-flight CLI queries at
+the deadline, and retains fresh per-command budgets for cleanup. Its CLI output
+is separately bounded to 1 MiB per command.
 
 Probe target names replace family hyphens with underscores, for example
 `//:live_http_client`, `//:live_rate_limit` and `//:live_rpc`. Arguments and bounded

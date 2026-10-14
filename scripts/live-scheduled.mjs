@@ -2,13 +2,20 @@ import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { readBounded } from '../lib/body.mjs';
 
+export function cronTimeout(value = Number(process.env.LIBCF_LIVE_CRON_TIMEOUT_MS ?? 1200000)) {
+  if (!Number.isInteger(value) || value < 1 || value > 3600000) {
+    throw new RangeError('Cron timeout must be 1..3600000 ms');
+  }
+  return value;
+}
+
 export async function awaitScheduled(request, {
-  timeoutMs = Number(process.env.LIBCF_LIVE_CRON_TIMEOUT_MS ?? 1200000),
+  timeoutMs = cronTimeout(),
   retryMs = 20000,
 } = {}) {
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 3600000 ||
-      !Number.isInteger(retryMs) || retryMs < 1 || retryMs > 60000) {
-    throw new RangeError('Cron timeout must be 1..3600000 ms; retry must be 1..60000 ms');
+  cronTimeout(timeoutMs);
+  if (!Number.isInteger(retryMs) || retryMs < 1 || retryMs > 60000) {
+    throw new RangeError('Cron retry must be 1..60000 ms');
   }
   // One deadline covers HTTP, bounded body consumption and retry sleeps.
   const deadline = AbortSignal.timeout(timeoutMs);

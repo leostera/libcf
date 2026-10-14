@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { cronTimeout } from './live-scheduled.mjs';
+
+const timeoutMs = cronTimeout();
 
 // Explicit opt-in. This diagnostic owns/deletes the isolated resources in its
 // generated manifest, even when no scheduled event arrives before the deadline.
@@ -20,15 +23,18 @@ for (const kind of ['js', 'cpp']) {
 }
 assert.equal(suffixes.size, 1, 'Workers must belong to the same diagnostic cohort');
 const execute = promisify(execFile);
-const cf = args => execute('cf', args, { timeout: 30000, maxBuffer: 1024 * 1024 });
+const cf = (args, signal) => execute('cf', args, { timeout: 30000, maxBuffer: 1024 * 1024, signal });
 const database = JSON.parse((await cf(['d1', 'get', deployment.databaseId])).stdout);
 assert(/^libcf-cron-db-[a-f0-9]{10}$/.test(database.name ?? ''), 'Refusing to own a non-diagnostic database');
 const sql = "SELECT 'js' AS implementation,time,cron FROM cron_control UNION ALL SELECT 'cpp',CAST(time AS INTEGER),cron FROM schedules";
 const started = Date.now();
+const deadline = AbortSignal.timeout(timeoutMs);
 try {
   let observed = false;
-  for (let attempt = 0; Date.now() - started < 20 * 60 * 1000; attempt++) {
-    const { stdout } = await cf(['d1', 'query', deployment.databaseId, '--sql', sql]);
+  for (let attempt = 0; Date.now() - started < timeoutMs; attempt++) {
+    deadline.throwIfAborted();
+    const { stdout } = await cf(['d1', 'query', deployment.databaseId, '--sql', sql], deadline);
+    deadline.throwIfAborted();
     const results = JSON.parse(stdout);
     assert(results.every(result => result.success));
     const rows = results.flatMap(result => result.results);
@@ -45,9 +51,9 @@ try {
       break;
     }
     if (attempt % 5 === 0) console.log(JSON.stringify({ elapsedMs: Date.now() - started, observed: [...kinds] }));
-    await sleep(20000);
+    await sleep(20000, undefined, { signal: deadline });
   }
-  assert(observed, 'Cron control did not observe both implementations within 20 minutes');
+  assert(observed, `Cron control did not observe both implementations within ${timeoutMs} ms`);
 } finally {
   const failures = [];
   for (const worker of deployment.workers) {

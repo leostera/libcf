@@ -23,6 +23,7 @@ if (args[0] === 'd1' && args[1] === 'get' && !previous.includes('"delete"')) {
   process.exitCode = 1;
 } else if (args[1] === 'query') {
   if (process.env.MOCK_QUERY_FAIL) { console.error('synthetic query failure'); process.exitCode = 2; }
+  else if (process.env.MOCK_NO_EVENTS) console.log(JSON.stringify([{success:true,results:[]}]));
   else console.log(JSON.stringify([{success:true, results:['js','cpp'].map(implementation => ({implementation, cron:'* * * * *', time:Math.floor(Date.now()/60000)*60000}))}]));
 } else console.log('{}');
 `, { mode: 0o755 });
@@ -50,6 +51,14 @@ test('Cron control observes both implementations and verifies cleanup', async ()
 test('Cron diagnostic cleans up even when the query fails', async () => {
   await fixture({ MOCK_QUERY_FAIL: '1' }, async (run, calls) => {
     await assert.rejects(run(), error => /synthetic query failure/.test(error.stderr) && /"cleanup":"verified"/.test(error.stdout));
+    assert.equal((await calls()).filter(args => args[1] === 'delete').length, 3);
+  });
+});
+
+test('Cron observation timeout still runs cleanup with fresh command budgets', async () => {
+  await fixture({ MOCK_NO_EVENTS: '1', LIBCF_LIVE_CRON_TIMEOUT_MS: '200' }, async (run, calls) => {
+    await assert.rejects(run(), error =>
+      /aborted|Cron control/.test(error.stderr) && /"cleanup":"verified"/.test(error.stdout));
     assert.equal((await calls()).filter(args => args[1] === 'delete').length, 3);
   });
 });
