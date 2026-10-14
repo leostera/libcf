@@ -1,8 +1,8 @@
 # Analytics SQL and AI Gateway readiness
 
 Audited2026-10-14 against Miniflare5.20261006.1-alpha/workerd1.20261006.1 and
-current public docs. P11 remains unimplemented in libcf: no dedicated C++ API,
-operation or example. This audit makes no account query, model/provider call,
+current public docs. P11 remains incomplete: a bounded Analytics SQL JS prototype
+is described below, but no dedicated C++ API, operation or example is wired yet. This audit makes no account query, model/provider call,
 gateway/log lookup, mutation or credential request.
 
 ## Analytics SQL is not Analytics Engine writeDataPoint
@@ -51,6 +51,55 @@ statistics and provider errors. Start with a fixed synthetic fixture query and
 mock rows, not D1 masquerading as Analytics SQL. Native verification needs an
 explicit owned dataset/time window/column list and consent to its retention and
 query resource costs; a deadline does not prove the scan stopped.
+
+## Bounded Analytics SQL JS prototype
+
+`lib/analytics-sql.mjs::performAnalyticsSql` forwards query text unchanged and
+calls only `binding.query({query, params?})` with its receiver preserved. It does
+not parse/rewrite SQL, append LIMIT/tenancy, retry, or call a dataset listing API.
+
+- Query1–10240 UTF-8 bytes; input body0–65536 bytes is optional parameter JSON.
+  Empty body omits params; empty array/object stays present. At most100 positional
+  or named primitive parameters; named keys1–64 ASCII identifier characters
+  (letter/underscore first); text values0–4096 UTF-8 bytes. Number values must be
+  finite, and integer values must be JS-safe integers. JSON duplicate-key and
+  numeric parsing follows JS semantics. Parsed unsafe integers reject; this is not
+  lossless JSON-number parsing.
+- Parsing/validation finishes before asynchronous return. Named dictionaries use
+  ordinary objects with defined own data properties: the initial null-prototype
+  dictionary failed real workerd RPC serialization. Tests now verify safe
+  `__proto__`/`constructor` parameter transport without inherited setter calls.
+- Options are canonical `rowLimit:timeout`, rowLimit1–100, timeout1–60000ms.
+  This row limit bounds returned projection, **not provider execution**; it is not
+  passed as an undocumented query option or inserted into SQL.
+- Result requires data array length equal to reported rows, ≤rowLimit. Each row
+  has0–64 own enumerable data columns with names1–128 UTF-8 bytes. Scalar cells
+  are null, boolean, finite safe-integer-or-fractional number, or0–4096-byte UTF-8
+  string. Nested values, blobs, symbols, accessors, hidden columns and unsupported
+  prototypes reject. Column names/values are projected as pairs, not dynamically
+  assigned into an output object. Empty rows are retained. Large integers must
+  be returned as text to avoid unsupported precision.
+- Statistics: elapsed_ms finite0–MAX_SAFE_INTEGER (fractions allowed), rows_read
+  and bytes_read nonnegative safe integers. Selected result/stat fields are read
+  once; unrelated result fields/toJSON are not traversed. BOM/NUL text and signed
+  zero are preserved. No full SQL type system or exact arbitrary64-bit JSON claim.
+- Wire: LE u32 row count, f64 elapsed_ms, u64 rows_read, u64 bytes_read; then each
+  row's u32 column count and length-prefixed column name plus u32 scalar tag:
+  0=null,1=false,2=true,3=f64,4=length-prefixed text. Total28–1048576 bytes.
+  Tests hit the exact aggregate cap and reject one extra byte independently of
+  row/column caps. Native materialization/key enumeration can precede caps.
+- At most two owned roots (pending query/result), retained through projection;
+  reverse conditional synchronous disposal, identity deduplication, borrowed
+  binding excluded. Cleanup rejects successful projection but preserves primary
+  errors, including the original JS error's retryable property. No automatic retry.
+  Deadline/abort drains late results/rejections, not proof the query stopped.
+
+`tests/analytics-sql-adapter.test.mjs` covers boundaries, scalar/parameter kinds,
+owned snapshots, field selection, precision, disposal and cancellation.
+`tests/analytics-sql-rpc-lifetime.test.mjs` uses real service RPC with a **fake
+query engine**, including delivered unused capability disposal. This proves
+transport/projection mechanics, not Analytics SQL execution, account access,
+retryability transport into C++, provider retention or server disposer timing.
 
 ## AI Gateway uses the AI binding, with different operations
 
@@ -114,9 +163,9 @@ configs. The existing local Analytics Engine write fixture remains allowed;
 it is a separate no-op acceptance test. `tests/analytics-gateway-policy.test.mjs`
 checks rejection order only, not isolation of arbitrary code.
 
-Next: bounded Analytics SQL query/result projection and/or a narrowly owned
-Gateway URL/metadata projection with explicit fake providers, then typed C++/Wasm
-examples. No native read should be attempted without the applicable account,
+Next: typed C++ Analytics SQL scalar query/result API and explicit-mock Wasm
+example, plus a narrowly owned Gateway URL/metadata projection. Model provider
+error metadata explicitly before claiming C++ retryability support. No native read should be attempted without the applicable account,
 data, provider and cost plan. P11 remains open, not platform-unavailable.
 
 ## Sources
