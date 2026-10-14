@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "79c23495c47b9c3bff603769c69a2b3312cf0b8a",
+  "sourceDirty": false,
+  "excludedGeneratedPaths": [".cloudflare/"],
+  "bazel": "official 9.3.0",
+  "emscripten": "6.0.12",
+  "node": "26.11.1",
+  "compatibilityDate": "2026-10-13",
+  "preparation": "bazel run //:prepare_live_worker -- websocket",
+  "probe": "bazel run //:live_websocket -- libcf-websocket-89d3c991f7.libcf.leostera.dev",
+  "started": "2026-10-14T01:07:31.531Z",
+  "finished": "2026-10-14T01:11:58.812Z",
+  "worker": "libcf-websocket-89d3c991f7",
+  "hostname": "libcf-websocket-89d3c991f7.libcf.leostera.dev",
+  "version": "65f8660b-a243-4529-948f-3d093572413e",
+  "namespace": "e6e7c16964f44dc5a24426ef6b5264dc",
+  "artifactSha256": {
+    "websocket.wasm": "696c4c149ebbdbaa05e8e6e483e8ecc843deacd8a0edc3b44a283919c3d98821",
+    "worker.mjs": "89d7f25d1c20bdaebd7a10006855043a8c1311a38556afefad2b9f9e18627d8d"
+  },
+  "passed": ["text/binary echo", "durable state", "client/server close", "handler failure", "frame limit", "upgrade guards"],
+  "reconstruction": {
+    "initializationsBeforeIdle": 1,
+    "initializationsAfterIdle": 2,
+    "sameSocketSurvived": true,
+    "forcedEviction": false
+  },
+  "ownershipPreflight": {
+    "worker404Code10007": true,
+    "exactHostDnsEmpty": true,
+    "completeNamespaceListingWithoutMatchingScript": true
+  },
+  "cleanup": {
+    "worker404Code10007": true,
+    "recordedNamespaceAbsentFromCompleteListing": true,
+    "exactHostDnsEmpty": true,
+    "ownedHostnameAndWildcardAbsentFromCompleteCertificateListing": true
+  },
+  "limitations": [
+    "One observed reconstruction after idle is not a guaranteed eviction schedule or long-duration reliability test.",
+    "The cf CLI generated .cloudflare cache data in the worktree; that directory is not a declared Bazel source input."
+  ]
+}

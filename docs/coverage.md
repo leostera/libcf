@@ -60,3 +60,10 @@ real alarm effects. Worker, namespace, DNS and certificate cleanup were verified
 This is new Bazel-built evidence for the existing subset, not a claim of forced
 live eviction, alarm retries or full platform parity. Other historical live results
 retain their original provenance until individually rerun.
+
+The [Bazel-built WebSocket rerun](live/bazel-websocket-2026-10-14.json) also
+passed text/binary echo, durable state, client/server close, handler failure,
+frame limits and upgrade guards. The persisted initialization counter advanced
+from 1 to 2 while the same socket survived the idle interval: reconstruction was
+observed, not forced or guaranteed. Worker, namespace, DNS and certificate cleanup
+were verified independently.
