@@ -146,8 +146,8 @@ deleted: it contains retained live-test ownership records and evidence.
 
 ## Test coverage during cutover
 
-The default graph currently contains **107 test targets**: 24 native suites,
-C++20/23 all-header checks, 29 example/benchmark integration targets, 49 JS
+The default graph currently contains **111 test targets**: 24 native suites,
+C++20/23 all-header checks, 29 example/benchmark integration targets, 53 JS
 adapter/policy checks, two toolchain/bundle checks and the SDK archive test.
 The graph passes locally; the CI evidence below identifies verified revisions.
 The native/header suite now contains 26 targets, also tested with `--config=cxx23`.
@@ -251,6 +251,13 @@ commit `031b8c1`, passed 101 defaults, 25 C++23 native/header targets,
 namespace coverage is explicitly mocked; native WfP behavior is not established.
 The Linux archive integrity was `sha256-UpLWVj4qLJIlLOfhwux6xn/lvJeCMvmCl3S/OFd7X0c=`;
 it is revision-specific, not a new cross-host reproducibility claim.
+
+[Run 38531008427](https://github.com/leostera/libcf/actions/runs/38531008427),
+commit `4326f8b`, passed 107 defaults, 26 C++23 native/header targets,
+26 ASan/UBSan targets and relocated consumers of the 88-file SDK. Media frame
+coverage uses an explicit provider mock, not native transformation evidence.
+The Linux archive integrity was `sha256-zEf33SiFqxiJtijNmm+RQQtn+kH5FHOLXqf2pem03fM=`;
+this is revision-specific, not cross-host equality evidence.
 
 ## Current evidence
 

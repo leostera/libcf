@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import { startLocalWorker } from '../../test/local-worker.mjs';
-import { png } from './fixture.mjs';
+import { png, testToken } from './fixture.mjs';
 let worker;
 before(async () => { worker = await startLocalWorker('examples/media/test/local.wrangler.jsonc'); });
 after(async () => { await worker?.dispose(); });
-const frame = (body, path = '/frame') => fetch(`${worker.base}${path}`, { method: 'POST', body });
+const frame = (body, path = '/frame') => fetch(`${worker.base}${path}`, { method: 'POST', body, headers: { authorization: `Bearer ${testToken}` } });
 
 test('C++/Wasm frame dispatch returns owned binary output through an explicit provider mock', async () => {
   await Promise.all(Array.from({ length: 8 }, async (_, i) => {

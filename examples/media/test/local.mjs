@@ -1,5 +1,5 @@
 import worker from '../worker.mjs';
-import { png } from './fixture.mjs';
+import { png, testTokenHash } from './fixture.mjs';
 
 // Explicit provider mock: no codec, native Media binding, resizing or remote work.
 const MEDIA = { input(stream) {
@@ -20,4 +20,4 @@ const MEDIA = { input(stream) {
     } };
   } };
 } };
-export default { fetch(request, env, ctx) { return worker.fetch(request, { ...env, MEDIA }, ctx); } };
+export default { fetch(request, env, ctx) { return worker.fetch(request, { ...env, MEDIA, LIBCF_MEDIA_PROBE_SHA256: testTokenHash }, ctx); } };

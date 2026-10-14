@@ -59,8 +59,19 @@ production config before bundling; future explicit mocks are M, not provider L.
 The current binding documentation says public open beta transformations through
 this binding are **not billed**. This is separate from Stream storage/delivery and
 must be rechecked before any live probe. No transformation was executed here.
-A first provider test could use an owned tiny fixture without URL crawling or AI,
-but still needs a bounded output/deadline and normal ownership/cleanup plan.
+The prepared opt-in probe uses an owned 448-byte animated GIF and authenticated
+isolated ingress; at most three processing attempts, no transformation retries,
+URL crawling, AI or account storage. Only a token hash is deployed. The private
+token file must remain local and is not printed in preparation/probe reports.
+Default tests decode the fixture with local Images/Sharp, verify native auth and
+exercise artifact policy and a mocked probe; none is native Media evidence.
+
+The refreshed [general Media page](https://developers.cloudflare.com/stream/transform-videos/)
+lists MP4/H.264 in source recommendations and also animated GIF under limitations.
+The GIF probe does not establish MP4 support. That page separately documents
+URL/zone transformations at $0.50 per 1000 unique monthly transformations with
+5000 included; the binding-specific beta nonbilling statement remains distinct.
+Do not toggle zone settings or buy subscriptions to run this binding probe.
 
 ## Browser Run
 
