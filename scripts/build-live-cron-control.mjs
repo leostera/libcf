@@ -2,11 +2,12 @@ import { build } from 'esbuild';
 import { randomBytes } from 'node:crypto';
 import { mkdir, copyFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { createLiveOutput } from './live-output.mjs';
 
 const databaseId = process.argv[2];
 if (process.argv.length !== 3 || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(databaseId ?? ''))
   throw new Error('Provide an isolated D1 database UUID');
-const root = resolve('build/live-cron-control');
+const root = await createLiveOutput('cron-control');
 const output = `${root}/.cloudflare/output/v0`;
 const suffix = randomBytes(5).toString('hex');
 const workers = [];

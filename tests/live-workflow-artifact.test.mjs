@@ -13,7 +13,7 @@ test('Workflow live artifact uses an isolated same-worker definition and binding
     const example = join(root, 'examples/workflow');
     await mkdir(example, { recursive: true });
     await writeFile(join(example, 'worker.mjs'), 'export class FixtureWorkflow {} export default { fetch() { return new Response("fixture"); } };');
-    await exec(process.execPath, [resolve('scripts/build-live-worker.mjs'), 'workflow'], { cwd: root, timeout: 30000 });
+    await exec(process.execPath, [resolve('scripts/build-live-worker.mjs'), 'workflow'], { cwd: root, env: { ...process.env, BUILD_WORKSPACE_DIRECTORY: root }, timeout: 30000 });
     const deployment = join(root, 'build/live-workflow');
     const manifest = JSON.parse(await readFile(join(deployment, 'test-deployment.json'), 'utf8'));
     assert.match(manifest.name, /^libcf-workflow-[a-f0-9]{10}$/);

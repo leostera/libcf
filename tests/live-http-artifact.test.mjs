@@ -19,7 +19,7 @@ test('HTTP live artifacts isolate both origins and expose no workers.dev or prev
     await copyFile('examples/http-client/upstream/worker.mjs', join(example, 'upstream/worker.mjs'));
     await writeFile(join(example, 'worker.mjs'), 'import wasm from "./fixture.wasm"; export default { fetch() { return new Response(String(wasm)); } };');
     await writeFile(join(example, 'fixture.wasm'), Buffer.from('0061736d01000000', 'hex'));
-    await exec(process.execPath, [resolve('scripts/build-live-worker.mjs'), 'http-client'], { cwd: root, timeout: 30000 });
+    await exec(process.execPath, [resolve('scripts/build-live-worker.mjs'), 'http-client'], { cwd: root, env: { ...process.env, BUILD_WORKSPACE_DIRECTORY: root }, timeout: 30000 });
     const deploymentRoot = join(root, 'build/live-http-client');
     const json = async path => JSON.parse(await readFile(path, 'utf8'));
     const manifest = await json(join(deploymentRoot, 'test-deployment.json'));

@@ -2,6 +2,7 @@ import { build } from 'esbuild';
 import { randomBytes } from 'node:crypto';
 import { mkdir, copyFile, writeFile, cp } from 'node:fs/promises';
 import { resolve, basename } from 'node:path';
+import { createLiveOutput } from './live-output.mjs';
 
 // Build only: no network calls or implicit deployment. Each build receives an
 // isolated name; all live URLs stay within the user-approved DNS namespace.
@@ -57,7 +58,7 @@ const env = {
   events: { DB: { type: 'd1', id: bindingId }, EVENTS: { type: 'queue', name: queueName } },
 }[example];
 const hostname = `${name}.libcf.leostera.dev`;
-const root = resolve(`build/live-${example}`);
+const root = await createLiveOutput(example);
 const output = `${root}/.cloudflare/output/v0`;
 const worker = `${output}/workers/default`;
 const bundle = `${worker}/bundle`;

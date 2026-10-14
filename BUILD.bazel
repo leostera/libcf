@@ -175,9 +175,23 @@ js_test(
 js_binary(
     name = "prepare_live_worker",
     entry_point = "scripts/build-live-worker.mjs",
-    data = JS_TEST_DATA + [":all_workers"],
+    data = JS_TEST_DATA + [":all_workers", "scripts/live-output.mjs"],
     tags = ["manual"],
 )
+
+js_binary(
+    name = "prepare_cron_control",
+    entry_point = "scripts/build-live-cron-control.mjs",
+    data = JS_TEST_DATA + [":events", "scripts/live-output.mjs"],
+    tags = ["manual"],
+)
+
+[js_binary(
+    name = "live_" + path.removeprefix("scripts/test-live-").removesuffix(".mjs").replace("-", "_"),
+    entry_point = path,
+    data = [":runtime_modules", ":example_sources"] + glob(["scripts/*.mjs"]),
+    tags = ["manual"],
+) for path in glob(["scripts/test-live-*.mjs"])]
 
 DEV_EXAMPLES = ["hello", "core", "kv", "d1", "r2", "cache", "service", "durable", "events"]
 

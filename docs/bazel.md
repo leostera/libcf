@@ -43,6 +43,38 @@ Emscripten policy. It does not add C++ exception recovery or unwinding support.
 The first all-example build exposed this mismatch; the corrected build passed,
 as did the actual core Worker integration suite and all 19 native suites.
 
+## Opt-in development and live commands
+
+`bazel run //:core_dev` starts local workerd and builds its module first. Equivalent
+`*_dev` targets exist for hello, KV, D1, R2, Cache, service, durable and events.
+All advertised families also have independent `*_local_test` targets.
+
+Live preparation and probes are **manual run targets**, not default tests:
+
+```sh
+bazel run //:prepare_live_worker -- cache
+# Preflight ownership before any deployment, then use the cf CLI in build/live-cache.
+bazel run //:live_cache -- <owned-hostname>
+```
+
+Preparation writes to the source workspace's `build/live-<family>/`, never Bazel's
+disposable runfiles/output tree. An existing output directory is rejected instead
+of overwriting its manifest. For a retry, retain/move the old directory only after
+independently verifying cleanup of all resources it identifies. Do not erase active
+ownership evidence merely to clear an `EEXIST` error.
+
+Probe target names replace family hyphens with underscores, for example
+`//:live_http_client`, `//:live_rate_limit` and `//:live_rpc`. Arguments and bounded
+readiness settings are unchanged. `//:prepare_cron_control` prepares the plain-JS
+and C++ scheduled controls; `//:live_cron_control` requires an explicit manifest
+path and `--cleanup`. Workflow readback and Cron cleanup require the authenticated
+`cf` CLI on PATH. These targets do not grant approvals for fee-sensitive bindings.
+
+`//:benchmark_sdk` consumes prebuilt modules and requires a new absolute report
+path. A short two-round/five-sample smoke run passed after migration; it verifies
+execution and report generation, not a useful performance comparison. Schema 2
+reports use `buildMilliseconds: null` because compilation happens before execution.
+
 ## Dependencies and host requirements
 
 - `MODULE.bazel` pins build rules, Emscripten **6.0.12**, Node **26.11.1** and pnpm
@@ -104,7 +136,9 @@ Regeneration with the official binary changed exactly one `bzlTransitiveDigest`,
 without changing dependency versions, repository definitions or archive hashes.
 All 79 tests then passed, and the native/C++23 suite passed with
 `--lockfile_mode=error`. Use the official distribution to avoid rewriting this
-version-dependent digest; strict lock checking remains enabled in CI.
+version-dependent digest. Strict lock checking is now the project default, not
+just a CI flag; deliberate dependency changes require an explicit
+`--lockfile_mode=update` invocation with the official binary.
 
 ## Linux CI evidence
 

@@ -15,7 +15,7 @@ test('RPC live artifacts use an isolated private reference with only the fronten
     await copyFile('examples/rpc/reference/worker.mjs', join(example, 'reference/worker.mjs'));
     await writeFile(join(example, 'worker.mjs'), 'import wasm from "./fixture.wasm"; export default { fetch() { return new Response(String(wasm)); } };');
     await writeFile(join(example, 'fixture.wasm'), Buffer.from('0061736d01000000', 'hex'));
-    await exec(process.execPath, [resolve('scripts/build-live-worker.mjs'), 'rpc'], { cwd: root, timeout: 30000 });
+    await exec(process.execPath, [resolve('scripts/build-live-worker.mjs'), 'rpc'], { cwd: root, env: { ...process.env, BUILD_WORKSPACE_DIRECTORY: root }, timeout: 30000 });
     const json = async path => JSON.parse(await readFile(path, 'utf8'));
     const deployment = join(root, 'build/live-rpc');
     const manifest = await json(join(deployment, 'test-deployment.json'));
