@@ -1,8 +1,29 @@
-# Bazel development (migration in progress)
+# Bazel development
 
-Use the **official Bazel 9.3.0 release binary**, directly or through Bazelisk
-(`.bazelversion`). The public header target is `//:cf`;
-the Bzlmod module is named `cf`. Packaging and CI are verified; removal of obsolete commands is still in progress.
+Use **Bazelisk** to select the official Bazel **9.3.0** release from
+`.bazelversion`, or install that official release directly. The public header
+target is `//:cf`; the Bzlmod module is named `cf`.
+
+On macOS with Homebrew:
+
+```sh
+# Only if the standalone Homebrew bazel formula is already linked:
+brew unlink bazel
+brew install bazelisk
+bazel --version # must report bazel 9.3.0, without the Homebrew suffix
+```
+
+`.bazelversion` selects a binary through Bazelisk; it cannot change the version of
+an already-installed standalone Bazel executable. The Homebrew-built `bazel`
+formula embeds `9.3.0 Homebrew` in the generated `bazel_features` version file.
+That file is transitively loaded by the Emscripten extension, changing its lock
+digest. Do **not** regenerate the project lock with that binary to clear the
+error: it would then fail with the official binary used in CI.
+
+After switching this development machine to Bazelisk 1.29.0, ordinary
+`bazel test //...` passed all 81 targets and `bazel build //...` succeeded with
+197 targets, without changing `MODULE.bazel.lock`.
+
 The declared local test graph is available:
 
 ```sh
