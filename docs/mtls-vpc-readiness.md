@@ -94,6 +94,42 @@ silently drops these fields. `tests/private-network-policy.test.mjs` checks this
 ordering with missing entrypoints; it does not isolate arbitrary test code or
 prove a native binding unsupported in production.
 
+## Trusted destination-policy prototype
+
+`lib/outbound-policy.mjs` adds a **configuration-only** boundary; it does not fetch
+or implement a C++ mTLS/VPC operation. `parseBoundHttpsPolicy(JSONtext)` accepts
+at most64KiB UTF-8 and64 records, each exactly `{kind,binding,name,url}`. Kind is
+`mtls`, `vpc-service` or `vpc-network`; one binding cannot declare conflicting
+roles. Duplicate role/binding/name entries reject. Binding names use1–64 uppercase
+ASCII identifier characters, starting with a letter; endpoint names use1–64
+lowercase ASCII letters/digits/hyphens, starting with a letter. These deliberate
+subsets do not cover every possible platform binding name.
+
+The private mapping and returned endpoint descriptors are immutable snapshots.
+`selectBoundHttpsEndpoint(token,kind,binding,name)` requires an exact match, without
+raw-URL, cross-binding or cross-role fallback. Use trusted deployment configuration,
+never client-supplied policies. Parsing establishes structure and role consistency,
+**not permission, binding provenance, certificate identity or verify_full**.
+Shared JSON depth/node and duplicate-object-key semantics apply. Parse errors are
+redacted rather than echoing malformed policy text or credential-bearing URLs.
+
+Destinations must be exact canonical WHATWG HTTPS URL strings,1–2048 printable
+ASCII characters, with no credentials, query/fragment (even empty), trailing-dot
+host, port0 or silent normalization. Explicit non-default ports are accepted for
+mTLS/Network; Service rejects URL ports because they do not select its configured
+routing port. HTTP/plaintext is intentionally outside this first subset. Encoded
+path semantics, DNS ownership/rebinding, actual route selection and server TLS
+validation still require application/deployment review. Private IP literals are
+not forbidden: their presence is neither access permission nor a connectivity test.
+
+The intended follow-up is GET-only with no caller URL/path/header/body overrides.
+No method, redirect, credential or header customization is accepted in policy
+records. GET is not proof of side-effect-free behavior. Tests cover boundaries,
+role collisions, opaque ownership and rejection paths in Node; native workerd
+also parses/selects synthetic policies without a provider binding or outbound
+fetch. This is parser evidence, not mTLS/VPC transport verification. Existing
+remote-declaration guards and account-operation approval requirements remain.
+
 ## Recommended next implementation
 
 Start with an explicitly bounded HTTP fetch subset and separate mTLS/VPC Service/
