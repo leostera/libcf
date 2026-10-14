@@ -96,6 +96,36 @@ verify stopped instances and resource cleanup. Abort/timeout of a caller does no
 prove stopped work, zero billing, rollback or erasure. Do not attach to existing
 applications or use a successful deploy as a runtime pass.
 
+## Bounded inspection JS prototype
+
+`lib/container.mjs::performContainerInspect` borrows the DO capability and invokes
+only `inspect()`, preserving its receiver. It has **no C++ operation/runtime wiring
+or runnable C++ example yet**. Unit and real workerd service-RPC tests use fake
+metadata providers, not a Container binding, engine or process.
+
+Request: empty key/body, canonical timeout1..60000ms. The owned result is nullable;
+when present, image is0..2048 UTF-8 bytes and labels are at most10 own enumerable
+entries of a plain/null-prototype dictionary. Names are1..16 bytes and values0..64;
+the SDK conservatively rejects C0/C1 control characters in labels. Empty image is
+preserved, as are valid UTF-8/BOM and opaque image bytes; this is not image-reference
+syntax validation or authorization to launch an image. Label names become pairs,
+not assignments into an object. Unrelated fields and toJSON are not traversed.
+
+Wire: little-endian u32 presence0/1; if present, length-prefixed image, u32 label
+count, then length-prefixed name/value pairs. Null is4 bytes, maximum2940 bytes.
+Object materialization/key enumeration precede projection caps; no strict native
+heap bound. Null is the provider's no-running-info result, not deletion of its DO,
+application or retained data. There is no independent running/readiness sample or
+atomic state claim.
+
+Pending read/result roots are conditionally synchronously disposed, identity-
+deduplicated and held through projection; the borrowed container is never disposed
+or destroyed. Timeout/abort drains late results/rejections without changing settled
+outcomes. Cleanup failure rejects success but preserves a primary failure. This
+does not stop native work or a container; invocation activity may extend its idle
+window. Real RPC fixtures verify delivered nested capabilities become unusable and
+the borrowed service remains callable—not process exit or server disposer timing.
+
 ## Sources and next implementation step
 
 Primary docs read2026-10-14: [direct runtime API](https://developers.cloudflare.com/containers/api/durable-object-container/),
@@ -106,7 +136,8 @@ Runtime/local/architecture pages report updated2026-09-30; pricing2026-10-05.
 The older DO API URL redirects to the Containers API page; follow its canonical
 Markdown URL rather than treating redirected HTML as API content.
 
-Next: design bounded lifecycle/readiness outcomes and borrowed-DO-capability
-ownership, then explicit mock adapter/C++ tests and an independent example.
+Next: add a typed nullable inspection API, strict C++ decoder, DO capability
+plumbing with reserved-name protection, and an independent explicit-mock example.
+Mutating lifecycle/readiness operations need separate design and tests.
 Native engine/image and account prerequisites remain separate approval gates.
 No operation number is allocated by this audit.
