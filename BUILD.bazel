@@ -155,7 +155,12 @@ js_test(
     entry_point = "tests/platform-contracts/test.mjs",
     data = [
         "tests/platform-contracts/fixture.ts",
+        "tests/platform-contracts/reflection.mjs",
         "lib/image-rotate.mjs",
+        "lib/analytics-sql.mjs",
+        "lib/ai-gateway.mjs",
+        "lib/sites.mjs",
+        "lib/outbound-get.mjs",
         ":node_modules/@cloudflare/workers-types",
         ":node_modules/typescript",
         ":node_modules/miniflare",

@@ -20,7 +20,7 @@ implemented subsets, not the gaps below. No account operations were run for this
 | F02 | [Ownership contract](request-lifetime.md), [wire checks](wire-boundaries.md), native/JS boundaries and sanitizer CI | General JS-value escape hatch and generated adapter checks remain open; per-operation review is still required. |
 | F03 | Coroutine bridge, owned requests, waitUntil, stream bytes/cancel in core/hello | JS cleanup/trap tests plus an explicit C++23 native probe verify source lifetime, owned chunks, EOF and signal-enabled HTTP cancellation; finite loopback pause/resume observations are not universal transport buffering/budget proof. Buffered binding clients are not streaming clients. |
 | F04 | HTTP/headers/router/env/result/context and event handlers | W05/W07 and broader stream/HTTP ergonomics remain partial. |
-| F05 | Explicit numeric-operation ledger; [pinned declaration/config checks](platform-contracts.md) generate three actual Images invoke-site checks | Remaining adapters and complete schema/call-graph comparison are open; static compatibility is not runtime support. |
+| F05 | Explicit numeric-operation ledger; [pinned declaration/config checks](platform-contracts.md) generate three Images and five SQL/Gateway/Sites/outbound call-site checks | Remaining adapters and complete schema/call-graph comparison are open; static compatibility is not runtime support. |
 | F06 | Bazel9.3.0-only builds, CI, packaging and relocated consumers | Broader generated type checks, formatting integration, explicit bundle/latency budgets and final-revision release checks remain open. |
 
 ## Capability-level gaps
