@@ -197,6 +197,15 @@ and offline deployment preparation/dry-run. No live resource was created.
 GitHub reported a deprecation notice for the pinned checkout/setup-node v4 actions'
 internal Node runtime; the project's Node toolchain remains pinned and tested.
 
+[Run 38499755964](https://github.com/leostera/libcf/actions/runs/38499755964),
+commit `73fc3a2`, passed all 83 default tests and the C++23, sanitizer, package
+and offline dry-run jobs. The preceding
+[run 38498719521](https://github.com/leostera/libcf/actions/runs/38498719521)
+failed the clock example's `/same-turn` check with HTTP 502. That response body
+was not captured; 30 fresh local repetitions passed. This intermittent result
+remains unexplained, not repaired by the later successful run. Clock assertions
+now include the response body and path without retrying or weakening the check.
+
 ## Current evidence
 
 On 2026-10-13, the two toolchain tests passed with

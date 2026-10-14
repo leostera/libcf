@@ -7,8 +7,9 @@ after(async () => { await worker?.dispose(); });
 async function sample(path, count) {
   const before = Date.now();
   const response = await fetch(`${worker.base}${path}`);
-  assert.equal(response.status, 200);
-  const values = (await response.text()).split(' ').map(Number);
+  const body = await response.text();
+  assert.equal(response.status, 200, `${path}: HTTP ${response.status}: ${body}`);
+  const values = body.split(' ').map(Number);
   const after = Date.now();
   assert.equal(values.length, count);
   const reference = ['x-js-clock-before', 'x-js-clock-after'].map(name => {
