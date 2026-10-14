@@ -31,6 +31,8 @@ Classification below: **R** = exposed by the inspected workers-rs high-level `wo
 | Network & services **R** | TCP/UDP sockets, Hyperdrive binding, dynamic dispatch namespace, Containers via DO, Secrets Store, Email Sending | `tcp-client`, `udp-client`, `hyperdrive`, `dispatch`, `container`, `secrets-store`, `email-send`; test by environment capability |
 | Developer ergonomics **R** | router, error/result conversion, crypto/digest, date/delay, optional HTTP adapters; experimental Workers RPC | `router`, `crypto`, `rpc-client`, `rpc-server`; native unit tests and JS interop tests |
 
+[Networking audit](docs/networking-readiness.md): service-forwarded TCP ingress has a JS-only local proof, but C++ socket integration remains open. Direct public TCP ingress is not supported by current docs; `node:dgram` is a non-functional stub, while standalone workerd's experimental UDP is a separate, unverified track. Hyperdrive needs a database driver and an authorized database; local direct connections do not verify managed pooling/cache behavior.
+
 Rust feature availability varies: `queue` and `d1` are feature-gated; RPC is explicitly experimental/partial. `worker-build --emscripten` and Rust's Tokio support are *not* evidence that Emscripten C++ socket/async integration works in our wrapper.
 
 ## 2. Platform expansion beyond the inspected Rust high-level API
