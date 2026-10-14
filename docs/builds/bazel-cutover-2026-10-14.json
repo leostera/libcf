@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "da9c5ebe4416051e796ce3d845b632f963689f99",
+  "verifiedAt": "2026-10-14T00:55:56Z",
+  "bazel": "official 9.3.0",
+  "emscripten": "6.0.12",
+  "node": "26.11.1",
+  "macOS": {
+    "source": "clean git archive",
+    "freshOutputBase": true,
+    "path": "/usr/bin:/bin",
+    "repositoryDownloadCacheRetained": true,
+    "sourceNodeModules": false,
+    "sourceGeneratedArtifactsBeforeBuild": false,
+    "defaultTestsPassed": 81,
+    "cxx23NativeAndHeaderTestsPassed": 21,
+    "externalConsumer": {
+      "nativeStandards": [20, 23],
+      "workerStandard": 23,
+      "workerExecuted": true,
+      "relocatedArchive": true,
+      "cmakeUsed": false
+    },
+    "livePreparation": {
+      "directory": "source workspace/build/live-cache",
+      "outsideBazelOutputs": true,
+      "resourcesCreated": false
+    }
+  },
+  "linux": {
+    "ciRun": "https://github.com/leostera/libcf/actions/runs/38492431729",
+    "os": "Ubuntu 24.04",
+    "compiler": "GCC 13.3.0",
+    "defaultTestsPassed": 81,
+    "cxx23NativeAndHeaderTestsPassed": 21,
+    "asanUbsanTestsPassed": 21,
+    "externalConsumerPassed": true,
+    "offlineDeploymentDryRunPassed": true
+  },
+  "sdkArchive": {
+    "fileCount": 78,
+    "sha256": "a531ee529e3c059792b8d020a9675457fbc2bb4c1211c2b0757cab79ad32de0f",
+    "identicalOnMacOSAndLinux": true
+  },
+  "additionalChecks": {
+    "documentedExampleTargetsResolved": 67,
+    "coreDevelopmentHttpSmokePassed": true,
+    "developmentProcessStoppedWithSigint": true,
+    "benchmarkSmoke": { "rounds": 2, "samples": 5, "warmups": 0, "performanceEvidence": false }
+  },
+  "limitations": [
+    "Native compiler and SDK are host dependencies, not hermetic toolchains.",
+    "Cross-host SDK archive equality does not prove cross-host native or Wasm binary equality.",
+    "Concurrent uncommitted formatter changes are preserved but excluded; their draft CMake/npm style workflow still needs migration before merge.",
+    "No new live deployment occurred; prior live evidence does not establish Bazel-built verification."
+  ]
+}

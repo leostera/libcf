@@ -1,17 +1,20 @@
 # Bazel 9.3.0 migration
 
-Status: build-path audit and declared artifact graph complete on macOS arm64:
-25 Wasm module pairs, 29 JS/Wasm bundles, 19 native suites and initial workerd checks.
-Two independent clean builds produced byte-identical bundle files. The 79-target
-local graph and Linux CI, including C++23 and sanitizers, pass. SDK packaging
-and external consumption pass on macOS/Linux; the default graph now has 80 tests.
-SDK archive bytes match across both platforms. Removal of superseded build/consumer
-commands remains pending.
+Status: the committed build/test/CI/package and documented-command cutover is
+verified at `da9c5eb`: 25 Wasm module pairs, 29 bundles, 81 default test targets,
+C++20/23 external consumption and Linux sanitizers pass. CMake files, compiler
+wrappers and npm build/test orchestration are removed. All 67 documented example
+targets resolve. SDK archive bytes match on clean macOS and Linux builds; see the
+[cutover report](builds/bazel-cutover-2026-10-14.json).
+
+Concurrent formatter edits remain preserved and uncommitted. That separate draft
+still contains CMake/npm-based style instructions and CI steps; it must be adapted
+before merging. It is not included in the verified revision or these migration
+claims. Historical live results have not been relabeled as Bazel-built evidence.
 See [current Bazel commands and limitations](bazel.md).
 
 The agreed destination is **Bazel-only**, including tests, CI and packaging.
-CMake exports and `find_package(cf)` compatibility are intentionally removed at
-cutover. The C++ namespace `cf`, `<cf/...>` headers and libcf branding remain.
+CMake exports and `find_package(cf)` compatibility have been removed. The C++ namespace `cf`, `<cf/...>` headers and libcf branding remain.
 This document is the migration checklist; individual verification evidence is
 recorded separately. Initial smoke tests do not establish full migration parity.
 
