@@ -8,14 +8,14 @@ import { arch, cpus, platform, release } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { gzipSync } from 'node:zlib';
 import { startLocalWorker } from '../examples/test/local-worker.mjs';
-import { benchmarkCases, parseOptions, sample, summarize } from './benchmark-support.mjs';
+import { benchmarkCases, parseOptions, sample, summarize } from './support.mjs';
 
 const [reportPath, ...args] = process.argv.slice(2);
 if (!reportPath || !isAbsolute(reportPath)) throw new Error('Pass a new absolute report path, followed by benchmark options');
 const options = parseOptions(args);
 const variants = {
-  js: { entry: 'examples/benchmark/plain.mjs', config: 'examples/benchmark/plain.wrangler.jsonc' },
-  cpp: { entry: 'examples/benchmark/worker.mjs', config: 'examples/benchmark/wrangler.jsonc' },
+  js: { entry: 'bench/plain.mjs', config: 'bench/plain.wrangler.jsonc' },
+  cpp: { entry: 'bench/worker.mjs', config: 'bench/wrangler.jsonc' },
 };
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const command = (name, args) => execFileSync(name, args, { encoding: 'utf8' }).trim();
@@ -29,7 +29,7 @@ function revisionInfo() {
 }
 
 async function sourceFingerprint() {
-  const files = ['scripts/bench-sdk.mjs', 'scripts/benchmark-support.mjs',
+  const files = ['bench/run.mjs', 'bench/support.mjs',
     'examples/test/local-worker.mjs', 'examples/test/jsonc.mjs', 'pnpm-lock.yaml',
     'MODULE.bazel', 'MODULE.bazel.lock', 'BUILD.bazel', '.bazelversion', '.bazelrc', 'cf-0.1.0.tar.gz'];
   async function visit(directory) {
@@ -39,7 +39,7 @@ async function sourceFingerprint() {
       else if (/\.(hpp|h|cpp|js|mjs|jsonc)$/.test(entry.name)) files.push(path);
     }
   }
-  for (const directory of ['include/cf', 'lib', 'src', 'examples/benchmark']) await visit(directory);
+  for (const directory of ['include/cf', 'lib', 'src', 'bench']) await visit(directory);
   const hash = createHash('sha256');
   for (const path of files.sort()) {
     const bytes = await readFile(path);

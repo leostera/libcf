@@ -1,5 +1,9 @@
 # Local benchmarks
 
+**Just write JavaScript unless you have a good reason to use C++.** Reusing C++ code
+can be valuable, but Wasm alone is not a performance advantage. Fixtures and the
+runner live in [`bench/`](../bench/README.md).
+
 Compare the SDK Worker with a matched plain-JavaScript baseline:
 
 ```sh
@@ -14,4 +18,4 @@ Compilation is excluded. Setup includes bundling, local runtime startup, and fir
 
 Repeat runs on a quiet machine and retain outliers when comparing changes. These measurements do not establish production latency, throughput, memory usage, or statistical significance. CI checks benchmark correctness, not performance thresholds.
 
-The older minimal bridge comparator is available through `bazel run //:benchmark_spike`; its variants do not implement matching functionality. Prefer the [SDK fixture](../examples/benchmark/README.md) for application comparisons.
+The older minimal bridge comparator is available through `bazel run //:benchmark_spike`; its variants do not implement matching functionality. Prefer the [SDK fixture](../bench/README.md) for application comparisons.

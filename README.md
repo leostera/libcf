@@ -6,6 +6,8 @@ Use it to reuse C++ application logic at the edge, handle HTTP requests with cor
 
 The library is named **`cf`**: namespace `cf`, headers `<cf/...>`, Bazel module `cf`, and consumer target `@cf//:cf`. This is an early, limited SDK—not a C API, a POSIX environment, or full Cloudflare API coverage.
 
+**Just write JavaScript unless you have a good reason to use C++.** libcf is for reusing C++ code and libraries—not a promise of faster Workers. See the [C++ vs JavaScript benchmarks](bench/README.md) and measure your own workload.
+
 ## Get started
 
 Install [Bazelisk](https://github.com/bazelbuild/bazelisk) (or official Bazel **9.3.0**) and a native C++ compiler/SDK. Bazel downloads pinned Emscripten **6.0.12**, Node **26.11.1**, and JavaScript dependencies.

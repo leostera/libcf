@@ -22,7 +22,7 @@ Use the server's printed URL. For a new application, start with [core](core/READ
 | Images and content    | [Images](images/README.md), [Media](media/README.md), [Stream metadata](stream/README.md), [Legacy Sites](legacy-sites/README.md)                                                                                                                                                              |
 | Data and AI           | [Analytics writes](analytics/README.md), [Pipelines](pipeline/README.md), [Analytics SQL](analytics-sql/README.md), [Workers AI](ai/README.md), [AI Gateway](ai-gateway/README.md), [AI Search](ai-search/README.md), [Vectorize](vectorize/README.md), [Agent Memory](agent-memory/README.md) |
 | Specialized bindings  | [Browser screenshots](browser/README.md), [Container inspection](container/README.md), [Flagship](flagship/README.md), [Artifacts](artifacts/README.md), [mTLS/VPC HTTPS](outbound-https/README.md)                                                                                            |
-| Contributor tools     | [Matched benchmark](benchmark/README.md), [low-level bridge](hello/README.md)                                                                                                                                                                                                                  |
+| Contributor tools     | [Matched benchmark](../bench/README.md), [low-level bridge](hello/README.md)                                                                                                                                                                                                                   |
 
 ## Local tests versus real services
 

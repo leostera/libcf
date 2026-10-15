@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseOptions, summarize, benchmarkCases } from '../scripts/benchmark-support.mjs';
+import { parseOptions, summarize, benchmarkCases } from '../bench/support.mjs';
 test('benchmark options are bounded and use balanced execution rounds', () => {
   assert.deepEqual(parseOptions([]), { rounds: 6, samples: 80, warmups: 10 });
   assert.deepEqual(parseOptions(['--rounds', '2', '--samples', '5', '--warmups', '0']), { rounds: 2, samples: 5, warmups: 0 });

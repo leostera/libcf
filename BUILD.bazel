@@ -76,7 +76,9 @@ EXAMPLES = [
     "images", "clock", "rpc", "ai", "service-tcp", "vectorize", "dispatch", "media", "ai-search", "stream", "browser", "agent-memory", "container", "flagship", "artifacts", "analytics-sql", "ai-gateway", "legacy-sites", "outbound-https",
 ]
 
-[cf_worker(name = name, srcs = ["examples/%s/src/main.cpp" % name]) for name in EXAMPLES]
+WORKER_DIRS = {name: "bench" if name == "benchmark" else "examples/" + name for name in EXAMPLES}
+
+[cf_worker(name = name, srcs = [WORKER_DIRS[name] + "/src/main.cpp"]) for name in EXAMPLES]
 cf_worker(name = "durable-object", srcs = ["examples/durable/src/object.cpp"])
 bridge_spike(name = "spike")
 cf_worker(name = "stream-lifecycle-probe", srcs = ["tests/stream-lifecycle/main.cpp"], cxx_standard = 23)
@@ -95,16 +97,16 @@ js_binary(
 [js_run_binary(
     name = name + "_bundle",
     tool = ":bundle_tool",
-    srcs = ["examples/%s/worker.mjs" % name, ":runtime_modules", ":" + name] +
+    srcs = [WORKER_DIRS[name] + "/worker.mjs", ":runtime_modules", ":" + name] +
            ([":durable-object"] if name == "durable" else []),
-    args = ["examples/%s/worker.mjs" % name, "bundles/" + name],
+    args = [WORKER_DIRS[name] + "/worker.mjs", "bundles/" + name],
     out_dirs = ["bundles/" + name],
 ) for name in EXAMPLES]
 
 JS_ENTRIES = {
     "hello": "examples/hello/worker.mjs",
     "hello-js": "examples/hello/plain.mjs",
-    "benchmark-js": "examples/benchmark/plain.mjs",
+    "benchmark-js": "bench/plain.mjs",
     "service-upstream": "examples/service/upstream/worker.mjs",
     "http-upstream": "examples/http-client/upstream/worker.mjs",
     "rpc-reference": "examples/rpc/reference/worker.mjs",
@@ -147,7 +149,7 @@ js_test(
 
 filegroup(
     name = "example_sources",
-    srcs = glob(["examples/**/*.mjs", "examples/**/*.jsonc", "examples/**/public/**", "examples/**/README.md"]),
+    srcs = glob(["examples/**/*.mjs", "examples/**/*.jsonc", "examples/**/public/**", "examples/**/README.md", "bench/*.mjs", "bench/*.jsonc"]),
 )
 
 js_test(
@@ -249,11 +251,11 @@ js_binary(
 
 js_binary(
     name = "benchmark_sdk",
-    entry_point = "scripts/bench-sdk.mjs",
+    entry_point = "bench/run.mjs",
     data = JS_TEST_DATA + [
-        ":benchmark", ":sdk_archive", "scripts/benchmark-support.mjs",
+        ":benchmark", ":sdk_archive", "bench/support.mjs",
         "pnpm-lock.yaml", "MODULE.bazel", "MODULE.bazel.lock", "BUILD.bazel", ".bazelversion", ".bazelrc",
-    ] + glob(["include/cf/**/*.hpp", "src/*.cpp", "examples/benchmark/src/*.cpp"]),
+    ] + glob(["include/cf/**/*.hpp", "src/*.cpp", "bench/src/*.cpp"]),
     tags = ["manual"],
 )
 

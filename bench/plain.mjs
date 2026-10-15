@@ -1,4 +1,4 @@
-import { readBounded } from '../../lib/body.mjs';
+import { readBounded } from '../lib/body.mjs';
 const text = (body, status = 200) => new Response(body, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 export default {
   async fetch(request) {
