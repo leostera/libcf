@@ -1,24 +1,63 @@
 # libcf
 
-Experimental C++20/23/Wasm bindings for authoring Cloudflare Workers and Durable Objects. **libcf** is the project name; the C++ library is **`cf`** (namespace `cf`, headers `<cf/...>`, Bazel module `cf` and consumer target `@cf//:cf`). **Work in progress:** this is not a complete or production-ready platform SDK. The current code proves a C++/Emscripten module Worker, introduces a small header-only HTTP/router/fetch/crypto API and exercises a subset of bindings locally. See [INVENTORY.md](INVENTORY.md) and [the operation ledger](docs/coverage.md) for planned vs verified scope. Local performance results and methodology are in [benchmarks](docs/benchmarks.md).
+Write Cloudflare Workers and Durable Objects in **C++20 or C++23**. libcf compiles your application to WebAssembly and connects it to Cloudflare APIs through a shared JavaScript runtime.
 
-## Try the working examples
+Use it to reuse C++ application logic at the edge, handle HTTP requests with coroutines, and access storage and other Worker bindings without writing a separate JavaScript adapter for each operation.
 
-Use official **Bazel 9.3.0**, directly or through Bazelisk. Bazel downloads pinned Emscripten **6.0.12**, Node **26.11.1** and JS dependencies; native C++ still requires a host compiler/SDK. CMake and npm build/test workflows are no longer supported.
+The library is named **`cf`**: namespace `cf`, headers `<cf/...>`, Bazel module `cf`, and consumer target `@cf//:cf`. This is an early, limited SDK—not a C API, a POSIX environment, or full Cloudflare API coverage.
+
+## Get started
+
+Install [Bazelisk](https://github.com/bazelbuild/bazelisk) (or official Bazel **9.3.0**) and a native C++ compiler/SDK. Bazel downloads pinned Emscripten **6.0.12**, Node **26.11.1**, and JavaScript dependencies.
 
 ```sh
-bazel test //...                         # native, headers, adapters, examples, archive
-bazel test //:core_local_test            # one independently runnable example
-bazel test --config=cxx23 //:native_tests
-bazel build //:all_bundles //:sdk_archive
-bazel run //:verify_package -- "$(command -v bazel)"
-bazel run //:core_dev                    # local workerd; stop with Ctrl-C
-bazel run //:benchmark_spike             # optional rough local comparison
-bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json # choose a new report path
+git clone https://github.com/leostera/libcf.git
+cd libcf
+bazel test //:core_local_test
+bazel run //:core_dev
 ```
 
-See [Bazel development and verification](docs/bazel.md) and [SDK consumption](docs/packaging.md). The benchmark target requires a new absolute report path and does not include compilation time.
+Open the local URL printed by the development server. Stop it with Ctrl-C. These commands do not need a Cloudflare account or deploy anything.
 
-[Core](examples/core/README.md) · [KV](examples/kv/README.md) · [D1](examples/d1/README.md) · [R2](examples/r2/README.md) · [Cache](examples/cache/README.md) · [Service bindings](examples/service/README.md) · [Durable Objects](examples/durable/README.md) · [Queues/scheduling](examples/events/README.md) · [AI JSON (local mock)](examples/ai/README.md) · [Vectorize query (local mock)](examples/vectorize/README.md) · [Dynamic dispatch (mock namespace)](examples/dispatch/README.md) · [Media frame](examples/media/README.md) · [Images info/PNG rotation (local simulator)](examples/images/README.md) · [AI Search keywords (local mock)](examples/ai-search/README.md) · [Stream metadata (local simulator)](examples/stream/README.md) · [Browser HTML screenshot (local mock)](examples/browser/README.md) · [Agent Memory list (local mock; get-or-create)](examples/agent-memory/README.md) · [Container inspection (local mock)](examples/container/README.md) · [Flagship boolean details (local simulator)](examples/flagship/README.md) · [Artifacts metadata (local mock)](examples/artifacts/README.md) · [Analytics SQL scalar query (local mock)](examples/analytics-sql/README.md) · [AI Gateway URL lookup (local mock)](examples/ai-gateway/README.md) · [Legacy Sites reads (local simulator)](examples/legacy-sites/README.md) · [mTLS/VPC HTTPS GET (local mocks)](examples/outbound-https/README.md) · [bridge spike](examples/hello/README.md).
+A handler looks like this:
 
-The reusable [JS runtime shim](lib/runtime.mjs) adapts Worker events and bindings; C++ runs as an imported `CompiledWasm` module. See [request ownership and cancellation](docs/request-lifetime.md). The Bazel SDK archive contains the headers, runtime and Worker build rule; package checks compile and run independent native and Wasm consumers. See [SDK packaging and relocation checks](docs/packaging.md). No account, login, remote binding or live deployment is used by these default tests. Isolated live probes have dated results and cleanup evidence; other binding families remain incomplete. Every supported method must have its own verification level before a release claim. Do not use the proof-of-concept KV namespace ID for deployment.
+```cpp
+#include <cf/worker.hpp>
+
+namespace cf {
+Task handle(Request request, WorkerContext context) {
+  co_return Response::text("Hello from C++!");
+}
+}
+```
+
+Start with the [core example](examples/core/README.md), then try [KV](examples/kv/README.md), [D1](examples/d1/README.md), or [Durable Objects](examples/durable/README.md).
+
+## What you can build
+
+- **HTTP applications:** requests/responses, routing, binary bodies, static assets, buffered outbound HTTP and service bindings.
+- **Stateful services:** KV, D1 prepared statements and batches, R2 object operations, Cache, and Durable Object SQLite transactions and alarms.
+- **Event-driven applications:** Queue text/byte messages and bounded text batches, scheduled handlers, inbound email dispositions, Workflow operations, and Durable Object WebSockets.
+- **Platform integrations:** hashing and random values, timers, metadata, analytics, Images metadata/PNG rotation, and selected AI, search, media, and other binding operations.
+
+See the [example guide](examples/README.md) for individual APIs and limitations. Some specialized integrations currently have only mocked provider tests; an example is not a claim of production parity.
+
+## Use libcf in your project
+
+[SDK integration](docs/packaging.md) covers Bazel dependencies, native consumers, Worker builds, and runtime wiring. To build the SDK archive locally:
+
+```sh
+bazel build //:sdk_archive
+# bazel-bin/cf-0.1.0.tar.gz
+```
+
+Bazel is the supported build system. Headers alone do not supply a Worker runtime. Generated JS/Wasm modules must be bundled with the runtime and application-specific binding configuration before deployment.
+
+## Important boundaries
+
+Payloads are owned and bounded at the C++/JavaScript boundary; many operations buffer bodies rather than stream them. Cancellation does not roll back writes or guarantee that provider work or billing stops. Configure authorization, destination policy, retries, and resource budgets in your application. Example endpoints and resource IDs are not production configuration.
+
+- [Request lifetime and cancellation](docs/request-lifetime.md)
+- [Wire formats and limits](docs/wire-boundaries.md)
+- [Build and development commands](docs/bazel.md)
+- [Contributing](CONTRIBUTING.md)

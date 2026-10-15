@@ -188,7 +188,7 @@ LOCAL_EXAMPLES = [name for name in EXAMPLES if name != "benchmark"] + ["hello"]
 
 filegroup(
     name = "js_test_inputs",
-    srcs = ["INVENTORY.md"] + glob(["tests/*.test.mjs", "scripts/*.mjs", "include/cf/**/*.hpp", "docs/*.md"]),
+    srcs = glob(["tests/*.test.mjs", "scripts/*.mjs", "include/cf/**/*.hpp"]),
 )
 
 JS_TEST_FILES = glob(

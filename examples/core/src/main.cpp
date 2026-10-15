@@ -27,8 +27,8 @@ Task handle(Request request, WorkerContext context) {
     return Response::text(std::string(req.headers.get("x-greeting").value_or("absent")));
   });
   router.route("POST", "/background/:key", [&context](const auto& req, const auto& params) {
-    context.execution.wait_until(BackgroundWork::kv_put("STATE_KV",
-                                                        std::string(params.get("key")), req.body));
+    context.execution.wait_until(
+        BackgroundWork::kv_put("STATE_KV", std::string(params.get("key")), req.body));
     return Response::text("queued", 202);
   });
   router.route("GET", "/stream/:count", [](const auto&, const auto& params) {

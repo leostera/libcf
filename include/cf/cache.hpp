@@ -34,14 +34,17 @@ class Cache {
           CachedResponse response;
           std::string status;
           Bytes headers;
-          if (!reader.string(status) || !reader.bytes(headers) ||
-              !reader.bytes(response.body) || !reader.done())
-            return Result<std::optional<CachedResponse>>::failure({ErrorCode::InvalidInput, "invalid cached response"});
-          const auto [end, error] = std::from_chars(status.data(), status.data() + status.size(), response.status);
+          if (!reader.string(status) || !reader.bytes(headers) || !reader.bytes(response.body) ||
+              !reader.done())
+            return Result<std::optional<CachedResponse>>::failure(
+                {ErrorCode::InvalidInput, "invalid cached response"});
+          const auto [end, error] =
+              std::from_chars(status.data(), status.data() + status.size(), response.status);
           auto parsed = detail::parse_headers(headers);
           if (error != std::errc{} || end != status.data() + status.size() ||
               response.status < 200 || response.status > 599 || !parsed)
-            return Result<std::optional<CachedResponse>>::failure({ErrorCode::InvalidInput, "invalid cache metadata"});
+            return Result<std::optional<CachedResponse>>::failure(
+                {ErrorCode::InvalidInput, "invalid cache metadata"});
           response.headers = std::move(*parsed);
           return Result<std::optional<CachedResponse>>::success(std::move(response));
         });
@@ -70,11 +73,12 @@ class Cache {
     append_u32(wire, static_cast<std::uint32_t>(response.body.size()));
     wire.insert(wire.end(), response.body.begin(), response.body.end());
     return runtime_.call<Unit>({Operation::CachePut, name_, std::move(url), std::move(wire), {}},
-                              [](OperationReply) { return Result<Unit>::success({}); });
+                               [](OperationReply) { return Result<Unit>::success({}); });
   }
 
   [[nodiscard]] AsyncResult<bool> erase(std::string url) const {
-    return runtime_.call<bool>({Operation::CacheDelete, name_, std::move(url), {}, {}},
+    return runtime_.call<bool>(
+        {Operation::CacheDelete, name_, std::move(url), {}, {}},
         [](OperationReply reply) -> Result<bool> {
           if (reply.kind != ReplyKind::Value || reply.bytes.size() != 1 || reply.bytes[0] > 1)
             return Result<bool>::failure({ErrorCode::InvalidInput, "invalid cache delete result"});
@@ -84,9 +88,11 @@ class Cache {
 
  private:
   static AsyncResult<Unit> invalid_put(std::string message) {
-    return AsyncResult<Unit>([message = std::move(message)](auto complete) {
-      complete(Result<Unit>::failure({ErrorCode::InvalidInput, message}));
-    }, [](std::coroutine_handle<>) {});
+    return AsyncResult<Unit>(
+        [message = std::move(message)](auto complete) {
+          complete(Result<Unit>::failure({ErrorCode::InvalidInput, message}));
+        },
+        [](std::coroutine_handle<>) {});
   }
   static void append_u32(Bytes& bytes, std::uint32_t value) {
     for (int shift = 0; shift != 32; shift += 8)

@@ -1,22 +1,12 @@
-# Synchronous wall clock from C++
+# Wall-clock time
 
 ```sh
 bazel build //:clock
 bazel test //:clock_local_test
 ```
 
-Included in the default local suite. `<cf/clock.hpp>` supplies `cf::WallClock`; `context.clock.now()` returns `Result<WallClock::TimePoint>` synchronously through the `libcf_host_now` f64 import. There is no binding-operation number, Promise completion or coroutine suspension for the clock read itself.
+`context.clock.now()` returns `Result<cf::WallClock::TimePoint>` synchronously. The time point is signed Unix milliseconds (`std::chrono::sys_time`), within the JavaScript Date range ±8640000000000000 ms. Negative timestamps and backwards steps are valid; malformed host values fail.
 
-`TimePoint` is a `std::chrono::sys_time` with a signed 64-bit millisecond duration: Unix wall time, not a steady/monotonic clock. `.time_since_epoch().count()` gives signed Unix milliseconds. The boundary rejects non-finite, fractional or out-of-JavaScript-Date-range values before integer conversion (inclusive range ±8640000000000000 ms). Negative timestamps and backwards steps are valid. For native use/tests, construct `WallClock` with an owned `std::function<double()>` provider; an empty provider is rejected. Provider exceptions propagate; numeric validation failures return `HostFailure`.
+Workers' clock can stay fixed during synchronous execution and advance with I/O. Local workerd clock behavior differs. Do not use this as a monotonic clock, CPU timer, precision guarantee, or busy-wait primitive. Calendar parsing/time zones are not provided. Native callers can supply an owned clock function; manually constructed `WorkerContext` values must include it. Use [Timer](../timer/README.md) for coroutine sleep.
 
-**Workers' `Date.now()` reports the time of the last I/O and does not advance during code execution.** Do not use busy waiting, assume monotonicity, measure CPU time or infer precision from the millisecond representation. Use the separately bounded `Timer` for asynchronous sleeps. This API does not add calendar parsing/formatting, time zones, high-resolution profiling, a clock-sync guarantee or durable scheduling.
-
-Two workerd cases verify plausible Unix timestamps across the actual f64 import, 33 synchronous samples, samples around awaited I/O and concurrent requests. **Local workerd does not freeze its clock:** the pinned `v1.20261006.1` server's [`TimerChannel::now`](https://github.com/cloudflare/workerd/blob/v1.20261006.1/src/workerd/server/server.c%2B%2B#L4711-L4719) reads the system clock. Requiring local same-turn equality caused an intermittent CI 502. `/same-turn` now reports all 33 samples; local tests check each against the JS bracket, while the live probe still requires every sample to equal the first. Mocked live-probe tests ensure advancing samples are rejected even inside the bracket. This separates host clock policy from f64 transport correctness. C++ samples are bracketed by JS `Date.now()` headers taken before and after the C++ handler. A full-suite run demonstrated a 1-ms difference between C++ and a later JS sample: `await cpp.fetch()` can cross an I/O turn, so exact equality across that await is not a valid requirement. Same-machine plausibility checks are not remote clock synchronization evidence, and samples around sleep do not assert precise elapsed time. Native tests cover range endpoints, invalid samples, backwards steps and missing providers; a JS host-import test checks fresh reads and preservation of values beyond i32. The corrected live probe passed on 2026-10-13: plausible f64 Unix milliseconds, same-turn frozen samples, post-I/O sampling, same-invocation JS brackets and eight concurrent requests. Worker, DNS and certificate cleanup were verified; see [dated evidence](../../docs/live-verification.md). No precision, monotonicity or synchronization guarantee is inferred.
-
-For an opt-in live test, build the example, run `bazel run //:prepare_live_worker -- clock`, preflight the generated Worker and exact hostname, then deploy with `cf deploy --prebuilt` from `build/live-clock`. Run `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 bazel run //:live_clock -- <host>` from the repository root. No resource binding is needed. The live plausibility window permits five minutes of client/server skew; the same-invocation JS bracket checks sample ordering during the probe, assuming no intervening clock step. This is an observation, not a monotonicity or synchronization guarantee. Verify Worker, DNS and certificate cleanup after success or failure.
-
-`WorkerContext` now includes an explicit `WallClock` member. Code that manually aggregate-constructs a context must supply that provider; normal Worker handlers receive it from the adapter.
-
-The [2026-10-14 Bazel-built rerun](../../docs/live/bazel-clock-2026-10-14.json) passed the revised 33-sample production check, post-I/O sampling, JS brackets and eight concurrent requests on clean source `0c3b229`. Worker, DNS and certificate cleanup were independently verified.
-
-Source retrieved 2026-10-13: [Workers web standards](https://developers.cloudflare.com/workers/runtime-apis/web-standards/), especially JavaScript `Date.now()` and timers. Compatibility remains pinned to 2026-10-13.
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

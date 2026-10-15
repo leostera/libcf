@@ -5,19 +5,15 @@
 extern "C" {
 void cf_host_get(int id, const char* key, int length);
 void cf_host_fetch(int id, const char* path, int length);
-void cf_host_background(int id, const char* key, int key_length,
-                        const char* value, int value_length);
+void cf_host_background(int id, const char* key, int key_length, const char* value,
+                        int value_length);
 void cf_host_emit(int id, const char* bytes, int length, int status);
 
 int cf_add(int a, int b) { return a + b; }
 
-void cf_get(int id, const char* key, int length) {
-  cf_host_get(id, key, length);
-}
+void cf_get(int id, const char* key, int length) { cf_host_get(id, key, length); }
 
-void cf_fetch_asset(int id, const char* path, int length) {
-  cf_host_fetch(id, path, length);
-}
+void cf_fetch_asset(int id, const char* path, int length) { cf_host_fetch(id, path, length); }
 
 void cf_resume(int id, const char* value, int length, int status) {
   if (status != 200) {
@@ -36,8 +32,8 @@ void cf_resume(int id, const char* value, int length, int status) {
   cf_host_emit(id, output.data(), static_cast<int>(output.size()), status);
 }
 
-void cf_background_write(int id, const char* key, int key_length,
-                         const char* value, int value_length) {
+void cf_background_write(int id, const char* key, int key_length, const char* value,
+                         int value_length) {
   cf_host_background(id, key, key_length, value, value_length);
 }
 

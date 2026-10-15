@@ -21,8 +21,7 @@ void test_values() {
   headers.append("content-type", "text/other");
   assert(headers.get("CONTENT-TYPE") == "text/plain");
   assert(headers.fields().size() == 2 && !headers.get("missing"));
-  const std::uint8_t wire[] = {4, 0, 0, 0, 5, 0, 0, 0,
-                              'x', '-', 'i', 'd', 'h', 'e', 'l', 'l', 'o'};
+  const std::uint8_t wire[] = {4, 0, 0, 0, 5, 0, 0, 0, 'x', '-', 'i', 'd', 'h', 'e', 'l', 'l', 'o'};
   auto parsed = cf::detail::parse_headers(wire);
   assert(parsed && parsed->get("X-ID") == "hello");
   assert(!cf::detail::parse_headers(std::span(wire, 2)));
@@ -42,7 +41,11 @@ void test_capabilities() {
   assert(uuid.size() == 36 && uuid[14] == '4' && uuid[19] == '8');
   assert(crypto.random_bytes(16).size() == 16);
   bool rejected = false;
-  try { (void)crypto.random_bytes(65537); } catch (const std::length_error&) { rejected = true; }
+  try {
+    (void)crypto.random_bytes(65537);
+  } catch (const std::length_error&) {
+    rejected = true;
+  }
   assert(rejected);
   std::optional<cf::BackgroundWork> scheduled;
   cf::Context context([&](const cf::BackgroundWork& work) { scheduled = work; });
@@ -82,10 +85,12 @@ void test_router() {
 
 void test_coroutines() {
   cf::Fetcher::Completion complete;
-  cf::Fetcher fetcher([&](std::string url, auto callback) {
-    assert(url == "https://example.test/asset");
-    complete = std::move(callback);
-  }, [](std::coroutine_handle<> handle) { handle.resume(); });
+  cf::Fetcher fetcher(
+      [&](std::string url, auto callback) {
+        assert(url == "https://example.test/asset");
+        complete = std::move(callback);
+      },
+      [](std::coroutine_handle<> handle) { handle.resume(); });
   auto handler = [&]() -> cf::Task {
     auto result = co_await fetcher.get("https://example.test/asset");
     co_return cf::Response::text(result.value().body, result.value().status);
@@ -98,10 +103,14 @@ void test_coroutines() {
   assert(std::get<std::string>(coroutine.promise().response.body) == "async body");
   coroutine.destroy();
   complete(cf::FetchResult::success({200, "late duplicate"}));
-  cf::Fetcher inline_fetcher([](std::string, auto callback) {
-    callback(cf::FetchResult::success({200, "inline body"}));
-    callback(cf::FetchResult::success({200, "duplicate must be ignored"}));
-  }, [](std::coroutine_handle<>) { assert(false && "inline completion must not resume recursively"); });
+  cf::Fetcher inline_fetcher(
+      [](std::string, auto callback) {
+        callback(cf::FetchResult::success({200, "inline body"}));
+        callback(cf::FetchResult::success({200, "duplicate must be ignored"}));
+      },
+      [](std::coroutine_handle<>) {
+        assert(false && "inline completion must not resume recursively");
+      });
   auto inline_handler = [&]() -> cf::Task {
     auto result = co_await inline_fetcher.get("https://example.test");
     co_return cf::Response::text(result.value().body);

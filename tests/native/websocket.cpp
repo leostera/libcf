@@ -1,12 +1,13 @@
+#include "cf/websocket.hpp"
+
 #include <cassert>
 #include <map>
-#include "cf/websocket.hpp"
 
 int main() {
   using namespace cf;
-  std::map<std::string, std::string> fields{
-      {"__LIBCF_DO_EVENT", "websocket"}, {"__LIBCF_WS_KIND", "message"},
-      {"__LIBCF_WS_FORMAT", "bytes"}};
+  std::map<std::string, std::string> fields{{"__LIBCF_DO_EVENT", "websocket"},
+                                            {"__LIBCF_WS_KIND", "message"},
+                                            {"__LIBCF_WS_FORMAT", "bytes"}};
   Env env([&](std::string_view key) -> std::optional<std::string> {
     const auto it = fields.find(std::string(key));
     return it == fields.end() ? std::nullopt : std::optional(it->second);

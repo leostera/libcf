@@ -1,15 +1,12 @@
-# D1 prepared statements from C++
+# D1 prepared statements
 
 ```sh
-bazel test //:d1_local_test
 bazel build //:d1
-bazel run //:d1_dev
+bazel test //:d1_local_test
 ```
 
-The C++ handler uses `cf::D1Database`, `prepare().bind().run()`, `all()`, `first()`, `batch()`, and `exec()` through the shared Wasm bridge. `POST /setup` creates a local table; `PUT/GET/DELETE /records/:id` stores binary values. `POST /constraint-probe` deliberately violates NOT NULL to demonstrate error handling.
+`cf::D1Database` supports `prepare().bind().run()`, `all()`, `first()`, `batch()`, and `exec()`. `POST /setup` creates the example table; `PUT/GET/DELETE /records/:id` stores binary values. `/constraint-probe` demonstrates failure handling.
 
-Bound parameters are `cf::SqlValue`: null, finite double, signed integer, string, or bytes. Parameters cross a tagged binary protocol separately from SQL text. Integers outside JavaScript's exact range are rejected before dispatch. Results use shared `cf::SqlResult` (also used by DO SQLite), with named typed cells and platform metadata retained as JSON. The early `D1Result` name was replaced rather than retained as a compatibility alias. Read large SQL integers using an explicit SQL cast to TEXT; unsafe numeric results are rejected.
+`cf::SqlValue` supports null, finite double, signed integer, string, and bytes. Integers must fit JavaScript's exact range; cast larger SQL integers to TEXT. `first()` distinguishes missing rows from SQL NULL. Batches use the provider's transaction API and are limited to 100 statements. Input is capped at 1 MiB and results at 4 MiB. Sessions, raw queries, and streaming results are not exposed. Database IDs in the fixture are local-only.
 
-Eight local integration cases cover CRUD/binary/empty values, SQL-looking data, concurrent statements, constraint rejection, and invalid routes. Native tests check parameter precision, row decoding and malformed wire data. A separate isolated live probe verified setup/exec, binary CRUD, first/null/missing, batch commit/rollback and constraint errors; see [evidence and cleanup](../../docs/live-verification.md). The checked-in database ID remains local-only. `first()` distinguishes a missing row from a row containing SQL NULL. Batches execute through D1's transactional API; local tests verify ordered results and rollback of earlier writes after a later constraint failure. The bridge limits batches to 100 statements and 1 MiB encoded input. Sessions, raw, streaming results and arbitrary large result sets remain unimplemented. Request/parameter payloads are bounded to 1 MiB and result payloads to 4 MiB; these are library limits, not D1 limits.
-
-Sources: [prepared statements](https://developers.cloudflare.com/d1/worker-api/prepared-statements/), [D1 database API](https://developers.cloudflare.com/d1/worker-api/d1-database/).
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

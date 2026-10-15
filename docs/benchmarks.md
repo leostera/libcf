@@ -1,119 +1,17 @@
-# Local C++ versus plain-JS baseline
+# Local benchmarks
 
-## Reproduce
+Compare the SDK Worker with a matched plain-JavaScript baseline:
 
 ```sh
 bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json
 ```
 
-See [`examples/benchmark`](../examples/benchmark/README.md). Bazel builds the fixture first; the runner writes to the supplied new absolute report path and refuses to overwrite an existing file. Schema 2 excludes compilation time (`buildMilliseconds: null`). It makes only local requests, validates every response, disposes every runtime in `finally`, and rejects changed source inputs. No performance threshold is imposed on CI.
+Choose a new absolute path; the runner refuses to overwrite reports. It builds the fixture before measurement, uses only local requests, validates responses, and disposes its runtimes. Do not commit generated reports.
 
-## Bazel-built matched reruns (2026-10-14)
+The benchmark alternates variants across six rounds, with ten warmups and eighty sequential measured requests per scenario per round. Scenarios cover hello, binary echo at several sizes, and one versus repeated SHA-256 operations. Reports include samples, artifact sizes/hashes, tool versions, and source fingerprints.
 
-[First raw report](benchmarks/bazel-2026-10-14.json) ·
-[Repeat raw report](benchmarks/bazel-2026-10-14-repeat.json).
-Both runs used clean source `8f99864`, official Bazel 9.3.0 via Bazelisk 1.29.0,
-Emscripten 6.0.12, Node 26.11.1, esbuild 0.28.2, Miniflare 5.20261006.1-alpha
-and workerd 1.20261006.1 on Apple M1 Max/Darwin 25.6.0. Compatibility: 2026-10-13.
-Each run alternated variants for six rounds, with 10 warmups and 80 measured
-requests per scenario/variant/round: **6,720 checked samples per run**.
-Both retained the same 82-input fingerprint and identical measured artifact hashes.
+Compilation is excluded. Setup includes bundling, local runtime startup, and first-response initialization; it is not an isolated edge cold start. HTTP latency includes loopback transport, copying, allocation, and scheduling—not just the JS/Wasm boundary. Repeated-hash subtraction is a noisy estimate, not a precise ABI cost.
 
-Median localhost HTTP latency, milliseconds (first run / repeat):
+Repeat runs on a quiet machine and retain outliers when comparing changes. These measurements do not establish production latency, throughput, memory usage, or statistical significance. CI checks benchmark correctness, not performance thresholds.
 
-| Scenario | Plain JS | C++ |
-| --- | ---: | ---: |
-| Hello | 0.598 / 0.603 | 0.714 / 0.688 |
-| Echo 1 KiB | 0.732 / 0.761 | 0.851 / 0.818 |
-| Echo 64 KiB | 1.275 / 1.268 | 1.447 / 1.371 |
-| Echo 1 MiB | 7.771 / 7.738 | 7.995 / 7.931 |
-| SHA-256 once, 1 KiB | 0.728 / 0.724 | 0.832 / 0.811 |
-| SHA-256 16 times, 1 KiB | 0.757 / 0.775 | 0.976 / 0.924 |
-| SHA-256 once, 64 KiB | 0.979 / 0.994 | 1.123 / 1.086 |
-
-- Local setup medians were JS/C++ **74.71/84.57 ms**, then **73.24/83.45 ms**.
-  The first run includes a **3,225.60 ms JS setup outlier**, retained in full.
-  Setup includes bundling, workerd and first-response Wasm initialization; it is
-  not isolated engine startup or an edge cold-start measurement.
-- Artifact totals were JS **1,911 bytes / 849 gzip**, C++ **118,118 / 35,516 gzip**.
-  C++ comprises 54,729 bytes of Wasm and 63,389 bytes of ESM. Gzip is per-module
-  level 9; upload framing is excluded.
-- The incremental digest estimate's median was **8.82 µs**, then **5.78 µs**;
-  per-round ranges were **−2.11..12.36 µs** and **−1.61..11.82 µs**.
-  This includes copies, allocation and coroutine scheduling, not only ABI work.
-  Negative estimates and run-to-run variation prohibit a precise attribution.
-- These are sequential, local end-to-end measurements, not throughput, memory,
-  production latency or statistical-significance claims. Background load and
-  thermal state were not isolated; a live Queue/Cron probe was also running.
-  Compilation precedes measurement and is explicitly `null`, not a measured zero.
-- The runtime/API changed since the older reports below. Comparing their numbers
-  does **not** isolate the performance effect of changing build systems.
-
-## Pre-Bazel baseline (2026-10-13)
-
-The following historical results are retained with their original provenance;
-they are not Bazel-built evidence.
-
-[Recorded raw data](benchmarks/local-2026-10-13.json) includes 6,720 measured request samples, per-round statistics, module hashes, source fingerprint and tool versions. It was recorded on 2026-10-13 at 15:29 UTC on an Apple M1 Max, arm64, Darwin 25.6.0, 10 logical CPUs. Node 26.11.1; Emscripten 6.0.12-git (`-O2`); esbuild 0.28.2; Miniflare 5.20261006.1-alpha; workerd 1.20261006.1; compatibility date 2026-10-13.
-
-The worktree included concurrent formatter changes and the new benchmark, so the recorded Git base alone is not an exact source identity. The runner hashed 64 relevant input files before and after measurement: `2ad8f72f668c55c1df80a17cb15221e9915356b8a90896253f6426431ae9b77c`. Artifact hashes are also recorded. No background-load or thermal isolation is claimed.
-
-## Method
-
-- Six rounds; alternate JS→C++ and C++→JS runtime order. Each variant starts a fresh local workerd runtime per round.
-- Seven scenarios; 10 warmups followed by 80 sequential measured requests per scenario, per variant, per round (480 measured samples per table cell).
-- Both implementations use the same body cap and successful response bytes, status and content type. Binary payloads contain varied bytes, including NUL and non-UTF-8 values.
-- Timing starts before client `fetch` and ends after consuming the response. Correctness assertions run outside the timer. Client/server HTTP, buffering, allocation and scheduling are included.
-- Quantiles use linear interpolation. Paired deltas are computed from each round's C++ and JS medians, then summarized; they need not equal the difference between pooled medians.
-
-## Latency (milliseconds)
-
-| Scenario | JS median | C++ median | JS p95 | C++ p95 | Median paired delta |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Hello | 0.562 | 0.611 | 1.000 | 1.178 | +0.038 |
-| Echo 1 KiB | 0.693 | 0.741 | 1.018 | 1.189 | +0.062 |
-| Echo 64 KiB | 1.197 | 1.261 | 2.113 | 2.325 | +0.054 |
-| Echo 1 MiB | 7.489 | 7.576 | 11.607 | 11.952 | +0.087 |
-| SHA-256 once, 1 KiB | 0.689 | 0.746 | 1.019 | 1.213 | +0.057 |
-| SHA-256 16 times, 1 KiB | 0.725 | 0.837 | 1.171 | 1.462 | +0.116 |
-| SHA-256 once, 64 KiB | 0.916 | 0.984 | 1.459 | 1.632 | +0.069 |
-
-### Incremental digest bridge estimate
-
-For each round, compute `((C++16 − C++1) − (JS16 − JS1)) / 15` using the 1-KiB digest scenario medians. Median estimate: **4.44 μs per additional digest call**, with a per-round range of **−0.11 to 8.10 μs**. Negative estimates are retained rather than clamped: this comparison is noise-sensitive.
-
-This estimates the incremental cost of the C++ adapter, owned copies, allocations and coroutine/promise scheduling relative to native JS. It is **not** an isolated ABI instruction cost, a confidence interval, proof of statistical significance or a production performance guarantee.
-
-## Setup and bundle size
-
-| Measure | Plain JS | C++/Wasm |
-| --- | ---: | ---: |
-| Median bundle + local runtime + first-response readiness | 71.37 ms | 78.49 ms |
-| Total ESM + Wasm bytes | 1,523 | 103,864 |
-| Sum of per-module gzip bytes, level 9 | 729 | 31,747 |
-
-C++ artifacts: 49,522-byte bundled ESM and 54,342-byte Wasm. The ESM includes the generic SDK runtime and its currently supported adapters, not only the digest adapter. Gzip totals exclude upload/config framing and are not claimed to match `cf deploy`'s reporting formula.
-
-Setup includes esbuild, local process/runtime work, the harness's readiness request and initial Wasm instantiation. Compiler build time is recorded separately. OS/file/compiler caches may be warm; this is **not production cold-start evidence**.
-
-## Follow-up snapshot: 17:31 UTC
-
-[Second raw report](benchmarks/local-2026-10-13-1731.json), recorded after outbound HTTP, Pipelines, Workflows client, timers and lifetime hardening. Same host/toolchain, six rounds, warmups and 6,720 correctness-checked samples. Git base `7910bd6`; the worktree still includes formatter changes. The 73-input fingerprint is `9e16dc6085b36b58e4bd7e55e1e6c64d864e0246487d7a8de62d56ef5cfae149`. A sleeping DNS diagnostic process was present; no host isolation is claimed.
-
-| Scenario | JS median | C++ median | JS p95 | C++ p95 | Median paired delta |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Hello | 0.514 | 0.591 | 0.931 | 1.065 | +0.079 |
-| Echo 1 KiB | 0.622 | 0.696 | 1.071 | 1.112 | +0.064 |
-| Echo 64 KiB | 1.154 | 1.275 | 2.230 | 2.324 | +0.141 |
-| Echo 1 MiB | 7.240 | 7.568 | 11.400 | 11.897 | +0.314 |
-| SHA-256 once, 1 KiB | 0.605 | 0.708 | 1.047 | 1.236 | +0.156 |
-| SHA-256 16 times, 1 KiB | 0.643 | 0.772 | 1.214 | 1.349 | +0.119 |
-| SHA-256 once, 64 KiB | 0.864 | 0.949 | 1.590 | 1.739 | +0.082 |
-
-Incremental digest estimate: median **1.96 μs**, range **−12.83 to 6.99 μs**. The negative range illustrates noise; it is not evidence of negative overhead or a proven improvement over the first run. Some paired latency deltas increased, but this single noisy rerun cannot attribute a regression to a particular change. Scenario order remains fixed within each round, and both source/artifact fingerprints changed.
-
-Median setup: JS **69.95 ms**, C++ **79.20 ms**. JS bundle **1,869 bytes / 845 gzip**; C++ **110,928 bytes / 33,371 gzip** (56,586-byte ESM plus unchanged 54,342-byte Wasm). The generic runtime now includes more adapters. Both JS and C++ ESM artifacts differ from the first snapshot, so even bundle changes should not be attributed solely to one SDK feature.
-
-## Remaining release measurements
-
-Production edge latency/cold starts, CPU/memory profiles, concurrent throughput, additional binding workloads and a pure ABI microbenchmark remain unmeasured. The earlier spike benchmark remains a rough feasibility probe, not an interchangeable baseline. Current local comparisons must not be used to claim complete platform parity or universal C++ performance advantages.
+The older minimal bridge comparator is available through `bazel run //:benchmark_spike`; its variants do not implement matching functionality. Prefer the [SDK fixture](../examples/benchmark/README.md) for application comparisons.

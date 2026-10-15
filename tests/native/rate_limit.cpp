@@ -1,17 +1,22 @@
-#include <cassert>
 #include "cf/rate_limit.hpp"
+
+#include <cassert>
+
 #include "cf/task.hpp"
 
 int main() {
   using namespace cf;
   int calls = 0;
-  BindingRuntime runtime([&](OperationCall call, BindingRuntime::Completion done) {
-    ++calls;
-    assert(call.method == Operation::RateLimit && call.binding == "LIMITER");
-    const auto value = call.key == "deny" ? 0 : call.key == "bad" ? 2 : 1;
-    done(Result<OperationReply>::success({call.key == "missing" ? ReplyKind::Missing : ReplyKind::Value,
-                                        Bytes{static_cast<std::uint8_t>(value)}}));
-  }, [](auto) {});
+  BindingRuntime runtime(
+      [&](OperationCall call, BindingRuntime::Completion done) {
+        ++calls;
+        assert(call.method == Operation::RateLimit && call.binding == "LIMITER");
+        const auto value = call.key == "deny" ? 0 : call.key == "bad" ? 2 : 1;
+        done(Result<OperationReply>::success(
+            {call.key == "missing" ? ReplyKind::Missing : ReplyKind::Value,
+             Bytes{static_cast<std::uint8_t>(value)}}));
+      },
+      [](auto) {});
   RateLimiter limiter(runtime, "LIMITER");
   auto handler = [&]() -> Task {
     auto allowed = co_await limiter.limit("");

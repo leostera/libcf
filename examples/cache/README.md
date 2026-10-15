@@ -1,15 +1,12 @@
-# Cache API from C++
+# Cache responses
 
 ```sh
-bazel test //:cache_local_test
 bazel build //:cache
-bazel run //:cache_dev
+bazel test //:cache_local_test
 ```
 
-`cf::Cache` exposes `match`, `put`, and `erase` for URL-keyed GET responses, using the default cache or a named cache. `cf::CachedResponse` preserves status, headers and binary bytes. This example uses `PUT/GET/DELETE /entries/:key`; `x-cache-name` selects a named cache. Responses are made cacheable with `Cache-Control: public, max-age=300`.
+`cf::Cache` supports `match`, `put`, and `erase` for URL-keyed GET responses in the default or a named cache. `cf::CachedResponse` owns status, headers, and binary bytes. Use `PUT/GET/DELETE /entries/:key`; `x-cache-name` selects a named cache.
 
-Three local tests cover binary bodies/headers, missing and empty values, actual deletion outcome and named-cache isolation. Native tests reject invalid response status and malformed wire results. The default suite is local workerd. Separate live probes verified default/named-cache miss/put/binary match/headers/delete, empty values and namespace isolation at one client/location; see [live evidence](../../docs/live-verification.md). Production cache topology, TTL expiry, geography, revalidation and eviction have not been verified.
+Operation payloads are capped at 1 MiB and result frames at 4 MiB. Bodies are buffered. Streaming, conditional matching, request-method options, and purge operations are not provided. Cache writes are not durable storage or a guarantee of global visibility; local tests cannot establish production topology or eviction behavior.
 
-The API currently buffers bodies within bridge limits (1 MiB operation payload and 4 MiB result). Streaming, request-method options, conditional matching and purge operations remain unimplemented. Cache writes do not replace durable storage.
-
-Source: [Workers Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/).
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

@@ -3,11 +3,21 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.22.0",
+  "scripts": {
+    "format": "npm run format:cpp && npm run format:ox",
+    "format:check": "npm run format:cpp:check && npm run format:ox:check",
+    "format:ox": "oxfmt .",
+    "format:ox:check": "oxfmt --check .",
+    "format:cpp": "bash scripts/cpp-tools.sh format",
+    "format:cpp:check": "bash scripts/cpp-tools.sh format-check",
+    "lint:cpp": "bash scripts/cpp-tools.sh lint"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261006.1",
     "esbuild": "0.28.2",
     "jsonc-parser": "3.3.1",
     "miniflare": "5.20261006.1-alpha",
+    "oxfmt": "0.73.0",
     "typescript": "6.0.3"
   }
 }

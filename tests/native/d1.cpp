@@ -1,8 +1,9 @@
+#include "cf/d1.hpp"
+
 #include <cassert>
 #include <limits>
 #include <string>
 
-#include "cf/d1.hpp"
 #include "cf/durable_storage.hpp"
 #include "cf/task.hpp"
 
@@ -10,7 +11,8 @@ int main() {
   using namespace cf;
   assert(!detail::encode_sql_values({std::int64_t{9007199254740992LL}}));
   assert(!detail::encode_sql_values({std::numeric_limits<double>::infinity()}));
-  auto parameters = detail::encode_sql_values({nullptr, 3.5, std::int64_t{42}, std::string("text"), Bytes{0, 255}});
+  auto parameters = detail::encode_sql_values(
+      {nullptr, 3.5, std::int64_t{42}, std::string("text"), Bytes{0, 255}});
   assert(parameters);
   detail::WireReader reader(parameters.value());
   std::uint32_t count = 0;
@@ -71,7 +73,12 @@ int main() {
 
   BindingRuntime::Completion complete;
   OperationCall last;
-  BindingRuntime batch_runtime([&](auto call, auto done) { last = std::move(call); complete = std::move(done); }, [](auto task) { task.resume(); });
+  BindingRuntime batch_runtime(
+      [&](auto call, auto done) {
+        last = std::move(call);
+        complete = std::move(done);
+      },
+      [](auto task) { task.resume(); });
   D1Database batch_database(batch_runtime, "DB");
   std::vector<D1Statement> valid_batch;
   valid_batch.push_back(batch_database.prepare("SELECT 1"));
@@ -93,7 +100,8 @@ int main() {
   auto rejected_storage = [&]() -> Task {
     auto sql = co_await storage.sql(unsafe_command);
     assert(!sql && sql.error().code == ErrorCode::InvalidInput);
-    auto alarm = co_await storage.setAlarm(std::chrono::system_clock::time_point{std::chrono::milliseconds{-1}});
+    auto alarm = co_await storage.setAlarm(
+        std::chrono::system_clock::time_point{std::chrono::milliseconds{-1}});
     assert(!alarm && alarm.error().code == ErrorCode::InvalidInput);
     co_return Response::text("storage rejected");
   };

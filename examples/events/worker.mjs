@@ -1,6 +1,6 @@
-import factory from '../../build/events.mjs';
-import wasm from '../../build/events.wasm';
-import { createEventWorker } from '../../lib/events.mjs';
+import factory from "../../build/events.mjs";
+import wasm from "../../build/events.wasm";
+import { createEventWorker } from "../../lib/events.mjs";
 const worker = createEventWorker(factory, wasm);
 export default {
   ...worker,

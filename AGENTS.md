@@ -5,4 +5,5 @@
 - Keep default tests local. Live tests are opt-in, use isolated libcf resource names, and require cleanup evidence. Never touch unrelated resources or commit credentials.
 - Preserve distinctions between implemented, locally tested, and live verified. A successful upload or deploy dry-run is not a successful live runtime test.
 - Public C++ API: namespace `cf`, headers `<cf/...>`. Project branding remains libcf.
-- Migrate builds, tests, CI and packaging to Bazel 9.3.0 with Bzlmod. Remove CMake support at cutover, including `find_package(cf)`; do not retain a compatibility build. Track migration verification in `docs/bazel-migration.md`.
+- Use Bazel 9.3.0 with Bzlmod for builds, tests, CI and packaging. Do not add a CMake compatibility build.
+- Follow `CONTRIBUTING.md`. Keep documentation focused on users and contributors, not internal task tracking or historical verification reports.

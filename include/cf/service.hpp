@@ -49,18 +49,24 @@ class ServiceBinding {
     return runtime_.call<Response>(
         {operation, name_, std::move(request.url), std::move(wire), std::move(options)},
         [](OperationReply reply) -> Result<Response> {
-          const auto invalid = [] { return Result<Response>::failure({ErrorCode::InvalidInput, "invalid binding response"}); };
+          const auto invalid = [] {
+            return Result<Response>::failure({ErrorCode::InvalidInput, "invalid binding response"});
+          };
           if (reply.kind != ReplyKind::Value || reply.bytes.size() > 1048576 + 65536 + 15)
             return invalid();
           detail::WireReader reader(reply.bytes);
           Response response;
           std::string status, body;
           Bytes headers;
-          if (!reader.string(status) || !reader.bytes(headers) || !reader.string(body) || !reader.done() || headers.size() > 65536 || body.size() > 1048576) return invalid();
-          const auto [end, error] = std::from_chars(status.data(), status.data() + status.size(), response.status);
+          if (!reader.string(status) || !reader.bytes(headers) || !reader.string(body) ||
+              !reader.done() || headers.size() > 65536 || body.size() > 1048576)
+            return invalid();
+          const auto [end, error] =
+              std::from_chars(status.data(), status.data() + status.size(), response.status);
           auto parsed = detail::parse_headers(headers);
           if (error != std::errc{} || end != status.data() + status.size() ||
-              response.status < 200 || response.status > 599 || !parsed) return invalid();
+              response.status < 200 || response.status > 599 || !parsed)
+            return invalid();
           response.headers = std::move(*parsed);
           response.body = std::move(body);
           return Result<Response>::success(std::move(response));
@@ -68,12 +74,15 @@ class ServiceBinding {
   }
 
   static AsyncResult<Response> invalid(std::string message) {
-    return AsyncResult<Response>([message = std::move(message)](auto complete) {
-      complete(Result<Response>::failure({ErrorCode::InvalidInput, message}));
-    }, [](std::coroutine_handle<>) {});
+    return AsyncResult<Response>(
+        [message = std::move(message)](auto complete) {
+          complete(Result<Response>::failure({ErrorCode::InvalidInput, message}));
+        },
+        [](std::coroutine_handle<>) {});
   }
   static void u32(Bytes& bytes, std::uint32_t value) {
-    for (int shift = 0; shift != 32; shift += 8) bytes.push_back(static_cast<std::uint8_t>(value >> shift));
+    for (int shift = 0; shift != 32; shift += 8)
+      bytes.push_back(static_cast<std::uint8_t>(value >> shift));
   }
   static void field(Bytes& bytes, std::string_view value) {
     u32(bytes, static_cast<std::uint32_t>(value.size()));

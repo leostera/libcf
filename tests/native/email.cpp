@@ -1,26 +1,28 @@
+#include "cf/email.hpp"
+
 #include <cassert>
 #include <map>
-#include "cf/email.hpp"
 
 int main() {
   using namespace cf;
-  std::map<std::string, std::string> fields{
-      {"__LIBCF_EMAIL_EVENT", "email"}, {"__LIBCF_EMAIL_FROM", ""},
-      {"__LIBCF_EMAIL_TO", "inbox@example.test"}};
+  std::map<std::string, std::string> fields{{"__LIBCF_EMAIL_EVENT", "email"},
+                                            {"__LIBCF_EMAIL_FROM", ""},
+                                            {"__LIBCF_EMAIL_TO", "inbox@example.test"}};
   Env env([&](std::string_view key) -> std::optional<std::string> {
     auto it = fields.find(std::string(key));
     return it == fields.end() ? std::nullopt : std::optional(it->second);
   });
   const auto append = [](std::string& wire, std::string_view field) {
-    for (unsigned shift = 0; shift < 32; shift += 8) wire.push_back(static_cast<char>(field.size() >> shift));
+    for (unsigned shift = 0; shift < 32; shift += 8)
+      wire.push_back(static_cast<char>(field.size() >> shift));
     wire.append(field);
   };
   std::string wire;
-  append(wire, ""); // Empty logical header list.
+  append(wire, "");  // Empty logical header list.
   append(wire, std::string("a\0\xff", 3));
   Request request{"POST", "https://example.test", {}, wire};
   auto parsed = email_message(env, request);
-  assert(parsed && parsed.value().from.empty()); // SMTP null reverse path is valid.
+  assert(parsed && parsed.value().from.empty());  // SMTP null reverse path is valid.
   assert(parsed.value().raw == (Bytes{'a', 0, 255}));
   request.body.push_back('x');
   assert(!email_message(env, request));

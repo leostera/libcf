@@ -1,305 +1,51 @@
-# Bazel development
+# Build and develop with Bazel
 
-Use **Bazelisk** to select the official Bazel **9.3.0** release from
-`.bazelversion`, or install that official release directly. The public header
-target is `//:cf`; the Bzlmod module is named `cf`.
+Use **Bazelisk** or official **Bazel 9.3.0**, plus a native C++ compiler/SDK. `.bazelversion` selects the release for Bazelisk; it cannot change a standalone executable. On macOS, prefer `brew install bazelisk` over the Homebrew-built Bazel formula, whose version metadata can change dependency lock digests.
 
-On macOS with Homebrew:
+## Build and test
 
 ```sh
-# Only if the standalone Homebrew bazel formula is already linked:
-brew unlink bazel
-brew install bazelisk
-bazel --version # must report bazel 9.3.0, without the Homebrew suffix
-```
-
-`.bazelversion` selects a binary through Bazelisk; it cannot change the version of
-an already-installed standalone Bazel executable. The Homebrew-built `bazel`
-formula embeds `9.3.0 Homebrew` in the generated `bazel_features` version file.
-That file is transitively loaded by the Emscripten extension, changing its lock
-digest. Do **not** regenerate the project lock with that binary to clear the
-error: it would then fail with the official binary used in CI.
-
-After switching this development machine to Bazelisk 1.29.0, ordinary
-`bazel test //...` passed all 81 targets and `bazel build //...` succeeded with
-197 targets, without changing `MODULE.bazel.lock`.
-
-The declared local test graph is available:
-
-```sh
-bazel test //...
+bazel test //...                         # local default suite
+bazel test //:core_local_test            # one example
+bazel test //:native_events_test         # one native API suite
+bazel test //:js_queue-adapter_test      # one JS adapter suite
 bazel test --config=cxx23 //:native_tests
 bazel build //:all_workers //:all_bundles
-bazel test //:bundles_test
-# Individual module, producing bazel-bin/build/rpc.mjs and rpc.wasm:
-bazel build //:rpc
+bazel build //:sdk_archive
+bazel run //:verify_package -- "$(command -v bazel)"
 ```
 
-`--config=cxx23` selects the native test configuration; it does **not** override
-an example Worker's explicit/default `cf_worker(cxx_standard = 20)`. Use
-`cf_worker(cxx_standard = 23)` for a C++23 Worker, as the relocated SDK consumer
-check does. A successful example build with `--config=cxx23` alone is not C++23
-Wasm compilation evidence (the Images action parameters still select C++20).
+Bazel downloads pinned Emscripten, Node, and JavaScript dependencies. Default tests require no Cloudflare account and do not deploy or use remote bindings. Native builds use your host compiler and SDK. Linux CI also runs sanitizer tests.
 
-The JS test runs Node 26.11.1, parses JSONC, bundles the Bazel-generated hello
-bridge with esbuild, and executes C++ addition through Wasm in local workerd.
-It declares both generated JS/Wasm artifacts and npm dependencies. It does not
-read the old source `build/` artifacts, use Cloudflare credentials, or deploy.
+`--config=cxx23` selects the native test standard. For Wasm, set `cf_worker(cxx_standard = 23)` explicitly; its default is C++20. The shared bridge is compiled in C++20. Wasm exception catching/unwinding is disabled.
 
-`//:all_workers` builds 42 module pairs: 39 Worker examples,
-the separate Durable Object implementation, the hello bridge spike and an explicit
-C++23 stream-lifecycle test probe (with a compile-time standard assertion). The shared
-`src/worker.cpp` compiles once per configuration. The original cutover action-graph
-inspection found26 C++ compilation actions, exactly one belonging to
-`//:worker_runtime`; later example additions increase the total.
-`//tools:worker.bzl` provides the declared compile/link/extraction rule. Public
-runtime files are exposed through `//:runtime_modules` and `//:host_library`.
-
-`//:all_bundles` emits 48 JS/Wasm module bundles, including the private upstreams
-and plain-JS baselines. Each `bazel-bin/bundles/<name>/` contains `worker.mjs`, a
-versioned `bundle.json` inventory and content-addressed static Wasm imports.
-Current inventory schema2 includes `mainModule`, `wasmModules` and
-`requiredTextModules` (sorted unique module specifiers). The latter records actual
-emitted imports of `__STATIC_CONTENT_MANIFEST`, when present; the bundler preserves
-that import and does not invent its contents. A deployment/runtime must supply the
-text module separately. The legacy-sites bundle requires it; other existing examples do not.
-Historical schema1 evidence is retained unchanged. `//:js_bundle-modules_test`
-executes a generated bundle with an explicitly supplied synthetic text module,
-checks startup failure without it, and excludes tree-shaken imports from requirements.
-This verifies bundling/module linkage, not Sites uploading or namespace access.
-For example, `bazel build //:rpc_bundle` builds only that bundle's dependencies.
-The bundler is a declared Node action with no deployment, account access or random
-resource identity. Bindings, assets and ownership manifests are separate deployment
-inputs; these module bundles are not complete prebuilt `cf deploy` directories.
-`//:bundles_test` validates all 47 inventories, Wasm hashes/validity and static
-imports, then executes the emitted C++ and JS benchmark bundles in workerd.
-
-The upstream Bazel Emscripten toolchain defaults to `-fno-exceptions`, unlike the
-previous direct em++ invocation. The rule explicitly allows throw expressions
-while retaining `DISABLE_EXCEPTION_CATCHING=1`, matching the previous non-catching
-Emscripten policy. It does not add C++ exception recovery or unwinding support.
-The first all-example build exposed this mismatch; the corrected build passed,
-as did the actual core Worker integration suite and all 19 native suites.
-
-## Opt-in development and live commands
-
-`bazel run //:core_dev` starts local workerd and builds its module first. Equivalent
-`*_dev` targets exist for hello, KV, D1, R2, Cache, service, durable and events.
-All advertised families also have independent `*_local_test` targets.
-
-Live preparation and probes are **manual run targets**, not default tests:
+## Run an example
 
 ```sh
-bazel run //:prepare_live_worker -- cache
-# Preflight ownership before any deployment, then use the cf CLI in build/live-cache.
-bazel run //:live_cache -- <owned-hostname>
+bazel run //:core_dev
+# Stop with Ctrl-C.
+bazel build //:kv
+bazel test //:kv_local_test
 ```
 
-Preparation writes to the source workspace's `build/live-<family>/`, never Bazel's
-disposable runfiles/output tree. An existing output directory is rejected instead
-of overwriting its manifest. For a retry, retain/move the old directory only after
-independently verifying cleanup of all resources it identifies. Do not erase active
-ownership evidence merely to clear an `EEXIST` error.
+Development targets also exist for hello, KV, D1, R2, Cache, service, durable, and events. Specialized bindings may require dedicated local fixtures rather than the generic development helper; use their example README.
 
-The events probe has a separate elapsed Cron-observation budget: 20 minutes by
-default, configurable with `LIBCF_LIVE_CRON_TIMEOUT_MS` (1..3600000 ms). That
-single deadline covers HTTP, bounded 64-KiB response bodies and retry sleeps.
-Longer observation is opt-in and does not constitute delivery evidence. The internal
-Cron control uses the same timeout setting, interrupts in-flight CLI queries at
-the deadline, and retains fresh per-command budgets for cleanup. Its CLI output
-is separately bounded to 1 MiB per command.
+## Outputs
 
-Cron preparation compares canonical Wasm paths: esbuild may resolve a runfile
-symlink to its physical artifact path. Regression tests accept aliases of the
-declared module and reject different files even when their names/bytes match.
-The actual Bazel executable also passed offline preparation of both controls.
+`bazel build //:core` produces `bazel-bin/build/core.mjs` and `core.wasm`.
+`bazel build //:core_bundle` produces `bazel-bin/bundles/core/`, containing a bundled entrypoint, static Wasm modules, and `bundle.json` module metadata.
 
-Probe target names replace family hyphens with underscores, for example
-`//:live_http_client`, `//:live_rate_limit` and `//:live_rpc`. Arguments and bounded
-readiness settings are unchanged. `//:prepare_cron_control` prepares the plain-JS
-and C++ scheduled controls; `//:live_cron_control` requires an explicit manifest
-path and `--cleanup`. Workflow readback and Cron cleanup require the authenticated
-`cf` CLI on PATH. These targets do not grant approvals for fee-sensitive bindings.
+Bundles are not complete deployment manifests. Binding configuration, assets, service peers, and resource ownership belong to the application. Legacy Sites additionally requires the imported `__STATIC_CONTENT_MANIFEST` text module; bundling does not upload assets or invent the manifest.
 
-`//:benchmark_sdk` consumes prebuilt modules and requires a new absolute report
-path. A short two-round/five-sample smoke run passed after migration; it verifies
-execution and report generation, not a useful performance comparison. Schema 2
-reports use `buildMilliseconds: null` because compilation happens before execution.
+Reusable rules are in `tools/worker.bzl`; the public header target is `//:cf`. See [SDK integration](packaging.md) for external consumers.
 
-## Dependencies and host requirements
+## Optional tools
 
-- `MODULE.bazel` pins build rules, Emscripten **6.0.12**, Node **26.11.1** and pnpm
-  **10.22.0**. Node archives have explicit official SHA-256 hashes for macOS/Linux
-  arm64/x86_64. Emscripten and its Python/tool dependencies use the upstream
-  checksum-pinned Bazel module. `MODULE.bazel.lock` records module resolution.
-- `pnpm-lock.yaml` preserves all **84** package versions and integrity hashes
-  from the committed npm lockfile at migration baseline `ccc0500`. Its direct
-  runtime/build dependencies remain esbuild **0.28.2**, jsonc-parser **3.3.1** and
-  Miniflare **5.20261006.1-alpha**, with workerd **1.20261006.1**. Two development-only
-  additions bring the lock to **86** packages: Workers types **5.20261006.1** and
-  TypeScript **6.0.3**, used by `//:platform_contracts_test`. TypeScript6 retains
-  the JavaScript compiler API without the native-platform dependencies of7.
-  See [static contract scope](platform-contracts.md). The unrelated formatter
-  additions in the working npm files are not part of this lock conversion.
-- Package install hooks are disabled. Native executables/libraries come from
-  integrity-locked optional packages; actual esbuild/workerd execution is checked,
-  not inferred from successful imports. Image/sharp execution and synthetic pixel
-  checks run in the native Images integration tests.
-- First use downloads public build dependencies. Normal test execution uses
-  local workerd and does not mutate a Cloudflare account. Aspect telemetry is
-  disabled through `DO_NOT_TRACK` in `.bazelrc`.
-- CI uses Ubuntu 24.04 with GCC **13.3.0** selected and checked,
-  a checksum-verified Bazel 9.3.0 binary, the default graph, explicit C++23 and
-  ASan/UBSan native runs. A `cf` CLI dry-run consumes Bazel-built modules through
-  `//:prepare_live_worker`; npm is used only to install that external CLI, not
-  to build or test libcf. Both local and Linux CI dry-runs passed.
-- **Native C++ currently uses the host toolchain**, unlike downloaded Emscripten
-  and Node. The verified host is Apple clang **17.0.0 (clang-1700.6.3.2)** with
-  macOS SDK **26.2**, arm64. Xcode/SDK installation is an external prerequisite;
-  this is not a claim of hermetic native compilation or cross-host identical
-  output. Linux x86_64 CI uses the checked GCC version above and passes sanitizers.
-  macOS x86_64 and Linux arm64 remain unverified.
+```sh
+bazel run //:benchmark_spike
+bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json
+```
 
-Bazel outputs are ignored as `/bazel-*`; generated sources live in Bazel output
-and runfiles trees. Existing `build/` is excluded from package discovery, not
-deleted: it contains retained live-test ownership records and evidence.
+Choose a new absolute report path. See [benchmark methodology](benchmarks.md). Build time is not included.
 
-## Test coverage during cutover
-
-The default graph currently contains **172 test targets**: 35 native suites,
-C++20/23 all-header checks, 41 example/benchmark/probe integration targets, 90 JS
-adapter/policy checks, three toolchain/bundle/declaration checks and the SDK archive test.
-The graph passes locally; the CI evidence below identifies verified revisions.
-The native/header suite now contains 37 targets, also tested with `--config=cxx23`.
-The AI, AI Search, Agent Memory, Container inspection, Vectorize, Media, Browser and dispatch integrations use explicitly mocked providers or
-namespace selection inside workerd, not native remote-service verification. The
-local harness rejects their production binding configurations. Dispatch's mock
-returns a native local service Fetcher, not a deployed WfP user Worker.
-Integration targets consume declared Wasm outputs rather than spawning compilers.
-The initial all-header attempt omitted `CF_CONSUMER_STANDARD`; the rules now
-provide the same explicit standard assertion selector as the previous consumer.
-
-The old CMake installed-package test and compiler-spawning integration wrappers
-have been removed. Their [archive/external-consumer replacement](packaging.md)
-passes on macOS and Linux. External consumption runs separately through
-`bazel run //:verify_package`; example tests run directly through Bazel. Live-policy/readiness/artifact tests are
-local simulations; their names do not imply account access or new live evidence.
-
-## Bazel distribution and lockfile
-
-The first Linux CI attempt stopped during analysis: its official Bazel binary
-computed a different Emscripten extension digest from the local binary reporting
-`9.3.0 Homebrew`. The official macOS binary reproduced the same strict-lock error.
-Regeneration with the official binary changed exactly one `bzlTransitiveDigest`,
-without changing dependency versions, repository definitions or archive hashes.
-All 79 tests then passed, and the native/C++23 suite passed with
-`--lockfile_mode=error`. Use the official distribution to avoid rewriting this
-version-dependent digest. Strict lock checking is now the project default, not
-just a CI flag; deliberate dependency changes require an explicit
-`--lockfile_mode=update` invocation with the official binary.
-
-## Linux CI evidence
-
-[Run 38487030301](https://github.com/leostera/libcf/actions/runs/38487030301),
-commit `92d7a0c`, passed on Ubuntu 24.04/GCC 13.3.0 with official Bazel 9.3.0:
-
-- the complete 79-target default graph with strict lock checking;
-- all 21 native/header targets under the C++23 configuration;
-- all 21 native/header targets under ASan/UBSan, with a 60-second test timeout;
-- preparation using Bazel-built modules and an offline `cf deploy` dry-run.
-
-No Cloudflare account resources were created. Later
-[run 38489131176](https://github.com/leostera/libcf/actions/runs/38489131176),
-commit `58400d7`, also passed the new archive test (80 default targets total) and
-relocated external-consumer checks. The SDK archive matched both independent
-macOS builds byte-for-byte; [the report](builds/sdk-2026-10-14.json) records its
-source revision and digest.
-
-[Run 38491371895](https://github.com/leostera/libcf/actions/runs/38491371895),
-commit `3eee351`, passed after CMake/compiler-wrapper removal and persistent live
-output preparation: all 81 default targets, C++23, sanitizers, external consumption
-and offline deployment preparation/dry-run. No live resource was created.
-GitHub reported a deprecation notice for the pinned checkout/setup-node v4 actions'
-internal Node runtime; the project's Node toolchain remains pinned and tested.
-
-[Run 38499755964](https://github.com/leostera/libcf/actions/runs/38499755964),
-commit `73fc3a2`, passed all 83 default tests and the C++23, sanitizer, package
-and offline dry-run jobs. The preceding
-[run 38498719521](https://github.com/leostera/libcf/actions/runs/38498719521)
-failed the clock example's `/same-turn` check with HTTP 502. That response body
-was not captured; 30 fresh local repetitions passed. Inspection of the pinned
-workerd source then established that its local `TimerChannel::now` reads the
-system clock rather than freezing it between I/O. The example now returns all
-33 synchronous samples: local tests check every sample against the JS bracket;
-the live probe still requires all samples to be equal. A mocked live-probe test
-rejects advancing samples. See the [clock example](../examples/clock/README.md)
-for the pinned source and the distinction between transport and platform policy.
-No retry hides the original failure; error messages retain response body/path.
-[Run 38501440558](https://github.com/leostera/libcf/actions/runs/38501440558),
-commit `0c3b229`, passed all 84 default tests, C++23, sanitizers, package consumers
-and offline dry-run after this correction. The revised
-[clock live probe](live/bazel-clock-2026-10-14.json) also passed with cleanup.
-[Run 38503312280](https://github.com/leostera/libcf/actions/runs/38503312280),
-commit `a7a624f`, then passed 85 default tests and the remaining CI checks after
-the documented decimal-KB Queue producer guard correction.
-
-[Run 38507665288](https://github.com/leostera/libcf/actions/runs/38507665288),
-commit `5a00b22`, passed 88 default tests, 22 C++23 native/header targets,
-22 ASan/UBSan targets and relocated native20/23 plus Worker23 consumers of the
-80-file SDK. The added AI integration is explicitly **mock-only**, not real
-inference or native AI service verification. No account usage or live resources
-were involved. This revision has no new cross-host archive-identity claim.
-
-[Run 38511219987](https://github.com/leostera/libcf/actions/runs/38511219987),
-commit `921311b`, passed 92 defaults, 23 C++23 native/header targets,
-23 ASan/UBSan targets and relocated consumers of the 82-file SDK after adding
-the bounded service TCP client. [Run 38511948729](https://github.com/leostera/libcf/actions/runs/38511948729),
-commit `8cc8f6c`, passed the complete pipeline with 93 default tests after adding
-its opt-in live harness. CI uses a real local service socket, not external TCP or
-a database; these CI results do not establish production socket behavior.
-
-[Run 38516878628](https://github.com/leostera/libcf/actions/runs/38516878628),
-commit `4550fd0`, passed 97 defaults, 24 C++23 native/header targets, 24 ASan/UBSan
-targets and relocated native20/23 plus Worker23 consumers of the 84-file SDK.
-Vectorize coverage is explicitly mock-only, not native index/ranking evidence.
-The Linux archive integrity was `sha256-vn9hnLhNXYTn/KNL43NSb1kB56OvKXlOFNl4kSKDSuE=`;
-no new cross-host equality claim is made.
-
-[Run 38519905008](https://github.com/leostera/libcf/actions/runs/38519905008),
-commit `031b8c1`, passed 101 defaults, 25 C++23 native/header targets,
-25 ASan/UBSan targets and relocated consumers of the 86-file SDK. Dispatch
-namespace coverage is explicitly mocked; native WfP behavior is not established.
-The Linux archive integrity was `sha256-UpLWVj4qLJIlLOfhwux6xn/lvJeCMvmCl3S/OFd7X0c=`;
-it is revision-specific, not a new cross-host reproducibility claim.
-
-[Run 38531008427](https://github.com/leostera/libcf/actions/runs/38531008427),
-commit `4326f8b`, passed 107 defaults, 26 C++23 native/header targets,
-26 ASan/UBSan targets and relocated consumers of the 88-file SDK. Media frame
-coverage uses an explicit provider mock, not native transformation evidence.
-The Linux archive integrity was `sha256-zEf33SiFqxiJtijNmm+RQQtn+kH5FHOLXqf2pem03fM=`;
-this is revision-specific, not cross-host equality evidence.
-
-## Current evidence
-
-On 2026-10-13, the two toolchain tests passed with
-`--nocache_test_results`, including the real Wasm/esbuild/workerd path. The native
-core test also passed in explicit C++23 mode.
-
-A separate `git archive` of commit `674ceb3`, with a fresh Bazel output base,
-passed both tests with `--lockfile_mode=error --nocache_test_results`. Its PATH
-contained only system directories (no Homebrew Node/CMake or local emsdk), and
-it had no `node_modules/`, source `build/`, or untracked formatter helper. No source
-`build/` directory was created. Downloads could use Bazel's repository cache;
-this proves clean-source/input separation, not an empty-download-cache build.
-
-A clean archive of `867fa75` then built all 25 module pairs and passed all 21
-selected test targets (19 native suites, core local integration and the toolchain
-smoke), using the same locked/system-only-PATH procedure. No source `build/`
-directory was created. Two further independent archives of `27dc3bf`, with separate
-fresh output bases and the same locked/system-only-PATH procedure, passed the
-29-bundle inventory/runtime test. All **83 bundle files were byte-identical**;
-[the recorded hashes](builds/bazel-2026-10-13.json) identify the artifacts.
-This is same-host repeatability with a shared download cache, not cross-host or
-empty-download-cache reproducibility.
-
-These build checks do not replace live verification or the final release audit. See [the migration checklist](bazel-migration.md).
+Live preparation/probe targets are opt-in and require the [contribution safety rules](../CONTRIBUTING.md#optional-live-testing). `bazel run //:prepare_live_worker -- <family>` creates local inputs in `build/live-<family>/` and refuses to overwrite an existing directory. Do not delete an ownership manifest while its resources remain active. No build command deploys a Worker.

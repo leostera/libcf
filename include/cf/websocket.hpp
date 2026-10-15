@@ -21,15 +21,19 @@ using WebSocketEvent = std::variant<WebSocketMessage, WebSocketClose, WebSocketE
 
 inline Result<WebSocketEvent> websocket_event(const Env& env, Request request) {
   const auto invalid = [] {
-    return Result<WebSocketEvent>::failure({ErrorCode::InvalidInput, "invalid WebSocket event metadata"});
+    return Result<WebSocketEvent>::failure(
+        {ErrorCode::InvalidInput, "invalid WebSocket event metadata"});
   };
   if (env.var("__LIBCF_DO_EVENT") != "websocket") return invalid();
   const auto kind = env.var("__LIBCF_WS_KIND");
   if (kind == "message") {
     if (request.body.size() > 1024 * 1024) return invalid();
     const auto format = env.var("__LIBCF_WS_FORMAT");
-    if (format == "text") return Result<WebSocketEvent>::success(WebSocketMessage{std::move(request.body)});
-    if (format == "bytes") return Result<WebSocketEvent>::success(WebSocketMessage{Bytes(request.body.begin(), request.body.end())});
+    if (format == "text")
+      return Result<WebSocketEvent>::success(WebSocketMessage{std::move(request.body)});
+    if (format == "bytes")
+      return Result<WebSocketEvent>::success(
+          WebSocketMessage{Bytes(request.body.begin(), request.body.end())});
   }
   if (kind == "close") {
     const auto code = env.var("__LIBCF_WS_CODE");
@@ -37,9 +41,11 @@ inline Result<WebSocketEvent> websocket_event(const Env& env, Request request) {
     if (!code || (clean != "0" && clean != "1")) return invalid();
     std::uint16_t parsed = 0;
     const auto [end, error] = std::from_chars(code->data(), code->data() + code->size(), parsed);
-    if (error != std::errc{} || end != code->data() + code->size() || parsed < 1000 || parsed > 4999)
+    if (error != std::errc{} || end != code->data() + code->size() || parsed < 1000 ||
+        parsed > 4999)
       return invalid();
-    return Result<WebSocketEvent>::success(WebSocketClose{parsed, std::move(request.body), clean == "1"});
+    return Result<WebSocketEvent>::success(
+        WebSocketClose{parsed, std::move(request.body), clean == "1"});
   }
   if (kind == "error") return Result<WebSocketEvent>::success(WebSocketError{});
   return invalid();

@@ -1,29 +1,12 @@
-# C++/Emscripten Workers feasibility spike
-
-This is a **working experimental bridge**, not the public libcf API. Prerequisite: official **Bazel 9.3.0**, directly or through Bazelisk. Emscripten **6.0.12**, Node.js **26.11.1** and Miniflare **5.20261006.1-alpha** are pinned and downloaded by Bazel.
+# Low-level bridge example
 
 ```sh
-bazel test //:hello_local_test # compile C++, start local workerd, test six behaviors
-bazel run //:benchmark_spike   # optional local/rough comparison to plain JS
 bazel build //:spike
-bazel run //:hello_dev
-# Use the printed local URL for /?a=17&b=25, /asset, or /stream?count=3.
-# Live deployment uses cf; see docs/live-verification.md.
+bazel test //:hello_local_test
 ```
 
-The static `CompiledWasm` import is instantiated by generated `build/spike.mjs` glue; no fetching a `.wasm` URL at runtime. `src/spike.cpp` exports a small C ABI and imports host functions from `src/host.js` (Emscripten JS library). `worker.mjs` is the module event handler and JS platform adapter. Each async operation gets a monotonic ID and a per-operation Promise; the JS host copies all borrowed C++ bytes **before** scheduling asynchronous work. When KV or asset fetch settles, JS copies the result into Wasm memory, resumes C++, C++ formats/handles the result, and JS resolves the Response. A streaming Response invokes C++ once per underlying `ReadableStream.pull()`, rather than creating all chunks at once in the handler. `ctx.waitUntil()` attaches the KV write to the request lifecycle even when `/write` returns 202 immediately.
+This is a minimal C++/Emscripten bridge example, not the public libcf API. Start with [core](../core/README.md) for application code. `src/spike.cpp` exports a small C ABI; `src/host.js` supplies imports; `worker.mjs` adapts platform events.
 
-**Why C ABI + small JS shim:** explicit byte ownership, stable exported functions, and no dependency on Rust's wasm-bindgen/worker-build Emscripten integration. Embind remains a candidate for ergonomic/high-level adapters but is not needed for this narrow proof; no measured Embind comparison has been made. This is *not* proof that Emscripten POSIX sockets, filesystem, multi-threading or Asyncify work in libcf.
+Run `bazel run //:hello_dev` and try `/?a=17&b=25`, `/asset`, or `/stream?count=3`. The fixture demonstrates asynchronous KV/Assets, stream pulls, and background writes. It assumes UTF-8 text and lacks the main runtime's general timeout/abort and error model. It is not evidence of POSIX sockets, filesystem, threads, or Asyncify support. The optional `benchmark_spike` comparator has unmatched functionality and is not a production performance benchmark.
 
-**Limits before hardening:** the spike handles text, not arbitrary binary response bodies; assumes UTF-8; has no timeout/abort listener on outstanding KV/asset Promises and no general type/error model. Emscripten heap views must be refreshed after growth, and pointers must not escape synchronous calls. Underlying stream pulls are demand-driven but HTTP can coalesce chunks or eagerly drain the stream; the test does **not** establish end-to-end transport backpressure. Shared mutable request state lives only in a JS pending-operation map and must be cleaned on cancellation/timeout in the production core. Never treat this demo's `id` allocator or KV text conversion as finished library design. The default suite uses only local resources; no Cloudflare account or deployment is used.
-
-## Local measurement (one run; not a production benchmark)
-
-Historical run (before the launcher migration): 2026-10-13, macOS arm64, Node 26.11.1, Emscripten 6.0.12, Wrangler 4.149.0 / local workerd:
-
-| Variant | Source/artifact bytes | Startup + first local response | First request from client | Median HTTP round trip (100 sequential after 30 warmups) |
-|---|---|---:|---:|---:|
-| Plain JS comparator | 329 bytes JS | 824.5 ms | 91.01 ms | 1.55 ms |
-| C++ C-ABI Wasm | 7,131 bytes generated JS + 10,015 bytes Wasm | 823.8 ms | 110.13 ms | 1.74 ms |
-
-Numbers include Wrangler startup/local HTTP/network and are noisy, not isolate cold starts or pure bridge timings. The JS comparator only implements arithmetic; the C++ artifact also implements KV, asset fetch, streaming, and waitUntil. The current benchmark uses Miniflare directly. One post-migration run measured JS/C++ local medians of 0.67/0.73 ms and bundle+runtime+readiness of 94.7/91.0 ms. These are different harness timings, not comparable production startup measurements. Re-run `bazel run //:benchmark_spike` for the current machine; measure matched functionality and allocations before performance claims.
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

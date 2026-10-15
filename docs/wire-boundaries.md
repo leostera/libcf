@@ -1,66 +1,29 @@
-# Binary reply boundaries
+# Wire formats and limits
 
-The binding wire protocol uses little-endian u32 lengths/counts and owned data. `detail::WireReader` never constructs a string/byte field until its declared length fits the unread buffer. A failed parse is terminal; consumed prefixes are not rolled back.
+The C++/JavaScript bridge uses owned data and little-endian u32 lengths/counts. These are SDK limits, not Cloudflare quotas or heap limits. Provider allocation, application containers, copies, and concurrent requests add memory overhead.
 
-Counts must fit the **remaining** bytes, not the original buffer length: already-consumed metadata/cursors cannot justify later records. KV keys require at least 12 encoded bytes each, R2 objects 20, SQL rows 4 and SQL columns 8. KV/R2 list decoders also require a value reply and enforce both the requested page limit and the platform maximum of 1000 records before materializing entries. An incomplete page must carry a nonempty continuation cursor. Header parsing checks both name and value lengths before allocating either string. Trailing bytes reject rather than being ignored.
+## Decode before use
 
-The review reproduced a prior decoder accepting two KV keys for `list(limit=1)`. Native regression cases now cover exact limits, excess records, missing reply kinds, continuation cursors, consumed-prefix count padding, trailing data and truncated SQL/header frames. Tests use deliberately malformed host replies; they do not claim the live providers emitted such replies.
+`detail::WireReader` checks lengths against unread bytes before constructing values. Counts must fit the remaining buffer, not the original frame. Malformed/truncated fields, invalid reply kinds, and trailing bytes reject. KV/R2 list decoders enforce requested page size and platform caps; incomplete pages require a nonempty continuation cursor. Empty values remain distinct from missing values.
 
-## Buffered HTTP request and reply frames
+## Buffered HTTP
 
-Service fetch, Durable Object fetch, Worker Loader, outbound HTTP and dispatch
-share a request codec: three u32-prefixed fields (method, header wire, body).
-The host caps the **entire operation body at1MiB**, so the request body budget is
-`1048576 - 12 - methodBytes - headerWireBytes`, not a full1MiB plus overhead.
-The C++ encoder and JS decoder now enforce that same aggregate boundary. Methods
-are1–32 bytes; headers are separately capped at64KiB. The dispatch integration
-exposed the previous mismatch at an exactly1MiB raw request body; it was rejected
-by the bridge, not by Workers for Platforms. The correction retains the bridge cap.
+Service fetch, Durable Object fetch, Worker Loader, outbound HTTP, and dispatch share three u32-prefixed request fields: method, header wire, and body. The total operation payload is capped at **1 MiB**, so the usable body is `1048576 - 12 - methodBytes - headerWireBytes`. Methods are 1–32 bytes and header wire is capped at 64 KiB.
 
-UTF-8 method/header fields retain leading U+FEFF during decoding. A BOM must not
-silently turn an invalid method or header name into a valid token. Methods and
-header names must be nonempty ASCII HTTP tokens; values reject C0 controls other
-than HTAB and reject DEL. Body bytes are not decoded. Native Request/Headers
-normalization of otherwise valid fields (such as name case/outer whitespace)
-remains in effect.
+Methods/header names must be nonempty ASCII HTTP tokens. Values reject C0 controls except HTAB and reject DEL. UTF-8 decoding preserves BOM characters rather than silently turning invalid tokens into valid ones. Native header case/whitespace normalization still applies. Unicode header values remain subject to host support; Node and workerd differ. Body bytes are opaque.
 
-This validation cannot be delegated entirely to the host: pinned workerd accepted
-the tested U+FEFF-prefixed header name that Node rejected. Workerd also preserved
-a U+FEFF-prefixed **value**, while Node's ByteString API rejected it. The codec
-preserves Unicode values where the native host supports them rather than stripping
-code points to force acceptance. Tests cover both hosts, forbidden tokens/controls,
-internal HTAB, raw binary/BOM bodies and recovery. Native probes use the actual
-adapter source with an in-process fake fetcher, owned temporary state and no
-network/provider calls; they prove native HTTP-object behavior, not routing or
-remote header acceptance. The initial BOM regression failed before the fix.
+Buffered replies allow a 1 MiB body and 64 KiB header wire plus prefixes/status. C++ checks aggregate and field bounds. These operations do not provide end-to-end streaming or upgrade forwarding.
 
-Buffered replies permit a1MiB body and64KiB header wire, plus the three prefixes
-and a three-digit status. C++ rejects oversized aggregate replies before decoding,
-and rejects oversized individual fields. Boundary tests use forged replies and
-explicit mocks; these are not observations of malformed provider output.
+## Stream reads
 
-## Stream chunk ownership
+`readBounded` copies each observed Uint8Array before requesting another chunk, so later producer reuse cannot mutate accumulated bytes. Invalid chunks, overflow, and abort trigger at most one best-effort cancellation without waiting indefinitely on cleanup.
 
-`readBounded` copies each observed Uint8Array before requesting another chunk.
-The regression producer reuses one byte buffer with highWaterMark0: retaining
-chunk references until EOF returned `[3,3,3]` instead of the observed `[1,2,3]`.
-The reader now grows an owned accumulator up to its byte limit and trims the final
-buffer; it retains neither producer views nor a per-chunk/empty-chunk list.
-Invalid byte chunks, byte overflow and abort cancel at most once, best effort,
-without awaiting stalled cleanup. Limits/signals are checked before locking.
+This is an observation-time copy, not an enqueue-time snapshot. Producer queues, native allocations, and transient accumulator copying are not bounded by the output limit. A byte cap alone does not limit elapsed time or CPU for endless empty chunks; use cancellation/deadlines and finite producers.
 
-This is not an enqueue-time snapshot guarantee: the producer can change an object
-before the read observes it. Producer queues, native provider allocation and
-transient accumulator growth/final copying are outside a strict heap-size claim.
-An endless stream still needs caller cancellation or an appropriate deadline;
-a byte limit alone does not bound elapsed time or CPU work from empty chunks.
+## JSON results
 
-## JSON result preparation
+`encodeBoundedJson` accepts finite numbers, strings, booleans, null, dense ordinary arrays, and ordinary/null-prototype records. It rejects accessors without invoking them, toJSON functions, unsupported prototypes/capabilities, cycles, sparse arrays, extra array properties, and unsupported primitives. Repeated references serialize by value. Proxy traps and modified intrinsics are outside this contract; it is not a JavaScript sandbox.
 
-The internal `encodeBoundedJson` helper accepts only ordinary JSON-compatible values: finite numbers, strings, booleans, null, dense ordinary arrays, and ordinary/null-prototype records. It rejects accessors without invoking them, `toJSON` functions, non-enumerable data, extra array properties, unsupported prototypes/capabilities, cycles and unsupported primitive values. Repeated references are serialized by value. Proxy traps and modified JS intrinsics are outside this ordinary-data contract; this is not a JavaScript sandbox.
+Output is capped at 1 MiB, 32 container levels, and 65,536 value nodes. Output is not canonical JSON. A caller may explicitly omit a native RPC root's `Symbol.dispose`, but still owns its disposal on success or failure. Nested disposers are unsupported. The RPC adapter drains/disposes late results; disposal does not prove stopped remote work or rollback.
 
-Output is limited to 1 MiB, 32 container levels and 65,536 value nodes. String escaping uses 1024-code-unit chunks to bound temporary escaping allocations; split surrogate pairs remain semantically intact through JSON escapes. The representation is not canonical JSON. A caller may explicitly allow the native RPC root `Symbol.dispose` function to be omitted, but **the caller still owns disposal**, including on encoding failure. Nested disposers remain unsupported. This encoder alone neither invokes RPC nor guarantees remote cleanup.
-
-The JSON RPC adapter backs `cf::RpcService::call_json` (operation 304). Two C++/workerd cases verify JSON calls, concurrency, errors and recovery. Adapter tests and a separate JS-only workerd service fixture verify JSON ownership, reserved-name rejection, aggregate disposal of unsupported capability results and late-result release after caller cancellation. Both RPC promises and resolved objects can carry disposers. A real local probe observed a disposed pending promise still fulfilling, so the adapter continues to drain and dispose its value; disposal is not proof of cancellation or remote rollback. Server-side disposer timing remains unverified.
-
-The 4-MiB result-wire limit is **not** a 4-MiB heap limit. Owned strings, maps, vectors, provider results and overlapping requests add memory overhead. Wire bounds do not replace application concurrency budgets, nor do they make opaque JSON metadata schema-validated. See the family READMEs and [request lifetime](request-lifetime.md) for ownership, cancellation and side-effect limits.
+Opaque JSON metadata is not domain-schema validation. Use each [example's](../examples/README.md) specific API limits and the [request lifetime](request-lifetime.md) rules when budgeting application concurrency and handling uncertain outcomes.

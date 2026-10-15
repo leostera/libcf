@@ -1,20 +1,12 @@
-# Core C++ Worker example
-
-A bounded HTTP Worker built with the header-only `include/cf/` types, reusable [`lib/runtime.mjs`](../../lib/runtime.mjs), and [`lib/emscripten-host.js`](../../lib/emscripten-host.js) for Emscripten host imports. Its C++ router serves `/hello/:name`, `/echo`, `/header`, `/env/:name`, `/uuid`, `/stream/:count` and `/background/:key`; `/asset` awaits an Assets binding fetch in a C++ coroutine. `worker.mjs` wires the generated Wasm module into the runtime shim, which converts Worker events into owned C++ request data over a length-prefixed ABI and turns C++ responses into JS `Response`s.
+# Core Worker
 
 ```sh
-bazel test //:native_tests
-bazel test //:core_local_test
-# or inspect manually:
 bazel build //:core
-bazel run //:core_dev
-curl http://localhost:8787/hello/Ada
-curl http://localhost:8787/asset
-curl http://localhost:8787/uuid
-curl http://localhost:8787/stream/3
-curl -X POST --data-binary 'hello' http://localhost:8787/echo
+bazel test //:core_local_test
 ```
 
-Requires Emscripten 6.0.12 and Node 26.11.1. See [cf deployment checks](../../docs/live-verification.md) for the prebuilt packaging path. Local tests verify routing, header and variable access, a binary echo, async asset fetch, streamed responses/cancellation, `waitUntil` KV writes, invalid input, UUIDs, and concurrency. An isolated live probe verified routing, headers/string vars, Assets.fetch, binary echo, stream contents and client cancel/recovery, UUID smoke checks, concurrency and waitUntil persistence. See [live evidence and cleanup](../../docs/live-verification.md); no general runtime or transport-backpressure parity is claimed.
+Start here for routing, binary HTTP bodies, headers, environment variables, Assets fetches, random UUIDs, streaming responses, and background work. `src/main.cpp` implements `cf::handle`; `worker.mjs` connects the generated module to `createWorker`.
 
-**Boundary contracts:** JS copies request body and headers before entering C++ (1 MiB and 64 KiB limits); the C++ parser validates the header wire format before constructing `Headers`. C++ borrows ABI buffers only for the duration of each call. Coroutines own their request data and resume after the host fetch Promise settles; the adapter tracks in-flight invocations and cancels their C++ handles on request abort. Bounded responses use owned bytes; stream responses own a `StreamSource` that is pulled on demand and dropped on close/cancel. The current `Fetcher` example returns a bounded body and status only—streaming fetch and response-header APIs are future work. `Context::wait_until` currently supports typed KV-put and fetch work descriptions, not arbitrary C++ futures.
+Run `bazel run //:core_dev`, then use the printed URL with `/hello/Ada`, `/asset`, `/uuid`, `/stream/3`, or `POST /echo`. Request bodies are capped at 1 MiB and headers at 64 KiB. Coroutines own request data; response streams must own their captures. `Context::wait_until` supports typed KV-put and fetch descriptions, not arbitrary C++ futures. Assets fetch currently returns a bounded body and status, not a streaming response/header API.
+
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

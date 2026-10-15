@@ -42,8 +42,8 @@ class Headers {
       auto lower = [](unsigned char c) {
         return c >= 'A' && c <= 'Z' ? static_cast<unsigned char>(c + ('a' - 'A')) : c;
       };
-      if (lower(static_cast<unsigned char>(left[i])) !=
-          lower(static_cast<unsigned char>(right[i]))) return false;
+      if (lower(static_cast<unsigned char>(left[i])) != lower(static_cast<unsigned char>(right[i])))
+        return false;
     }
     return true;
   }

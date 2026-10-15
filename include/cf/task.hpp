@@ -37,7 +37,9 @@ class Task {
     }
     return *this;
   }
-  ~Task() { if (handle_) handle_.destroy(); }
+  ~Task() {
+    if (handle_) handle_.destroy();
+  }
 
   [[nodiscard]] Handle take() noexcept { return std::exchange(handle_, {}); }
 

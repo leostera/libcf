@@ -12,7 +12,8 @@ class DurableObjectNamespace;
 class DurableObjectStub {
  public:
   [[nodiscard]] AsyncResult<Response> fetch(Request request) const {
-    if (object_name_.empty()) return ServiceBinding::invalid("Durable Object name must not be empty");
+    if (object_name_.empty())
+      return ServiceBinding::invalid("Durable Object name must not be empty");
     return service_.fetch(std::move(request), Operation::DurableFetch, object_name_);
   }
 
@@ -31,6 +32,7 @@ class DurableObjectNamespace {
   [[nodiscard]] DurableObjectStub getByName(std::string name) const {
     return DurableObjectStub(runtime_, binding_, std::move(name));
   }
+
  private:
   BindingRuntime runtime_;
   std::string binding_;

@@ -1,15 +1,12 @@
-# Worker-to-Worker service binding from C++
+# Service binding HTTP
 
 ```sh
+bazel build //:service
 bazel test //:service_local_test
 ```
 
-The test starts two real local Workers in one Miniflare/workerd runtime, using a native service binding. `cf::ServiceBinding(context.bindings, "UPSTREAM").fetch(request)` forwards a request to the configured binding and returns a C++ `Response`. Method, headers, binary body, response status and response headers cross a length-delimited ABI. HTTP errors such as 503 remain responses; missing bindings and transport failures become `Result` errors.
+`cf::ServiceBinding(context.bindings, "UPSTREAM").fetch(request)` calls a configured Worker service. Methods, headers, binary bodies, statuses, and response headers cross the bridge separately. HTTP errors such as 503 remain responses; binding/transport failures are errors.
 
-Five local tests cover POST/binary/header forwarding, upstream 503, bodyless 204, oversized-response rejection/recovery and missing binding rejection. Native tests reject malformed response wire data. Both request and response bodies are buffered within the bridge limits. The upstream fixture returns its request stream directly; the host bridge reads it into a bounded buffer. This passes with native local service bindings. It does not claim end-to-end streaming through the C++ API. The older cross-process registry fixture required upstream buffering; that workaround was removed after the Miniflare migration.
+Requests fit a 1 MiB total wire frame; replies permit a 1 MiB body and 64 KiB header wire. This is buffered HTTP, not end-to-end streaming or native upgrade forwarding. `bazel run //:service_dev` starts both Workers locally. For JSON RPC, use the [RPC example](../rpc/README.md).
 
-For manual use, run `bazel run //:service_dev`. Both Workers run locally in one workerd runtime.
-
-Not yet covered: streaming, abort propagation to upstream I/O, RPC entrypoints, WebSocket upgrades, redirect policy and all fetch options. A separate live probe passed for the buffered HTTP subset and listed error/recovery paths, using an internal-only upstream; see [evidence and cleanup](../../docs/live-verification.md). The default suite is strictly local.
-
-Source: [service bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/).
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

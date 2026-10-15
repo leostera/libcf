@@ -48,7 +48,8 @@ class KvNamespace {
         [](OperationReply reply) -> Result<std::optional<std::string>> {
           if (reply.kind == ReplyKind::Missing)
             return Result<std::optional<std::string>>::success(std::nullopt);
-          return Result<std::optional<std::string>>::success(std::string(reply.bytes.begin(), reply.bytes.end()));
+          return Result<std::optional<std::string>>::success(
+              std::string(reply.bytes.begin(), reply.bytes.end()));
         });
   }
 
@@ -72,7 +73,8 @@ class KvNamespace {
           KvEntry entry;
           std::string metadata;
           if (!reader.bytes(entry.value) || !reader.string(metadata) || !reader.done())
-            return Result<std::optional<KvEntry>>::failure({ErrorCode::InvalidInput, "malformed KV metadata reply"});
+            return Result<std::optional<KvEntry>>::failure(
+                {ErrorCode::InvalidInput, "malformed KV metadata reply"});
           if (!metadata.empty()) entry.metadata_json = std::move(metadata);
           return Result<std::optional<KvEntry>>::success(std::move(entry));
         });
@@ -91,13 +93,11 @@ class KvNamespace {
   }
 
   [[nodiscard]] AsyncResult<Unit> erase(std::string key) const {
-    return runtime_.call<Unit>(
-        {Operation::KvDelete, binding_, std::move(key), {}, {}},
-        [](OperationReply) { return Result<Unit>::success({}); });
+    return runtime_.call<Unit>({Operation::KvDelete, binding_, std::move(key), {}, {}},
+                               [](OperationReply) { return Result<Unit>::success({}); });
   }
 
-  [[nodiscard]] AsyncResult<KvListPage> list(std::string prefix = {},
-                                             std::string cursor = {},
+  [[nodiscard]] AsyncResult<KvListPage> list(std::string prefix = {}, std::string cursor = {},
                                              std::uint32_t limit = 1000) const {
     return runtime_.call<KvListPage>(
         {Operation::KvList, binding_, std::move(prefix), limit_bytes(limit), std::move(cursor)},
@@ -125,15 +125,18 @@ class KvNamespace {
               return Result<KvListPage>::failure({ErrorCode::InvalidInput, "malformed KV key"});
             if (!expiration.empty()) {
               std::uint64_t value = 0;
-              const auto [end, error] = std::from_chars(expiration.data(), expiration.data() + expiration.size(), value);
+              const auto [end, error] =
+                  std::from_chars(expiration.data(), expiration.data() + expiration.size(), value);
               if (error != std::errc{} || end != expiration.data() + expiration.size())
-                return Result<KvListPage>::failure({ErrorCode::InvalidInput, "invalid KV expiration"});
+                return Result<KvListPage>::failure(
+                    {ErrorCode::InvalidInput, "invalid KV expiration"});
               key.expiration = value;
             }
             if (!metadata.empty()) key.metadata_json = std::move(metadata);
             page.keys.push_back(std::move(key));
           }
-          if (!reader.done()) return Result<KvListPage>::failure({ErrorCode::InvalidInput, "trailing KV list data"});
+          if (!reader.done())
+            return Result<KvListPage>::failure({ErrorCode::InvalidInput, "trailing KV list data"});
           if (!complete) page.next_cursor = std::move(cursor);
           return Result<KvListPage>::success(std::move(page));
         });

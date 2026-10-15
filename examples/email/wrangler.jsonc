@@ -3,6 +3,12 @@
   "main": "worker.mjs",
   "compatibility_date": "2026-10-13",
   "vars": { "FORWARD_TO": "archive@example.test" },
-  "d1_databases": [{ "binding": "DB", "database_name": "libcf-email-local", "database_id": "00000000-0000-0000-0000-000000000003" }],
-  "observability": { "enabled": true, "traces": { "enabled": true } }
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "libcf-email-local",
+      "database_id": "00000000-0000-0000-0000-000000000003",
+    },
+  ],
+  "observability": { "enabled": true, "traces": { "enabled": true } },
 }

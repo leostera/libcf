@@ -26,8 +26,10 @@ class WireReader {
   bool string(std::string& output) {
     std::uint32_t size = 0;
     if (!u32(size) || size > bytes_.size() - offset_) return false;
-    if (size == 0) output.clear();
-    else output.assign(reinterpret_cast<const char*>(bytes_.data() + offset_), size);
+    if (size == 0)
+      output.clear();
+    else
+      output.assign(reinterpret_cast<const char*>(bytes_.data() + offset_), size);
     offset_ += size;
     return true;
   }
@@ -35,8 +37,10 @@ class WireReader {
   bool bytes(std::vector<std::uint8_t>& output) {
     std::uint32_t size = 0;
     if (!u32(size) || size > bytes_.size() - offset_) return false;
-    if (size == 0) output.clear();
-    else output.assign(bytes_.begin() + offset_, bytes_.begin() + offset_ + size);
+    if (size == 0)
+      output.clear();
+    else
+      output.assign(bytes_.begin() + offset_, bytes_.begin() + offset_ + size);
     offset_ += size;
     return true;
   }

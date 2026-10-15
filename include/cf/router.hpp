@@ -91,8 +91,8 @@ class Router {
     for (std::size_t i = 0; i < pattern_parts.size(); ++i) {
       if (!pattern_parts[i].empty() && pattern_parts[i].front() == ':') {
         if (path_parts[i].empty()) return false;
-        params.values_.push_back({std::string(pattern_parts[i].substr(1)),
-                                  std::string(path_parts[i])});
+        params.values_.push_back(
+            {std::string(pattern_parts[i].substr(1)), std::string(path_parts[i])});
       } else if (pattern_parts[i] != path_parts[i]) {
         return false;
       }

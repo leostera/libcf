@@ -2,5 +2,5 @@
   "name": "libcf-cache-local",
   "main": "worker.mjs",
   "compatibility_date": "2026-10-13",
-  "observability": { "enabled": true, "traces": { "enabled": true } }
+  "observability": { "enabled": true, "traces": { "enabled": true } },
 }

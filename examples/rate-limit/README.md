@@ -1,14 +1,12 @@
-# Rate-limit binding from C++
+# Rate limiting
 
 ```sh
 bazel build //:rate-limit
 bazel test //:rate-limit_local_test
 ```
 
-Included in the default test suite. `cf::RateLimiter(runtime, binding).limit(key)` returns `AsyncResult<RateLimitOutcome>`: `Allowed` or `Exceeded`. Binding/protocol errors remain failures, not fabricated quota denials. Empty keys are valid; keys are bounded to 64 KiB of UTF-8 bytes. Prefer stable application/user keys rather than IP addresses. The example accepts a key in `POST /limit`; `/other` uses an independent namespace, and `/missing` demonstrates binding failure.
+`cf::RateLimiter(runtime, binding).limit(key)` returns Allowed or Exceeded; provider/protocol failures remain errors. Keys are UTF-8 up to 64 KiB and may be empty. Prefer stable application/user identifiers over IP addresses. Try `POST /limit`; `/other` uses a separate namespace.
 
-The local fixture configures two permits per 60-second period. Three workerd tests cover allowed/exceeded outcomes, key/namespace isolation, concurrent local calls, empty keys, oversized keys and recovery after binding errors. Native and JS tests reject malformed/truthy non-boolean host results.
+The platform limiter is approximate and location-scoped, not a globally strict quota. Matching namespace IDs share counters across bindings/Workers. Do not infer exact production counts from the local two-per-minute fixture, or deploy its namespace IDs unchanged.
 
-Cloudflare's limiter is approximate and scoped to a location, not a globally strict transactional counter. Matching namespace IDs share counters across bindings/Workers. Local deterministic counts do not prove distributed semantics, fairness, billing accuracy or a global quota. Use fresh test namespace IDs for live deployment rather than the fixture's `1001`/`1002` values. Live allowed/exceeded outcomes, key/namespace isolation, error paths and later recovery passed at one client/location. Three calls were allowed before the first exceeded result with a configured limit of two, illustrating why the live probe does not assert exact counts. See [identities and cleanup](../../docs/live-verification.md).
-
-Source retrieved 2026-10-13: [Rate Limiting binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

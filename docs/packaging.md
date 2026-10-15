@@ -1,4 +1,4 @@
-# Bazel SDK archive
+# Integrate libcf with Bazel
 
 Use official Bazel **9.3.0**, directly or through Bazelisk. No package publication
 is performed by these commands, and no CMake consumer interface is provided.
@@ -32,8 +32,8 @@ bazel_dep(name = "rules_cc", version = "0.2.26")
 
 For local development, an extracted archive can instead be selected with
 `local_path_override(module_name = "cf", path = "/absolute/path/cf-0.1.0")`.
-Do not specify both overrides. Publication and registry submission remain separate
-approval-dependent activities; `cf` has not been published by this migration.
+Do not specify both overrides. Use an archive you built or a published release with
+its matching checksum; the version declaration alone does not install an unpublished module.
 
 Consumer `BUILD.bazel`:
 
@@ -77,6 +77,22 @@ remains disabled, matching the existing SDK policy.
 `@cf//:host_library` exposes the Emscripten import library. Bundle the generated
 module with `lib/runtime.mjs` and a static compiled-Wasm import as demonstrated by
 the repository examples. The archive keeps adapter-relative imports intact.
+For example, place this entrypoint alongside the generated `worker.mjs` and
+`worker.wasm`, with the archive runtime copied intact into `lib/`:
+
+```js
+import factory from "./worker.mjs";
+import wasm from "./worker.wasm";
+import { createWorker } from "./lib/runtime.mjs";
+
+export default createWorker(factory, wasm);
+```
+
+Use a Worker-aware bundler that preserves the static Wasm import as a compiled
+Wasm module. Keep all runtime adapter-relative imports available. The repository's
+`tools/bundle-worker.mjs` shows the bundling setup. Durable Objects need a separate
+object module and `createDurableObject` export; see the repository's durable example.
+
 These are module build outputs, not complete deployment manifests: bindings,
 assets, service peers and resource ownership configuration belong to the app.
 No deployment occurs during a build.
@@ -101,14 +117,6 @@ Bazel builds. It requires the absolute path to an official Bazel 9.3.0 executabl
    its HTTP response in local workerd.
 6. Removes temporary consumer, extraction and output directories in `finally`.
 
-The external consumer passes on macOS arm64 and Ubuntu 24.04 x86_64 (GCC 13.3.0).
-CI run `38489131176`, source commit `58400d7`, passed all 80 default tests,
-C++23, sanitizers, external consumption and the deployment dry-run. Two independent
-clean macOS builds and Linux CI produced the same 78-file archive with SHA-256
-`cb774c1fd7c43ed6a82f03888f5e7a23470b0538b347c16f5c21717dbdcb2b23`.
-This digest identifies that source revision, not future documentation/code changes.
-It proves archive-byte repeatability, not cross-host native/Wasm binary identity.
-Dependency downloads may reuse Bazel caches; this is not a network-isolated or
-empty-download-cache test.
-Native SDK/compiler installation remains a host prerequisite. Nothing here proves
-additional live Cloudflare behavior or complete C++23 standard-library conformance.
+Dependency downloads may reuse Bazel caches. Native SDK/compiler installation
+remains a host prerequisite. These checks exercise SDK integration, not live
+Cloudflare behavior or complete C++23 standard-library conformance.

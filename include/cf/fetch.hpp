@@ -30,7 +30,8 @@ class Fetcher {
     return AsyncResult<FetchedResponse>(
         [start = start_, url = std::move(url)](Completion done) mutable {
           start(std::move(url), std::move(done));
-        }, resume_);
+        },
+        resume_);
   }
 
  private:

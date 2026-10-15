@@ -23,4 +23,4 @@ production disposer timing or proof that all upstream work stopped.
 The test runs at most one source concurrently per runtime, checks every received
 byte, and disposes the entire owned runtime/temp directory in a finally block.
 Synthetic global counters contain no request data and are test instrumentation,
-not an application state pattern. See [lifetime evidence](../../docs/request-lifetime.md).
+not an application state pattern. See [request lifetime rules](../../docs/request-lifetime.md).

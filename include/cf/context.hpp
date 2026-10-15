@@ -18,9 +18,7 @@ struct BackgroundWork {
   static BackgroundWork kv_put(std::string binding, std::string key, std::string value) {
     return {Kind::KvPut, std::move(binding), std::move(key), std::move(value)};
   }
-  static BackgroundWork fetch(std::string url) {
-    return {Kind::Fetch, std::move(url), {}, {}};
-  }
+  static BackgroundWork fetch(std::string url) { return {Kind::Fetch, std::move(url), {}, {}}; }
 };
 
 class Context {

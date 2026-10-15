@@ -2,6 +2,12 @@
   "name": "libcf-d1-local",
   "main": "worker.mjs",
   "compatibility_date": "2026-10-13",
-  "d1_databases": [{ "binding": "DB", "database_name": "libcf-d1-local", "database_id": "00000000-0000-0000-0000-000000000001" }],
-  "observability": { "enabled": true, "traces": { "enabled": true } }
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "libcf-d1-local",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+    },
+  ],
+  "observability": { "enabled": true, "traces": { "enabled": true } },
 }

@@ -1,16 +1,18 @@
-#include <cassert>
-#include <map>
 #include "cf/events.hpp"
 #include "cf/detail/wire.hpp"
+
+#include <cassert>
+#include <map>
+
 #include "cf/queue.hpp"
 #include "cf/task.hpp"
 
 int main() {
   using namespace cf;
   std::map<std::string, std::string> fields{
-    {"__LIBCF_EVENT_KIND", "queue"}, {"__LIBCF_EVENT_ID", "message-1"},
-    {"__LIBCF_EVENT_QUEUE", "test"}, {"__LIBCF_EVENT_FORMAT", "bytes"},
-    {"__LIBCF_EVENT_ATTEMPTS", "2"}, {"__LIBCF_EVENT_TIME", "1234"},
+      {"__LIBCF_EVENT_KIND", "queue"}, {"__LIBCF_EVENT_ID", "message-1"},
+      {"__LIBCF_EVENT_QUEUE", "test"}, {"__LIBCF_EVENT_FORMAT", "bytes"},
+      {"__LIBCF_EVENT_ATTEMPTS", "2"}, {"__LIBCF_EVENT_TIME", "1234"},
   };
   Env env([&](std::string_view key) -> std::optional<std::string> {
     const auto it = fields.find(std::string(key));

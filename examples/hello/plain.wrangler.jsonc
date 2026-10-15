@@ -2,5 +2,5 @@
   "name": "libcf-plain-comparator",
   "main": "plain.mjs",
   "compatibility_date": "2026-10-13",
-  "vars": { "GREETING": "C++" }
+  "vars": { "GREETING": "C++" },
 }

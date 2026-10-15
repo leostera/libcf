@@ -2,7 +2,7 @@
 
 ```sh
 bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json
-# Short diagnostic run, not a replacement for the recorded baseline:
+# Short diagnostic run:
 bazel run //:benchmark_sdk -- /tmp/libcf-benchmark-smoke.json --rounds 2 --samples 5 --warmups 0
 ```
 
@@ -12,4 +12,4 @@ Both fixtures expose hello, binary echo and one/16 SHA-256 operations with the s
 
 Default: six rounds, 10 warmups and 80 measured sequential requests per scenario/variant/round. Each round starts a fresh local runtime; startup includes bundling and the harness's first response. This is not an edge cold-start measurement. Inputs must remain unchanged throughout the run or the runner refuses to emit mixed measurements.
 
-See [methodology, results and limitations](../../docs/benchmarks.md). Raw samples, toolchain/host details, source and artifact hashes are included in the report. The incremental digest estimate is not a direct measurement of individual ABI instructions, and no throughput, memory or statistical-significance claim is made.
+See [methodology and limitations](../../docs/benchmarks.md). Raw samples, toolchain/host details, source and artifact hashes are included in the report. The incremental digest estimate is not a direct measurement of individual ABI instructions, and no throughput, memory or statistical-significance claim is made.

@@ -19,10 +19,12 @@ Task handle(Request request, WorkerContext context) {
     }
     co_return Response::text("list page limit exceeded", 502);
   }
-  if (!path.starts_with("/objects/") || path.size() == 9) co_return Response::text("not found", 404);
+  if (!path.starts_with("/objects/") || path.size() == 9)
+    co_return Response::text("not found", 404);
   const std::string key(path.substr(9));
   if (request.method == "PUT") {
-    auto result = co_await bucket.put(key, Bytes(request.body.begin(), request.body.end()),
+    auto result = co_await bucket.put(
+        key, Bytes(request.body.begin(), request.body.end()),
         std::string(request.headers.get("content-type").value_or("application/octet-stream")));
     if (!result) co_return Response::text("put failed", 502);
     auto response = Response::text("stored", 201);
@@ -33,7 +35,8 @@ Task handle(Request request, WorkerContext context) {
     std::optional<R2Range> range;
     if (const auto offset = request.headers.get("x-offset")) {
       std::uint64_t start = 0;
-      const auto [end, error] = std::from_chars(offset->data(), offset->data() + offset->size(), start);
+      const auto [end, error] =
+          std::from_chars(offset->data(), offset->data() + offset->size(), start);
       if (error != std::errc{} || end != offset->data() + offset->size())
         co_return Response::text("invalid offset", 400);
       range = R2Range{start, 2};
@@ -51,8 +54,10 @@ Task handle(Request request, WorkerContext context) {
   if (request.method == "HEAD") {
     auto result = co_await bucket.head(key);
     Response response;
-    if (!result) response.status = 502;
-    else if (!result.value()) response.status = 404;
+    if (!result)
+      response.status = 502;
+    else if (!result.value())
+      response.status = 404;
     else {
       response.headers.append("x-object-size", std::to_string(result.value()->size));
       response.headers.append("etag", result.value()->http_etag);

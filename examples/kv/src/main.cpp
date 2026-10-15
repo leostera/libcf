@@ -36,7 +36,7 @@ cf::Response json(std::string body) {
 std::string_view after(std::string_view path, std::string_view prefix) {
   return path.starts_with(prefix) ? path.substr(prefix.size()) : std::string_view{};
 }
-}
+}  // namespace
 
 namespace cf {
 
@@ -65,22 +65,25 @@ Task handle(Request request, WorkerContext context) {
 
   if (path.starts_with("/metadata/")) {
     const auto key = after(path, "/metadata/");
-    if (request.method != "GET" || key.empty()) co_return Response::text("invalid metadata request", 400);
+    if (request.method != "GET" || key.empty())
+      co_return Response::text("invalid metadata request", 400);
     auto result = co_await kv.get_with_metadata(std::string(key));
     if (!result) co_return Response::text("metadata failed: " + result.error().message, 502);
     if (!result.value()) co_return Response::text("not found", 404);
     const auto& entry = *result.value();
     const std::string text(entry.value.begin(), entry.value.end());
-    co_return json("{\"value\":" + json_quote(text) + ",\"metadata\":" +
-                   entry.metadata_json.value_or("null") + "}");
+    co_return json("{\"value\":" + json_quote(text) +
+                   ",\"metadata\":" + entry.metadata_json.value_or("null") + "}");
   }
 
   if (path.starts_with("/bytes/")) {
     const auto key = after(path, "/bytes/");
     if (key.empty()) co_return Response::text("missing key", 400);
     if (request.method == "PUT") {
-      auto result = co_await kv.put(std::string(key), Bytes(request.body.begin(), request.body.end()));
-      co_return result ? Response::text("stored", 201) : Response::text("put failed: " + result.error().message, 502);
+      auto result =
+          co_await kv.put(std::string(key), Bytes(request.body.begin(), request.body.end()));
+      co_return result ? Response::text("stored", 201)
+                       : Response::text("put failed: " + result.error().message, 502);
     }
     if (request.method == "GET") {
       auto result = co_await kv.get_bytes(std::string(key));
@@ -114,11 +117,13 @@ Task handle(Request request, WorkerContext context) {
       if (auto metadata = request.headers.get("x-metadata"))
         options.metadata_json = std::string(*metadata);
       auto result = co_await kv.put_text(std::string(key), request.body, std::move(options));
-      co_return result ? Response::text("stored", 201) : Response::text("put failed: " + result.error().message, 502);
+      co_return result ? Response::text("stored", 201)
+                       : Response::text("put failed: " + result.error().message, 502);
     }
     if (request.method == "DELETE") {
       auto result = co_await kv.erase(std::string(key));
-      co_return result ? Response::text("deleted") : Response::text("delete failed: " + result.error().message, 502);
+      co_return result ? Response::text("deleted")
+                       : Response::text("delete failed: " + result.error().message, 502);
     }
     co_return Response::text("method not allowed", 405);
   }

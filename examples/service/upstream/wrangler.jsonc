@@ -1,5 +1,5 @@
 {
   "name": "libcf-upstream-local",
   "main": "worker.mjs",
-  "compatibility_date": "2026-10-13"
+  "compatibility_date": "2026-10-13",
 }

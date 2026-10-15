@@ -1,0 +1,3 @@
+Checks: "-*,bugprone-use-after-move,performance-unnecessary-copy-initialization"
+WarningsAsErrors: "*"
+HeaderFilterRegex: ".*/include/cf/.*"

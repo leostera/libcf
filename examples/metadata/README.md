@@ -1,20 +1,12 @@
-# Version metadata and Secrets Store reads
+# Version metadata and secrets
 
 ```sh
 bazel build //:metadata
 bazel test //:metadata_local_test
 ```
 
-Included in the default test suite. `cf::VersionMetadata(runtime, binding).get()` returns owned `WorkerVersion { id, tag, timestamp }` strings. Empty tags are valid. Timestamps retain the platform's string representation; this API does not parse time zones or implement a date parser. The version wire is bounded to 64 KiB.
+`cf::VersionMetadata(runtime, binding).get()` returns owned ID, tag, and timestamp strings. Empty tags are valid; timestamps remain opaque strings. `cf::SecretsStoreSecret(runtime, binding).get()` reads an owned string anew on each call. Both have a 64 KiB limit; empty secret values differ from failure.
 
-`cf::SecretsStoreSecret(runtime, binding).get()` returns an owned string, with a 64-KiB SDK limit. Empty values are distinct from read failures. Each call reads the binding anew, without a module-global value cache. Provider error text is replaced with a generic failure to avoid accidentally propagating a value embedded in an error. Strings and JS buffers are not guaranteed to be securely erased from memory.
+`GET /version` shows metadata. `POST /secret-check` compares against a synthetic local value and returns only match/mismatch with no-store. It is not constant-time authentication and must never use production secrets. Provider secret errors are redacted, but buffers are not securely erased. Tests seed only local secrets; no live secret access is established.
 
-`GET /version` reports metadata. `POST /secret-check` compares the request body to a **synthetic test value**, returning only match/mismatch with `Cache-Control: no-store`. This is a diagnostic fixture, not a constant-time authentication API. Do not expose it with production secrets; it must never return or log the value.
-
-Two workerd cases verify stable local version metadata and a local secret's absence, empty value, rotation, comparison and deletion. Tests seed only local Miniflare storage through its admin test API. Native/direct-adapter tests cover malformed wire data, empty/binary/UTF-8 values, bounds and provider-error redaction. No remote secrets are fetched by local tests.
-
-Live version metadata passed: the ID matched the uploaded version, the untagged value was empty, the timestamp was stable across calls and a missing binding failed explicitly. See [identities and verified cleanup](../../docs/live-verification.md). Build with `bazel run //:prepare_live_worker -- metadata`, deploy from `build/live-metadata` after collision checks, then run `bazel run //:live_metadata -- <host> <uploaded-version-uuid>`. The live configuration intentionally has no secret binding.
-
-Live Secrets Store verification remains pending. A read-only store listing found an existing default account store; no existing secrets were listed, fetched, changed or deleted. A live secret test requires approval to create and later delete a uniquely named synthetic fixture secret in an appropriate store. Version metadata can be verified independently without adding a secret binding.
-
-Sources retrieved 2026-10-13: [version metadata](https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/), [Secrets Store Workers integration](https://developers.cloudflare.com/secrets-store/integrations/workers/), project-pinned Worker types and Miniflare admin API.
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

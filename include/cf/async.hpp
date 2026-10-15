@@ -26,7 +26,9 @@ class AsyncResult {
   AsyncResult(const AsyncResult&) = delete;
   AsyncResult& operator=(const AsyncResult&) = delete;
   AsyncResult(AsyncResult&&) noexcept = default;
-  ~AsyncResult() { if (state_) state_->active = false; }
+  ~AsyncResult() {
+    if (state_) state_->active = false;
+  }
 
   bool await_ready() const noexcept { return false; }
   bool await_suspend(std::coroutine_handle<> handle) {

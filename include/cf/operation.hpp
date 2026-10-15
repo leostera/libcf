@@ -106,17 +106,18 @@ class BindingRuntime {
   template <typename T, typename Decode>
   [[nodiscard]] AsyncResult<T> call(OperationCall call, Decode decode) const {
     return AsyncResult<T>(
-        [start = start_, call = std::move(call), decode = std::move(decode)](
-            typename AsyncResult<T>::Completion finish) mutable {
+        [start = start_, call = std::move(call),
+         decode = std::move(decode)](typename AsyncResult<T>::Completion finish) mutable {
           start(std::move(call), [finish = std::move(finish), decode = std::move(decode)](
-                                      Result<OperationReply> result) mutable {
+                                     Result<OperationReply> result) mutable {
             if (!result) {
               finish(Result<T>::failure(result.error()));
               return;
             }
             finish(decode(std::move(result.value())));
           });
-        }, resume_);
+        },
+        resume_);
   }
 
  private:

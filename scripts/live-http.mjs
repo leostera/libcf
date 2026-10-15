@@ -1,23 +1,47 @@
-import assert from 'node:assert/strict';
-import { setTimeout as delay } from 'node:timers/promises';
-import { readBounded } from '../lib/body.mjs';
+import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
+import { readBounded } from "../lib/body.mjs";
 
 export function liveHttp(host, family) {
-  if (!['cache', 'd1', 'kv', 'r2', 'core', 'service', 'durable', 'events', 'websocket', 'rate-limit', 'metadata', 'crypto', 'timer', 'images', 'http-client', 'http-upstream', 'workflow', 'clock', 'rpc', 'service-tcp', 'media'].includes(family) ||
-      typeof host !== 'string' ||
-      new RegExp(`^libcf-${family}-[a-f0-9]{10}\\.libcf\\.leostera\\.dev$`).exec(host)?.[0] !== host)
-    throw new Error('Expected an isolated test hostname under libcf.leostera.dev');
+  if (
+    ![
+      "cache",
+      "d1",
+      "kv",
+      "r2",
+      "core",
+      "service",
+      "durable",
+      "events",
+      "websocket",
+      "rate-limit",
+      "metadata",
+      "crypto",
+      "timer",
+      "images",
+      "http-client",
+      "http-upstream",
+      "workflow",
+      "clock",
+      "rpc",
+      "service-tcp",
+      "media",
+    ].includes(family) ||
+    typeof host !== "string" ||
+    new RegExp(`^libcf-${family}-[a-f0-9]{10}\\.libcf\\.leostera\\.dev$`).exec(host)?.[0] !== host
+  )
+    throw new Error("Expected an isolated test hostname under libcf.leostera.dev");
   const origin = `https://${host}`;
   return (path, init = {}) => {
-    if (typeof path !== 'string' || !path.startsWith('/'))
-      throw new Error('Expected an origin-relative live test path');
+    if (typeof path !== "string" || !path.startsWith("/"))
+      throw new Error("Expected an origin-relative live test path");
     const target = new URL(path, origin);
     if (target.origin !== origin || target.username || target.password)
-      throw new Error('Live test path must remain on its isolated origin');
+      throw new Error("Live test path must remain on its isolated origin");
     return fetch(target.href, {
       ...init,
       // Explicit manual inspection is safe; never follow a Location header.
-      redirect: init.redirect === 'manual' ? 'manual' : 'error',
+      redirect: init.redirect === "manual" ? "manual" : "error",
       signal: init.signal
         ? AbortSignal.any([init.signal, AbortSignal.timeout(10000)])
         : AbortSignal.timeout(10000),
@@ -31,13 +55,13 @@ export async function awaitCertificate(request, expectedStatus = 404, {
 } = {}) {
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 2700000 ||
       !Number.isInteger(retryMs) || retryMs < 1 || retryMs > 10000)
-    throw new RangeError('readiness timeout must be 1..2700000 ms; retry must be 1..10000 ms');
+    throw new RangeError("readiness timeout must be 1..2700000 ms; retry must be 1..10000 ms");
   // Retain one hostname long enough for observed negative DNS TTLs when opted
   // in. The same deadline covers requests, response bodies and retry sleeps.
   const deadline = AbortSignal.timeout(timeoutMs);
   while (true) {
     try {
-      const response = await request('/libcf-readiness-missing-route', { signal: deadline });
+      const response = await request("/libcf-readiness-missing-route", { signal: deadline });
       // Drain error responses too, without unbounded allocation or trusting
       // the request adapter to interrupt a stalled response body.
       await readBounded(response.body, 65536, deadline);

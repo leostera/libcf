@@ -8,17 +8,18 @@ Task handle(Request request, WorkerContext context) {
   D1Database database(context.bindings, "DB");
   const auto path = request.path();
   if (path == "/setup" && request.method == "POST") {
-    auto result = co_await database.exec("CREATE TABLE IF NOT EXISTS records (id TEXT PRIMARY KEY, value BLOB NOT NULL)");
+    auto result = co_await database.exec(
+        "CREATE TABLE IF NOT EXISTS records (id TEXT PRIMARY KEY, value BLOB NOT NULL)");
     co_return result ? Response::text("ready") : Response::text("setup failed", 502);
   }
   if (path.starts_with("/batch/") && request.method == "POST") {
     const std::string id(path.substr(7));
     std::vector<D1Statement> statements;
     statements.push_back(database.prepare("INSERT INTO records(id,value) VALUES (?,?)")
-        .bind({id, Bytes(request.body.begin(), request.body.end())}));
+                             .bind({id, Bytes(request.body.begin(), request.body.end())}));
     if (request.headers.get("x-fail-batch") == "yes") {
       statements.push_back(database.prepare("INSERT INTO records(id,value) VALUES (?,?)")
-          .bind({id + "-invalid", nullptr}));
+                               .bind({id + "-invalid", nullptr}));
     } else {
       statements.push_back(database.prepare("SELECT value FROM records WHERE id=?").bind({id}));
     }
@@ -37,25 +38,33 @@ Task handle(Request request, WorkerContext context) {
   if (path == "/first-missing") {
     auto result = co_await database.prepare("SELECT NULL AS value WHERE 0").first();
     if (!result) co_return Response::text("query failed", 502);
-    co_return result.value() ? Response::text("unexpected row", 500) : Response::text("no row", 404);
+    co_return result.value() ? Response::text("unexpected row", 500)
+                             : Response::text("no row", 404);
   }
   if (path == "/constraint-probe" && request.method == "POST") {
     // Intentionally violate NOT NULL to demonstrate a rejected binding Promise
     // becoming a C++ Result, rather than terminating the Wasm instance.
     auto result = co_await database.prepare("INSERT INTO records(id,value) VALUES (?,?)")
-        .bind({std::string("constraint-probe"), nullptr}).run();
-    co_return result ? Response::text("unexpected success", 500) : Response::text("constraint rejected", 409);
+                      .bind({std::string("constraint-probe"), nullptr})
+                      .run();
+    co_return result ? Response::text("unexpected success", 500)
+                     : Response::text("constraint rejected", 409);
   }
   if (!path.starts_with("/records/") || path.size() == 9)
     co_return Response::text("not found", 404);
   const std::string id(path.substr(9));
   if (request.method == "PUT") {
-    auto result = co_await database.prepare("INSERT INTO records(id,value) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value")
-        .bind({id, Bytes(request.body.begin(), request.body.end())}).run();
+    auto result = co_await database
+                      .prepare(
+                          "INSERT INTO records(id,value) VALUES (?,?) ON CONFLICT(id) DO UPDATE "
+                          "SET value=excluded.value")
+                      .bind({id, Bytes(request.body.begin(), request.body.end())})
+                      .run();
     co_return result ? Response::text("stored", 201) : Response::text("write failed", 502);
   }
   if (request.method == "GET") {
-    auto result = co_await database.prepare("SELECT value FROM records WHERE id=?").bind({id}).all();
+    auto result =
+        co_await database.prepare("SELECT value FROM records WHERE id=?").bind({id}).all();
     if (!result) co_return Response::text("query failed", 502);
     if (result.value().rows.empty()) co_return Response::text("not found", 404);
     const auto& cell = result.value().rows.front().at("value");

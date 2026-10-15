@@ -18,7 +18,7 @@ void append_string(cf::Bytes& bytes, const std::string& value) {
   append_u32(bytes, static_cast<std::uint32_t>(value.size()));
   bytes.insert(bytes.end(), value.begin(), value.end());
 }
-}
+}  // namespace
 
 int main() {
   cf::Bytes metadata;
@@ -34,10 +34,12 @@ int main() {
 
   cf::OperationCall last{};
   cf::BindingRuntime::Completion complete;
-  cf::BindingRuntime runtime([&](cf::OperationCall call, auto callback) {
-    last = std::move(call);
-    complete = std::move(callback);
-  }, [](std::coroutine_handle<> handle) { handle.resume(); });
+  cf::BindingRuntime runtime(
+      [&](cf::OperationCall call, auto callback) {
+        last = std::move(call);
+        complete = std::move(callback);
+      },
+      [](std::coroutine_handle<> handle) { handle.resume(); });
   // Remove the callback before invoking it: resumption may replace complete
   // with the next operation's callback.
   const auto deliver = [&](cf::OperationReply reply) {

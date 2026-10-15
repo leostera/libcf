@@ -1,22 +1,12 @@
-# Web Crypto from C++
+# Web Crypto digests
 
 ```sh
 bazel build //:crypto
 bazel test //:crypto_local_test
 ```
 
-Included in the default test suite. `cf::SubtleCrypto(context.bindings)` uses the request-scoped operation channel to call platform `crypto.subtle.digest`; no configured resource binding or cryptographic reimplementation is needed.
+`cf::SubtleCrypto(context.bindings)` exposes `sha256`, `sha384`, and `sha512`, returning fixed-size byte arrays through `AsyncResult`. Inputs are owned binary bytes, including empty values, with a 1 MiB cap. No configured resource binding is needed.
 
-- `sha256(Bytes)` → `AsyncResult<std::array<std::uint8_t, 32>>`
-- `sha384(Bytes)` → `AsyncResult<std::array<std::uint8_t, 48>>`
-- `sha512(Bytes)` → `AsyncResult<std::array<std::uint8_t, 64>>`
+POST bytes to `/sha256`, `/sha384`, or `/sha512` for hexadecimal output. `/random` and `/uuid` use platform randomness. Cancellation does not promise to stop already-running computation. Key management, signatures, encryption, HMAC, streaming digests, and timing-safe comparison are not exposed by this API.
 
-Input is owned and bounded to 1 MiB per call (an SDK limit), including valid empty input. Both bridge sides reject malformed output; the C++ result size is fixed by the chosen algorithm. Raw binary input is not converted through UTF-8. Native hashing failures remain errors, distinct from a valid digest. As with other operations, cancellation discards late completion; it does not promise to interrupt cryptographic computation already running.
-
-`POST /sha256`, `/sha384` and `/sha512` return hexadecimal digests. `/oversized` exercises the C++ input guard. `/random` and `/uuid` demonstrate existing `context.crypto` APIs backed by the platform RNG. Sampling distinct values is a smoke check, not an entropy/security audit.
-
-Three workerd cases cover a published SHA-256 vector, all three algorithms against Node/OpenSSL reference digests for empty/binary/1-MiB data, concurrent request isolation, rejection and recovery, and RNG/UUID smoke checks. Native tests enforce compile-time result sizes and malformed replies; JS tests cover subarray offsets, bounds, unsupported algorithms and provider failures.
-
-Live SHA-256/384/512 verification passed after DNS recovery: empty/binary/1-MiB inputs, concurrent isolation, oversized input rejection/recovery and RNG/UUID smoke. The two earlier deployments failed DNS readiness before assertions; the successful isolated retry and all its resources were cleaned up. No TLS verification was disabled. See [deployment and cleanup evidence](../../docs/live-verification.md). Run `bazel run //:prepare_live_worker -- crypto`, deploy from `build/live-crypto` after ownership preflight, then `LIBCF_LIVE_READY_TIMEOUT_MS=2400000 bazel run //:live_crypto -- <host>` to retain that hostname through a bounded 40-minute readiness window when DNS needs to outlast a negative TTL. No keys, credentials or persistent binding resources are needed. SHA-1/MD5, keys/import/export, signatures, encryption, HMAC, timing-safe comparison and streaming `DigestStream` are not implemented by this API. Structured logging and calendar APIs remain gaps; bounded coroutine sleep and synchronous wall-clock reads are available separately through `<cf/timer.hpp>` and `<cf/clock.hpp>`.
-
-Source retrieved 2026-10-13: [Workers Web Crypto](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/).
+See [example setup](../README.md) and [request lifetime](../../docs/request-lifetime.md) before adapting this fixture.

@@ -5,5 +5,5 @@
   "vars": { "GREETING": "hello-from-env" },
   "kv_namespaces": [{ "binding": "STATE_KV", "id": "libcf-core-local-only" }],
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
-  "observability": { "enabled": true, "traces": { "enabled": true } }
+  "observability": { "enabled": true, "traces": { "enabled": true } },
 }
