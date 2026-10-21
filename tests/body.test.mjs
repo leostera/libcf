@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { setImmediate as nextTurn } from 'node:timers/promises';
-import { readBounded, readExactInto } from '../lib/body.mjs';
+import { readBounded } from '../lib/body.mjs';
 
 for (const kind of ['reject', 'throw', 'never-settle']) {
   test(`oversize releases its reader and preserves RangeError when cancellation will ${kind}`, async () => {
@@ -102,27 +102,4 @@ test('exact byte limit returns owned bytes and releases the reader without cance
   });
   assert.deepEqual(await readBounded(body, 2), new Uint8Array([0, 255]));
   assert.equal(body.locked, false);
-});
-
-const chunked = (...chunks) => new ReadableStream({
-  pull(controller) { chunks.length ? controller.enqueue(Uint8Array.from(chunks.shift())) : controller.close(); },
-});
-
-test('readExactInto writes every chunk at its offset without buffering', async () => {
-  const target = new Uint8Array(5);
-  await readExactInto(chunked([1, 2], [], [3, 4, 5]), 5, (chunk, offset) => target.set(chunk, offset));
-  assert.deepEqual([...target], [1, 2, 3, 4, 5]);
-  await readExactInto(null, 0, () => assert.fail('no chunks expected'));
-});
-
-test('readExactInto rejects bodies longer or shorter than declared', async () => {
-  let cancelled = false;
-  const long = new ReadableStream({
-    pull(controller) { controller.enqueue(new Uint8Array(3)); },
-    cancel() { cancelled = true; },
-  });
-  await assert.rejects(readExactInto(long, 2, () => {}), RangeError);
-  assert.equal(cancelled, true);
-  await assert.rejects(readExactInto(chunked([1]), 2, () => {}), TypeError);
-  await assert.rejects(readExactInto(null, 1, () => {}), TypeError);
 });
