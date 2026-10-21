@@ -34,6 +34,8 @@ _WASM_OPT_FEATURES = [
     "multivalue",
     "reference-types",
     "exception-handling",
+    # Not in worker-build's list: the benchmark crate is compiled with simd128.
+    "simd",
 ]
 
 def _rust_worker_impl(ctx):

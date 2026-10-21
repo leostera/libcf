@@ -79,7 +79,15 @@ EXAMPLES = [
 
 WORKER_DIRS = {name: "bench" if name == "benchmark" else "examples/" + name for name in EXAMPLES}
 
-[cf_worker(name = name, srcs = [WORKER_DIRS[name] + "/src/main.cpp"]) for name in EXAMPLES]
+[cf_worker(name = name, srcs = [WORKER_DIRS[name] + "/src/main.cpp"]) for name in EXAMPLES if name != "benchmark"]
+
+# The benchmark's compute kernels use explicit Wasm SIMD at -O3, like the Rust
+# comparator (opt-level 3 with simd128). Workers supports Wasm SIMD.
+cf_worker(
+    name = "benchmark",
+    srcs = ["bench/src/main.cpp", "bench/src/kernels.hpp"],
+    copts = ["-msimd128", "-O3"],
+)
 rust_worker(
     name = "benchmark_rust",
     library = "//bench/rust:benchmark_rust_lib",
@@ -123,7 +131,8 @@ JS_ENTRIES = {
 [js_run_binary(
     name = name + "_bundle",
     tool = ":bundle_tool",
-    srcs = [entry] + ([":spike"] if name == "hello" else []),
+    srcs = [entry] + ([":spike"] if name == "hello" else []) +
+           (["bench/kernels.mjs", ":runtime_modules"] if name == "benchmark-js" else []),
     args = [entry, "bundles/" + name],
     out_dirs = ["bundles/" + name],
 ) for name, entry in JS_ENTRIES.items()]
@@ -261,7 +270,7 @@ js_binary(
     data = JS_TEST_DATA + [
         ":benchmark", ":benchmark_rust", ":sdk_archive", "bench/support.mjs",
         "pnpm-lock.yaml", "MODULE.bazel", "MODULE.bazel.lock", "BUILD.bazel", ".bazelversion", ".bazelrc",
-    ] + glob(["include/cf/**/*.hpp", "src/*.cpp", "bench/src/*.cpp"]) + ["//bench/rust:sources"],
+    ] + glob(["include/cf/**/*.hpp", "src/*.cpp", "bench/src/*.cpp", "bench/src/*.hpp"]) + ["//bench/rust:sources"],
     tags = ["manual"],
 )
 

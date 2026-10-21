@@ -93,13 +93,22 @@ for (let round = 0; round < options.rounds; round++) {
       setup[label] = performance.now() - setupStart;
     }
     const measurements = Object.fromEntries(labels.map(label => [label, {}]));
+    // One slot sends `concurrency` simultaneous requests to one variant and
+    // records each latency; payloads cycle so no variant can cache a result.
+    const slot = async (label, scenario, index) => Promise.all(Array.from({ length: options.concurrency },
+      (_, lane) => sample(workers[label].base, scenario, index * options.concurrency + lane)));
     for (const scenario of scenarios) {
       const samples = Object.fromEntries(labels.map(label => [label, []]));
-      for (let index = 0; index < options.warmups + options.samples; index++) {
+      // Warm up for at least `warmups` slots and `warmupMs`, so JITs settle on slow cases too.
+      const warmStart = performance.now();
+      let index = 0;
+      for (; index < options.warmups || performance.now() - warmStart < options.warmupMs; index++)
+        for (let offset = 0; offset < labels.length; offset++)
+          await slot(labels[(index + offset) % labels.length], scenario, index);
+      for (let measured = 0; measured < options.samples; measured++, index++) {
         for (let offset = 0; offset < labels.length; offset++) {
           const label = labels[(index + offset) % labels.length];
-          const elapsed = await sample(workers[label].base, scenario);
-          if (index >= options.warmups) samples[label].push(elapsed);
+          samples[label].push(...await slot(label, scenario, index));
         }
       }
       for (const label of labels)
@@ -146,7 +155,7 @@ const require = createRequire(import.meta.url);
 const miniflareRequire = createRequire(require.resolve('miniflare'));
 const workerdVersion = JSON.parse(await readFile(miniflareRequire.resolve('workerd/package.json'), 'utf8')).version;
 const report = {
-  schemaVersion: 4, measuredAt: new Date().toISOString(), ...revisionInfo(), sourceFingerprint: before,
+  schemaVersion: 5, measuredAt: new Date().toISOString(), ...revisionInfo(), sourceFingerprint: before,
   host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model, logicalCpus: cpus().length },
   versions: { node: process.version, emscripten: '6.0.12 (pinned Bazel emsdk)',
     rust: '1.98.0 (pinned rules_rust)', workersRs: 'worker 0.8.7', wasmBindgen: '0.2.129', binaryen: '132',
@@ -156,11 +165,12 @@ const report = {
     cppMinusJs: summarize(incremental.map(value => value.cppMinusJs)),
     cppMinusRust: summarize(incremental.map(value => value.cppMinusRust)) }, runs,
   limitations: [
-    'Sequential localhost HTTP including client/server buffering; not production edge latency or throughput.',
+    'Localhost HTTP including client/server buffering (sequential unless --concurrency is set); not production edge latency or throughput.',
     'Setup includes esbuild, local workerd and first-response Wasm initialization, not isolated engine startup.',
     'Incremental estimate subtracts 1-call from 16-call medians, then the comparator from C++; includes copies, allocations and coroutine scheduling, not just ABI instructions.',
     'Quantiles use linear interpolation; no confidence intervals or statistical-significance claims.',
     'Bundle bytes sum ESM and Wasm; gzip uses per-module level 9, excluding upload/config framing.',
+    'Compute workloads follow the bitemyapp/workerd-compute-bench specification, re-implemented; search-large is reduced to 8000 candidates to fit the 1 MiB request bridge limit.',
     'Variants run concurrently with per-sample interleaving in rotating order; this cancels slow load drift but not contention between the idle runtimes or fast load changes.',
     'No CPU/memory profiling or production cold-start measurement; source hashes record declared runfile inputs, and artifact hashes identify the measured modules.',
     'Bazel compilation completes before measurement; buildMilliseconds is null, not a measured build duration.',
@@ -168,10 +178,11 @@ const report = {
 };
 await mkdir(dirname(reportPath), { recursive: true });
 await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
-console.table(scenarios.map(scenario => ({ scenario: scenario.name,
-  jsMs: summary.js.scenarios[scenario.name].median.toFixed(3),
-  cppMs: summary.cpp.scenarios[scenario.name].median.toFixed(3),
-  rustMs: summary.rust.scenarios[scenario.name].median.toFixed(3),
-  cppVsRustRatio: comparisons[scenario.name]['cpp-rust'].pairedMedianRatio.median.toFixed(3) })));
+// Absolute medians in ms, with the C++/Rust multiplier of those same medians.
+console.table(Object.fromEntries(scenarios.map(({ name }) => {
+  const median = label => summary[label].scenarios[name].median;
+  return [name, { 'JS ms': median('js').toFixed(3), 'C++ ms': median('cpp').toFixed(3), 'Rust ms': median('rust').toFixed(3),
+    'C++ vs Rust': `${(median('cpp') / median('rust')).toFixed(2)}x` }];
+})));
 console.table(Object.fromEntries(Object.entries(artifacts).map(([label, value]) => [label, { bytes: value.bytes, gzipBytes: value.gzipBytes }])));
 console.log(`Wrote ${reportPath} (raw samples, versions, hashes and limitations).`);

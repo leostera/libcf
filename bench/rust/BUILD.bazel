@@ -7,15 +7,17 @@ exports_files(["Cargo.toml", "Cargo.lock"])
 # Source fingerprint inputs for the benchmark runner.
 js_library(
     name = "sources",
-    srcs = ["BUILD.bazel", "Cargo.lock", "Cargo.toml", "src/lib.rs"],
+    srcs = ["BUILD.bazel", "Cargo.lock", "Cargo.toml", "src/kernels.rs", "src/lib.rs"],
     visibility = ["//visibility:public"],
 )
 
 rust_shared_library(
     name = "benchmark_rust_lib",
-    srcs = ["src/lib.rs"],
+    srcs = ["src/kernels.rs", "src/lib.rs"],
     crate_name = "libcf_benchmark_rust",
     edition = "2021",
+    # Explicit Wasm SIMD in the compute kernels, like the C++ fixture's -msimd128.
+    rustc_flags = ["-Ctarget-feature=+simd128"],
     # compilation_mode=opt (set by rust_worker) gives Cargo's default release
     # profile, which the workers-rs templates use: opt-level 3, no LTO.
     target_compatible_with = ["@platforms//cpu:wasm32"],

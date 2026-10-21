@@ -21,7 +21,7 @@ _WORKER_EXPORTS = [
     "_free",
 ]
 
-def _module(name, srcs, deps, host_library, exports, visibility, cxx_standard = 20):
+def _module(name, srcs, deps, host_library, exports, visibility, cxx_standard = 20, copts = []):
     if cxx_standard not in [20, 23]:
         fail("libcf requires C++20 or C++23")
     cc_binary(
@@ -30,7 +30,7 @@ def _module(name, srcs, deps, host_library, exports, visibility, cxx_standard = 
         deps = deps,
         additional_linker_inputs = [host_library],
         # Match em++'s existing default: allow throws, without catch/unwind support.
-        copts = ["-std=c++%d" % cxx_standard] + WASM_COMPILE_OPTIONS,
+        copts = ["-std=c++%d" % cxx_standard] + WASM_COMPILE_OPTIONS + copts,
         linkopts = [
             "-O2",
             "-sDISABLE_EXCEPTION_CATCHING=1",
@@ -65,8 +65,11 @@ def _module(name, srcs, deps, host_library, exports, visibility, cxx_standard = 
         visibility = visibility,
     )
 
-def cf_worker(name, srcs, visibility = None, cxx_standard = 20):
-    """Build a libcf Worker or DO module from application C++ sources."""
+def cf_worker(name, srcs, visibility = None, cxx_standard = 20, copts = []):
+    """Build a libcf Worker or DO module from application C++ sources.
+
+    `copts` apply to the application sources only, e.g. ["-msimd128", "-O3"].
+    """
     _module(
         name = name,
         srcs = srcs,
@@ -75,6 +78,7 @@ def cf_worker(name, srcs, visibility = None, cxx_standard = 20):
         exports = _WORKER_EXPORTS,
         visibility = visibility,
         cxx_standard = cxx_standard,
+        copts = copts,
     )
 
 def bridge_spike(name):

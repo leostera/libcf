@@ -1,21 +1,22 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
+import { imageReference, makeImage, makeVectors, searchReference } from './oracle.mjs';
 
 export function parseOptions(args) {
-  const options = { rounds: 6, samples: 80, warmups: 10 };
-  const bounds = { rounds: [2, 20], samples: [5, 500], warmups: [0, 100] };
+  const options = { rounds: 6, samples: 80, warmups: 10, warmupMs: 300, concurrency: 1 };
+  const bounds = { rounds: [2, 20], samples: [5, 500], warmups: [0, 100], 'warmup-ms': [0, 10000], concurrency: [1, 16] };
   const seen = new Set();
   for (let index = 0; index < args.length; index += 2) {
     const key = args[index].slice(2);
     const text = args[index + 1];
     if (!args[index].startsWith('--') || !Object.hasOwn(bounds, key) || seen.has(key) || !/^(0|[1-9]\d*)$/.test(text ?? ''))
-      throw new Error('Use --rounds N --samples N --warmups N, each at most once');
+      throw new Error('Use --rounds N --samples N --warmups N --warmup-ms N --concurrency N, each at most once');
     const value = Number(text);
     const [min, max] = bounds[key];
     if (!Number.isSafeInteger(value) || value < min || value > max || (key === 'rounds' && value % 2))
       throw new Error(`${key} out of bounds; rounds must be even`);
-    options[key] = value;
+    options[key === 'warmup-ms' ? 'warmupMs' : key] = value;
     seen.add(key);
   }
   return options;
@@ -30,34 +31,93 @@ export function summarize(values) {
     const lower = Math.floor(rank);
     return sorted[lower] + (sorted[Math.ceil(rank)] - sorted[lower]) * (rank - lower);
   };
-  return { count: values.length, min: sorted[0], median: quantile(0.5), p95: quantile(0.95), max: sorted.at(-1) };
+  return { count: values.length, min: sorted[0], median: quantile(0.5), p95: quantile(0.95), p99: quantile(0.99), max: sorted.at(-1) };
 }
 
+const TEXT = 'text/plain; charset=utf-8';
+const BINARY = 'application/octet-stream';
+
+function imagePayload(width, height, seed) {
+  const body = makeImage(width, height, seed);
+  return { body, expected: imageReference(body, width, height) };
+}
+
+function searchPayload(n, d, q, k, seed, spread) {
+  const body = makeVectors(n + q, d, seed, spread);
+  return { body, expected: searchReference(body, n, d, q, k) };
+}
+
+// Compute cases cycle through four different payloads so no result can be cached.
+const SEEDS = [1, 2, 3, 4];
+
+let cached;
 export function benchmarkCases() {
+  if (cached) return cached;
   const body = length => Uint8Array.from({ length }, (_, index) => (index * 17 + 3) % 256);
-  const cases = [{ name: 'hello', path: '/hello', method: 'GET', expected: Buffer.from('ok') }];
+  const cases = [{ name: 'hello', path: '/hello', method: 'GET', contentType: TEXT, payloads: [{ expected: Buffer.from('ok') }] }];
+  // Echo 64 KiB and 1 MiB are the transport controls for image-256 and image-1024:
+  // the same request and response sizes with no compute.
   for (const length of [1024, 65536, 1048576]) {
     const input = body(length);
-    cases.push({ name: `echo-${length}`, path: '/echo', method: 'POST', body: input, expected: input });
+    cases.push({ name: `echo-${length}`, path: '/echo', method: 'POST', contentType: TEXT, payloads: [{ body: input, expected: input }] });
   }
   for (const [iterations, length] of [[1, 1024], [16, 1024], [1, 65536]]) {
     const input = body(length);
-    cases.push({ name: `sha256-${iterations}x-${length}`, path: `/digest/${iterations}`, method: 'POST', body: input,
-      expected: Buffer.from(createHash('sha256').update(input).digest('hex')) });
+    cases.push({ name: `sha256-${iterations}x-${length}`, path: `/digest/${iterations}`, method: 'POST', contentType: TEXT,
+      payloads: [{ body: input, expected: Buffer.from(createHash('sha256').update(input).digest('hex')) }] });
   }
+  for (const size of [256, 1024]) {
+    cases.push({ name: `image-${size}`, path: `/image?w=${size}&h=${size}`, method: 'POST', contentType: BINARY,
+      payloads: SEEDS.map(seed => imagePayload(size, size, seed)) });
+  }
+  // search-large keeps the request within libcf's 1 MiB request-body bridge limit.
+  for (const [name, n, d, q, k] of [['search-small', 1024, 128, 1, 10], ['search-large', 8000, 128, 8, 10]]) {
+    cases.push({ name, path: `/search?n=${n}&d=${d}&q=${q}&k=${k}`, method: 'POST', contentType: BINARY,
+      payloads: SEEDS.map(seed => searchPayload(n, d, q, k, seed)) });
+  }
+  return (cached = cases);
+}
+
+// Edge cases checked by the test suite, not timed: odd sizes that exercise the
+// scalar tails, tie-heavy searches, and invalid requests.
+export function correctnessCases() {
+  const cases = [];
+  for (const [w, h] of [[7, 7], [8, 9], [13, 7], [17, 33], [31, 12], [1031, 9]]) {
+    cases.push({ name: `image-${w}x${h}`, path: `/image?w=${w}&h=${h}`, method: 'POST', contentType: BINARY,
+      payloads: [imagePayload(w, h, w + h)] });
+  }
+  for (const [n, d, q, k, spread] of [[1, 16, 1, 1, 128], [40, 16, 3, 40, 1], [300, 32, 2, 10, 1], [100, 256, 16, 100, 2], [500, 48, 5, 7, 128]]) {
+    cases.push({ name: `search-${n}-${d}-${q}-${k}`, path: `/search?n=${n}&d=${d}&q=${q}&k=${k}`, method: 'POST', contentType: BINARY,
+      payloads: [searchPayload(n, d, q, k, n + d, spread)] });
+  }
+  const rejected = (name, path, length) => ({ name, path, method: 'POST', contentType: TEXT, status: 400,
+    payloads: [{ body: new Uint8Array(length), expected: null }] });
+  cases.push(
+    rejected('image-too-small', '/image?w=6&h=7', 42),
+    rejected('image-wrong-length', '/image?w=8&h=8', 63),
+    rejected('image-leading-zero', '/image?w=08&h=8', 64),
+    rejected('image-duplicate-key', '/image?w=8&w=8', 64),
+    rejected('image-extra-key', '/image?w=8&h=8&x=1', 64),
+    rejected('image-trailing-separator', '/image?w=8&h=8&', 64),
+    rejected('search-bad-dimension', '/search?n=4&d=20&q=1&k=1', 100),
+    rejected('search-k-above-n', '/search?n=4&d=16&q=1&k=5', 80),
+    rejected('search-too-many-queries', '/search?n=4&d=16&q=17&k=1', 336),
+  );
   return cases;
 }
 
-export async function sample(base, scenario) {
+// Times one request (payload `index` cycles through the scenario's payloads),
+// then checks status, content type and every response byte outside the timer.
+export async function sample(base, scenario, index = 0) {
+  const payload = scenario.payloads[index % scenario.payloads.length];
   const start = performance.now();
   const response = await fetch(`${base}${scenario.path}`, {
-    method: scenario.method, body: scenario.body, signal: AbortSignal.timeout(10000),
+    method: scenario.method, body: payload.body, signal: AbortSignal.timeout(10000),
   });
   const actual = Buffer.from(await response.arrayBuffer());
   const elapsed = performance.now() - start;
-  // Correctness checks are outside the latency timer, but every result is checked.
-  assert.equal(response.status, 200, scenario.name);
-  assert.equal(response.headers.get('content-type'), 'text/plain; charset=utf-8', scenario.name);
-  assert(actual.equals(Buffer.from(scenario.expected)), `incorrect body: ${scenario.name}`);
+  assert.equal(response.status, scenario.status ?? 200, scenario.name);
+  assert.equal(response.headers.get('content-type'), scenario.contentType, scenario.name);
+  if (payload.expected) assert(actual.equals(Buffer.from(payload.expected)), `incorrect body: ${scenario.name}`);
   return elapsed;
 }
