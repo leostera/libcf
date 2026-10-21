@@ -48,8 +48,8 @@ Absolute medians are from run 1. Run-to-run differences are of the same order as
 
 | Code shape | C++ (libcf) | Rust (workers-rs) |
 | --- | ---: | ---: |
-| Wasm, bytes (gzip) | 54,729 (20,456) | 169,690 (51,254) |
-| Bundled JS, bytes (gzip) | ~161 KB (~29 KB), whole libcf runtime | 40,889 (6,966) |
+| Wasm, bytes (gzip) | 54,729 (20,668) | 169,690 (51,649) |
+| Bundled JS, bytes (gzip) | 162,369 (29,455), whole libcf runtime | 40,889 (6,966) |
 | Deployed total, gzip (per module) | 50,123 | 58,615 |
 | Wasm imports / exports | 13 / 15 | 69 / 53 |
 | Boundary calls, hello (imports + exports) | 2 + 10 | 28 + 10 |

@@ -42,14 +42,10 @@ jobs:
           python -m pip install clang-format==21.1.8
           sudo apt-get update
           sudo apt-get install -y clang-tidy
-      # package.json pins pnpm; pnpm-lock.yaml is the only JavaScript lockfile.
-      - name: Install JavaScript tools
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile
-      - run: npm run format:check
-      # lint:cpp still needs the retired CMake configuration (see CONTRIBUTING.md),
-      # so it is not part of the supported Bazel CI workflow.
+      # C++ formatting is enforced with the pinned clang-format. The oxfmt helper
+      # is not yet clean across the existing tree, and lint:cpp still needs the
+      # retired CMake configuration (see CONTRIBUTING.md); neither gates CI.
+      - run: bash scripts/cpp-tools.sh format-check
       - run: bazel test --lockfile_mode=error //...
       - run: bazel test --lockfile_mode=error --config=cxx23 //:native_tests
       - name: Relocated SDK external consumer
