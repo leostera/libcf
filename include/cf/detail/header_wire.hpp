@@ -40,4 +40,17 @@ inline std::optional<Headers> parse_headers(std::span<const std::uint8_t> wire) 
   return result;
 }
 
+// Encodes headers in the same wire format, appending to `output`.
+inline void encode_headers(const Headers& headers, std::string& output) {
+  const auto write_u32 = [&](std::size_t value) {
+    for (int shift = 0; shift < 32; shift += 8) output.push_back(static_cast<char>((value >> shift) & 0xff));
+  };
+  for (const auto& header : headers.fields()) {
+    write_u32(header.name.size());
+    write_u32(header.value.size());
+    output += header.name;
+    output += header.value;
+  }
+}
+
 }  // namespace cf::detail

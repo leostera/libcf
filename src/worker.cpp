@@ -14,15 +14,14 @@
 
 extern "C" {
 int libcf_host_var(int id, const char* key, int key_length, char* output, int capacity);
-void libcf_host_header(int id, const char* name, int name_length, const char* value,
-                       int value_length);
-void libcf_host_finish(int id, int status, const char* body, int length);
+void libcf_host_finish(int id, int status, const char* headers, int header_length, const char* body,
+                       int length);
 void libcf_host_fetch(int operation, int invocation, const char* path, int length);
 void libcf_host_random(std::uint8_t* output, int length);
 double libcf_host_now();
 void libcf_host_background(int id, int kind, const char* target, int target_length, const char* key,
                            int key_length, const char* value, int value_length);
-void libcf_host_stream_begin(int id, int status);
+void libcf_host_stream_begin(int id, int status, const char* headers, int header_length);
 void libcf_host_stream_emit(int id, const char* bytes, int length, int done);
 void libcf_host_operation(int operation, int invocation, int method, const char* binding,
                           int binding_length, const char* key, int key_length,
@@ -98,16 +97,18 @@ void send(int id, cf::Response response) {
   // before discovering an invalid status in a user-defined C++ handler.
   if (response.status < 200 || response.status > 599)
     response = cf::Response::text("invalid response status", 500);
-  for (const auto& header : response.headers.fields()) {
-    libcf_host_header(id, header.name.data(), static_cast<int>(header.name.size()),
-                      header.value.data(), static_cast<int>(header.value.size()));
-  }
+  // All headers cross in one call, in the request header wire format.
+  static std::string header_wire;
+  header_wire.clear();
+  cf::detail::encode_headers(response.headers, header_wire);
+  const auto header_length = static_cast<int>(header_wire.size());
   if (auto* body = std::get_if<std::string>(&response.body)) {
-    libcf_host_finish(id, response.status, body->data(), static_cast<int>(body->size()));
+    libcf_host_finish(id, response.status, header_wire.data(), header_length, body->data(),
+                      static_cast<int>(body->size()));
     return;
   }
   active_streams.emplace(id, std::get<cf::StreamSource>(std::move(response.body)));
-  libcf_host_stream_begin(id, response.status);
+  libcf_host_stream_begin(id, response.status, header_wire.data(), header_length);
 }
 
 void drive(int id) {
