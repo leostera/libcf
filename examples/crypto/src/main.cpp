@@ -24,14 +24,15 @@ Task handle(Request request, WorkerContext context) {
   if (path == "/uuid") co_return Response::text(context.crypto.random_uuid());
   if (path == "/random") co_return Response::text(hex(context.crypto.random_bytes(32)));
   if (request.method != "POST") co_return Response::text("not found", 404);
-  Bytes input(request.body.begin(), request.body.end());
+  // Digests borrow their input; the request body is read without a copy.
+  const auto input = bytes_of(request.body);
   SubtleCrypto crypto(context.bindings);
-  if (path == "/sha256") co_return reply(co_await crypto.sha256(std::move(input)));
-  if (path == "/sha384") co_return reply(co_await crypto.sha384(std::move(input)));
-  if (path == "/sha512") co_return reply(co_await crypto.sha512(std::move(input)));
+  if (path == "/sha256") co_return reply(co_await crypto.sha256(input));
+  if (path == "/sha384") co_return reply(co_await crypto.sha384(input));
+  if (path == "/sha512") co_return reply(co_await crypto.sha512(input));
   if (path == "/oversized") {
-    input.resize(1048577);
-    co_return reply(co_await crypto.sha256(std::move(input)));
+    const Bytes oversized(kMaxDigestInput + 1);
+    co_return reply(co_await crypto.sha256(oversized));
   }
   co_return Response::text("not found", 404);
 }

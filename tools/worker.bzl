@@ -12,6 +12,11 @@ _WORKER_EXPORTS = [
     "_libcf_stream_pull",
     "_libcf_stream_cancel",
     "_libcf_operation_done",
+    "_libcf_operation_reply",
+    "_libcf_digest_done",
+    "_libcf_digest_scratch",
+    "_libcf_request_head",
+    "_libcf_request_body",
     "_malloc",
     "_free",
 ]

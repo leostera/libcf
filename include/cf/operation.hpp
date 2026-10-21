@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -47,7 +48,7 @@ enum class Operation : std::uint32_t {
   VersionMetadataGet = 160,
   SecretsStoreGet = 176,
   WorkerLoaderFetch = 192,
-  CryptoDigest = 208,
+  CryptoDigest = 208,  // retired: digests use DigestHost (libcf_host_digest)
   HttpFetch = 224,
   PipelineSend = 240,
   Sleep = 256,
@@ -94,14 +95,47 @@ struct OperationReply {
   Bytes bytes;
 };
 
+enum class DigestAlgorithm : std::uint8_t { Sha256 = 1, Sha384 = 2, Sha512 = 3 };
+
+// Receives one digest from a DigestHost. `digest` is valid only during the call.
+class DigestWaiter {
+ public:
+  virtual void digest_complete(Result<std::span<const std::uint8_t>> digest) = 0;
+
+ protected:
+  ~DigestWaiter() = default;
+};
+
+// Borrowed-input digest service. start() reads all of `input` before returning,
+// then calls digest_complete() exactly once unless the returned ticket is
+// detached first. It may complete inline, in which case it returns 0.
+class DigestHost {
+ public:
+  virtual std::uint32_t start(int invocation, DigestAlgorithm algorithm,
+                              std::span<const std::uint8_t> input, DigestWaiter& waiter) const = 0;
+  virtual void detach(std::uint32_t ticket) const = 0;
+
+ protected:
+  ~DigestHost() = default;
+};
+
+// Where a request's digests go. The host must outlive every request.
+struct DigestRoute {
+  const DigestHost* host = nullptr;
+  int invocation = 0;
+};
+
 class BindingRuntime {
  public:
   using Completion = std::function<void(Result<OperationReply>)>;
   using Start = std::function<void(OperationCall, Completion)>;
   using Resume = AsyncResult<OperationReply>::Resume;
 
-  BindingRuntime(Start start, Resume resume)
-      : start_(std::move(start)), resume_(std::move(resume)) {}
+  BindingRuntime(Start start, Resume resume, DigestRoute digest = {})
+      : start_(std::move(start)), resume_(std::move(resume)), digest_(digest) {}
+
+  [[nodiscard]] const DigestRoute& digest_route() const noexcept { return digest_; }
+  [[nodiscard]] const Resume& resume() const noexcept { return resume_; }
 
   template <typename T, typename Decode>
   [[nodiscard]] AsyncResult<T> call(OperationCall call, Decode decode) const {
@@ -123,6 +157,7 @@ class BindingRuntime {
  private:
   Start start_;
   Resume resume_;
+  DigestRoute digest_;
 };
 
 }  // namespace cf

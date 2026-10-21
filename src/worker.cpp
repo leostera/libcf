@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "cf/detail/header_wire.hpp"
+#include "cf/subtle_crypto.hpp"
 
 extern "C" {
 int libcf_host_var(int id, const char* key, int key_length, char* output, int capacity);
@@ -27,6 +28,8 @@ void libcf_host_operation(int operation, int invocation, int method, const char*
                           int binding_length, const char* key, int key_length,
                           const std::uint8_t* body, int body_length, const char* options,
                           int options_length);
+void libcf_host_digest(int ticket, int invocation, int algorithm, const std::uint8_t* input,
+                       int length);
 }
 
 namespace {
@@ -38,11 +41,44 @@ struct PendingFetch {
 struct PendingOperation {
   int invocation;
   cf::BindingRuntime::Completion finish;
+  cf::Bytes reply;  // written in place by the host before libcf_operation_done
+};
+struct PendingDigest {
+  int invocation;
+  cf::DigestWaiter* waiter;
 };
 std::unordered_map<int, cf::Task::Handle> active_tasks;
 std::unordered_map<int, PendingFetch> active_fetches;
 std::unordered_map<int, PendingOperation> active_operations;
 std::unordered_map<int, cf::StreamSource> active_streams;
+std::unordered_map<std::uint32_t, PendingDigest> active_digests;
+std::uint32_t next_digest = 0;
+// The host writes a finished digest here, then calls libcf_digest_done. Static
+// storage, so a late completion never writes into a destroyed coroutine frame.
+alignas(8) std::uint8_t digest_scratch[64];
+// Request bytes are written here by the host immediately before libcf_http,
+// so the body moves into cf::Request without another copy.
+std::string pending_head;
+std::string pending_body;
+
+class HostDigests final : public cf::DigestHost {
+ public:
+  std::uint32_t start(int invocation, cf::DigestAlgorithm algorithm,
+                      std::span<const std::uint8_t> input, cf::DigestWaiter& waiter) const override {
+    if (input.size() > cf::kMaxDigestInput || next_digest == INT_MAX) {
+      waiter.digest_complete(
+          cf::Result<std::span<const std::uint8_t>>::failure({cf::ErrorCode::ResourceLimit, "digest exceeds bridge limits"}));
+      return 0;
+    }
+    const auto ticket = ++next_digest;
+    active_digests.emplace(ticket, PendingDigest{invocation, &waiter});
+    libcf_host_digest(static_cast<int>(ticket), invocation, static_cast<int>(algorithm), input.data(),
+                      static_cast<int>(input.size()));
+    return ticket;
+  }
+  void detach(std::uint32_t ticket) const override { active_digests.erase(ticket); }
+};
+const HostDigests host_digests;
 int next_fetch = 0;
 int next_operation = 0;
 
@@ -114,14 +150,14 @@ cf::WorkerContext make_context(int id) {
           return;
         }
         const int operation = ++next_operation;
-        active_operations.emplace(operation, PendingOperation{id, std::move(done)});
+        active_operations.emplace(operation, PendingOperation{id, std::move(done), {}});
         libcf_host_operation(operation, id, static_cast<int>(call.method), call.binding.data(),
                              static_cast<int>(call.binding.size()), call.key.data(),
                              static_cast<int>(call.key.size()), call.body.data(),
                              static_cast<int>(call.body.size()), call.options.data(),
                              static_cast<int>(call.options.size()));
       },
-      [id](std::coroutine_handle<>) { drive(id); });
+      [id](std::coroutine_handle<>) { drive(id); }, cf::DigestRoute{&host_digests, id});
   cf::Crypto crypto([](std::span<std::uint8_t> bytes) {
     libcf_host_random(bytes.data(), static_cast<int>(bytes.size()));
   });
@@ -158,13 +194,22 @@ extern "C" void libcf_fetch_done(int operation, int status, const char* body, in
   callback(cf::FetchResult::success({status, std::string(body, static_cast<std::size_t>(length))}));
 }
 
-extern "C" void libcf_operation_done(int operation, int status, const std::uint8_t* bytes,
-                                     int length) {
+// Sizes the pending reply and returns where the host writes it (null if the
+// operation is gone or the length is invalid). Only called for non-empty replies.
+extern "C" std::uint8_t* libcf_operation_reply(int operation, int length) {
+  auto it = active_operations.find(operation);
+  if (it == active_operations.end() || length <= 0 || length > 4 * 1024 * 1024) return nullptr;
+  it->second.reply.resize(static_cast<std::size_t>(length));
+  return it->second.reply.data();
+}
+
+extern "C" void libcf_operation_done(int operation, int status, int length) {
   auto it = active_operations.find(operation);
   if (it == active_operations.end()) return;
   auto callback = std::move(it->second.finish);
+  auto payload = std::move(it->second.reply);
   active_operations.erase(it);
-  if (length < 0 || length > 4 * 1024 * 1024) {
+  if (length < 0 || static_cast<std::size_t>(length) != payload.size()) {
     callback(cf::Result<cf::OperationReply>::failure(
         {cf::ErrorCode::InvalidInput, "invalid host result length"}));
     return;
@@ -172,7 +217,7 @@ extern "C" void libcf_operation_done(int operation, int status, const std::uint8
   if (status == 2) {
     callback(cf::Result<cf::OperationReply>::failure(
         {cf::ErrorCode::HostFailure,
-         length ? std::string(reinterpret_cast<const char*>(bytes), length) : "binding failed"}));
+         length ? std::string(payload.begin(), payload.end()) : "binding failed"}));
     return;
   }
   if (status != 0 && status != 1) {
@@ -180,10 +225,36 @@ extern "C" void libcf_operation_done(int operation, int status, const std::uint8
         {cf::ErrorCode::InvalidInput, "invalid host result status"}));
     return;
   }
-  cf::Bytes payload;
-  if (length) payload.assign(bytes, bytes + length);
   callback(cf::Result<cf::OperationReply>::success(
       {status == 1 ? cf::ReplyKind::Missing : cf::ReplyKind::Value, std::move(payload)}));
+}
+
+extern "C" std::uint8_t* libcf_digest_scratch() { return digest_scratch; }
+
+extern "C" void libcf_digest_done(int ticket, int status, int length) {
+  auto it = active_digests.find(static_cast<std::uint32_t>(ticket));
+  if (it == active_digests.end()) return;
+  auto* waiter = it->second.waiter;
+  active_digests.erase(it);
+  if (status != 0 || length <= 0 || length > static_cast<int>(sizeof digest_scratch)) {
+    waiter->digest_complete(cf::Result<std::span<const std::uint8_t>>::failure(
+        {cf::ErrorCode::HostFailure, "digest failed"}));
+    return;
+  }
+  waiter->digest_complete(cf::Result<std::span<const std::uint8_t>>::success(
+      std::span<const std::uint8_t>(digest_scratch, static_cast<std::size_t>(length))));
+}
+
+extern "C" char* libcf_request_head(int length) {
+  if (length < 0 || length > 32 + 8192 + 65536) return nullptr;
+  pending_head.resize(static_cast<std::size_t>(length));
+  return pending_head.data();
+}
+
+extern "C" char* libcf_request_body(int length) {
+  if (length < 0 || length > 1024 * 1024) return nullptr;
+  pending_body.resize(static_cast<std::size_t>(length));
+  return pending_body.data();
 }
 
 extern "C" void libcf_cancel(int id) {
@@ -197,6 +268,13 @@ extern "C" void libcf_cancel(int id) {
   for (auto it = active_operations.begin(); it != active_operations.end();) {
     if (it->second.invocation == id)
       it = active_operations.erase(it);
+    else
+      ++it;
+  }
+  // Before destroying the task: its digest awaitables then detach nothing.
+  for (auto it = active_digests.begin(); it != active_digests.end();) {
+    if (it->second.invocation == id)
+      it = active_digests.erase(it);
     else
       ++it;
   }
@@ -222,8 +300,13 @@ extern "C" void libcf_http(int id, const char* method, int method_length, const 
     send(id, cf::Response::text("invalid headers", 400));
     return;
   }
+  // The body must be the buffer from libcf_request_body; it moves, uncopied.
+  if (body != pending_body.data() || static_cast<std::size_t>(body_length) != pending_body.size()) {
+    send(id, cf::Response::text("invalid request body", 400));
+    return;
+  }
   cf::Request request{std::string(method, method_length), std::string(url, url_length),
-                      std::move(*parsed), std::string(body, body_length)};
+                      std::move(*parsed), std::exchange(pending_body, std::string())};
   if (active_tasks.contains(id)) {
     send(id, cf::Response::text("duplicate invocation", 500));
     return;

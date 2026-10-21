@@ -8,7 +8,7 @@ Task handle(Request request, WorkerContext context) {
   if (path == "/echo") co_return Response::text(std::move(request.body));
   if (path != "/digest/1" && path != "/digest/16") co_return Response::text("not found", 404);
   const int iterations = path == "/digest/16" ? 16 : 1;
-  const Bytes input(request.body.begin(), request.body.end());
+  const auto input = bytes_of(request.body);  // borrowed, like Rust's &[u8]
   SubtleCrypto crypto(context.bindings);
   std::array<std::uint8_t, 32> digest{};
   for (int index = 0; index < iterations; ++index) {

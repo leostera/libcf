@@ -9,6 +9,8 @@ function fixture({ pullError, cleanupError, eof = false, status = 200, afterBegi
     HEAPU8: new Uint8Array(65536),
     _malloc(size) { const result = pointer; pointer += size; return result; },
     _free() {}, _libcf_cancel() {},
+    _libcf_request_head(size) { return this._malloc(size); },
+    _libcf_request_body(size) { return this._malloc(Math.max(size, 1)); },
     _libcf_http(id) {
       if (id === 1) { host.streamBegin(id, status); afterBegin?.(); }
       else host.finish(id, 200, new TextEncoder().encode('next request'));
