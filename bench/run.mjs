@@ -81,20 +81,34 @@ for (const [label, variant] of Object.entries(variants)) artifacts[label] = awai
 const scenarios = benchmarkCases();
 const runs = [];
 for (let round = 0; round < options.rounds; round++) {
-  for (const label of order(round)) {
-    const setupStart = performance.now();
-    const worker = await startLocalWorker(variants[label].config);
-    const setupMilliseconds = performance.now() - setupStart;
-    try {
-      const measurements = {};
-      for (const scenario of scenarios) {
-        for (let index = 0; index < options.warmups; index++) await sample(worker.base, scenario);
-        const samples = [];
-        for (let index = 0; index < options.samples; index++) samples.push(await sample(worker.base, scenario));
-        measurements[scenario.name] = { milliseconds: summarize(samples), samples };
+  // All variants run side by side. Every sample index requests each variant once,
+  // in rotating order, so host load drift falls on all variants alike.
+  const labels = order(round);
+  const workers = {};
+  const setup = {};
+  try {
+    for (const label of labels) {
+      const setupStart = performance.now();
+      workers[label] = await startLocalWorker(variants[label].config);
+      setup[label] = performance.now() - setupStart;
+    }
+    const measurements = Object.fromEntries(labels.map(label => [label, {}]));
+    for (const scenario of scenarios) {
+      const samples = Object.fromEntries(labels.map(label => [label, []]));
+      for (let index = 0; index < options.warmups + options.samples; index++) {
+        for (let offset = 0; offset < labels.length; offset++) {
+          const label = labels[(index + offset) % labels.length];
+          const elapsed = await sample(workers[label].base, scenario);
+          if (index >= options.warmups) samples[label].push(elapsed);
+        }
       }
-      runs.push({ round, label, setupMilliseconds, measurements });
-    } finally { await worker.dispose(); }
+      for (const label of labels)
+        measurements[label][scenario.name] = { milliseconds: summarize(samples[label]), samples: samples[label] };
+    }
+    for (const label of labels)
+      runs.push({ round, label, setupMilliseconds: setup[label], measurements: measurements[label] });
+  } finally {
+    for (const worker of Object.values(workers)) await worker.dispose();
   }
 }
 const after = await sourceFingerprint();
@@ -132,7 +146,7 @@ const require = createRequire(import.meta.url);
 const miniflareRequire = createRequire(require.resolve('miniflare'));
 const workerdVersion = JSON.parse(await readFile(miniflareRequire.resolve('workerd/package.json'), 'utf8')).version;
 const report = {
-  schemaVersion: 3, measuredAt: new Date().toISOString(), ...revisionInfo(), sourceFingerprint: before,
+  schemaVersion: 4, measuredAt: new Date().toISOString(), ...revisionInfo(), sourceFingerprint: before,
   host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model, logicalCpus: cpus().length },
   versions: { node: process.version, emscripten: '6.0.12 (pinned Bazel emsdk)',
     rust: '1.98.0 (pinned rules_rust)', workersRs: 'worker 0.8.7', wasmBindgen: '0.2.129', binaryen: '132',
@@ -147,7 +161,7 @@ const report = {
     'Incremental estimate subtracts 1-call from 16-call medians, then the comparator from C++; includes copies, allocations and coroutine scheduling, not just ABI instructions.',
     'Quantiles use linear interpolation; no confidence intervals or statistical-significance claims.',
     'Bundle bytes sum ESM and Wasm; gzip uses per-module level 9, excluding upload/config framing.',
-    'Rotating variant order reduces but does not eliminate host load, cache, thermal and order effects.',
+    'Variants run concurrently with per-sample interleaving in rotating order; this cancels slow load drift but not contention between the idle runtimes or fast load changes.',
     'No CPU/memory profiling or production cold-start measurement; source hashes record declared runfile inputs, and artifact hashes identify the measured modules.',
     'Bazel compilation completes before measurement; buildMilliseconds is null, not a measured build duration.',
   ],
