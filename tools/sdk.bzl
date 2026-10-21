@@ -15,8 +15,10 @@ def cf_sdk():
     cc_library(
         name = "worker_runtime",
         srcs = ["src/worker.cpp"],
-        # A dependency does not inherit this project's .bazelrc.
-        copts = ["-std=c++20"] + WASM_COMPILE_OPTIONS,
+        # A dependency does not inherit this project's .bazelrc. The bridge is
+        # internal and built with the pinned emsdk, so it may use C++23 (for
+        # std::string::resize_and_overwrite); public headers remain C++20.
+        copts = ["-std=c++23"] + WASM_COMPILE_OPTIONS,
         deps = [":cf"],
         target_compatible_with = ["@platforms//cpu:wasm32"],
         visibility = ["//visibility:public"],
