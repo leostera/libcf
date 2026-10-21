@@ -1,9 +1,11 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 load("@rust_bench_crates//:defs.bzl", "all_crate_deps")
 
 exports_files(["Cargo.toml", "Cargo.lock"])
 
-filegroup(
+# Source fingerprint inputs for the benchmark runner.
+js_library(
     name = "sources",
     srcs = ["BUILD.bazel", "Cargo.lock", "Cargo.toml", "src/lib.rs"],
     visibility = ["//visibility:public"],

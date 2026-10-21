@@ -16,7 +16,11 @@ const options = parseOptions(args);
 const variants = {
   js: { entry: 'bench/plain.mjs', config: 'bench/plain.wrangler.jsonc' },
   cpp: { entry: 'bench/worker.mjs', config: 'bench/wrangler.jsonc' },
+  rust: { entry: 'bench/rust-worker.mjs', config: 'bench/rust.wrangler.jsonc' },
 };
+// Rotate the start variant each round to spread order effects across variants.
+const order = round => { const labels = Object.keys(variants); return labels.map((_, i) => labels[(i + round) % labels.length]); };
+const PAIRS = [['cpp', 'js'], ['cpp', 'rust'], ['rust', 'js']];
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const command = (name, args) => execFileSync(name, args, { encoding: 'utf8' }).trim();
 function revisionInfo() {
@@ -36,10 +40,10 @@ async function sourceFingerprint() {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = `${directory}/${entry.name}`;
       if (entry.isDirectory()) await visit(path);
-      else if (/\.(hpp|h|cpp|js|mjs|jsonc)$/.test(entry.name)) files.push(path);
+      else if (/\.(hpp|h|cpp|js|mjs|jsonc|rs|toml|lock|wasm)$/.test(entry.name)) files.push(path);
     }
   }
-  for (const directory of ['include/cf', 'lib', 'src', 'bench']) await visit(directory);
+  for (const directory of ['include/cf', 'lib', 'src', 'bench', 'build/benchmark_rust']) await visit(directory);
   const hash = createHash('sha256');
   for (const path of files.sort()) {
     const bytes = await readFile(path);
@@ -77,7 +81,7 @@ for (const [label, variant] of Object.entries(variants)) artifacts[label] = awai
 const scenarios = benchmarkCases();
 const runs = [];
 for (let round = 0; round < options.rounds; round++) {
-  for (const label of round % 2 ? ['cpp', 'js'] : ['js', 'cpp']) {
+  for (const label of order(round)) {
     const setupStart = performance.now();
     const worker = await startLocalWorker(variants[label].config);
     const setupMilliseconds = performance.now() - setupStart;
@@ -105,38 +109,45 @@ for (const label of Object.keys(variants)) {
 const comparisons = {};
 const incremental = [];
 for (const scenario of scenarios) {
-  const deltas = [];
-  for (let round = 0; round < options.rounds; round++) {
-    const median = label => runs.find(run => run.round === round && run.label === label).measurements[scenario.name].milliseconds.median;
-    deltas.push(median('cpp') - median('js'));
+  const median = (round, label) => runs.find(run => run.round === round && run.label === label).measurements[scenario.name].milliseconds.median;
+  comparisons[scenario.name] = {};
+  for (const [a, b] of PAIRS) {
+    const deltas = [], ratios = [];
+    for (let round = 0; round < options.rounds; round++) {
+      deltas.push(median(round, a) - median(round, b));
+      ratios.push(median(round, a) / median(round, b));
+    }
+    comparisons[scenario.name][`${a}-${b}`] = { pairedMedianDeltaMilliseconds: summarize(deltas), pairedMedianRatio: summarize(ratios) };
   }
-  comparisons[scenario.name] = { pairedMedianDeltaMilliseconds: summarize(deltas) };
 }
 for (let round = 0; round < options.rounds; round++) {
   const cost = label => {
     const measurements = runs.find(run => run.round === round && run.label === label).measurements;
     return (measurements['sha256-16x-1024'].milliseconds.median - measurements['sha256-1x-1024'].milliseconds.median) / 15;
   };
-  incremental.push(cost('cpp') - cost('js'));
+  incremental.push({ cppMinusJs: cost('cpp') - cost('js'), cppMinusRust: cost('cpp') - cost('rust') });
 }
 const version = async name => JSON.parse(await readFile(`node_modules/${name}/package.json`, 'utf8')).version;
 const require = createRequire(import.meta.url);
 const miniflareRequire = createRequire(require.resolve('miniflare'));
 const workerdVersion = JSON.parse(await readFile(miniflareRequire.resolve('workerd/package.json'), 'utf8')).version;
 const report = {
-  schemaVersion: 2, measuredAt: new Date().toISOString(), ...revisionInfo(), sourceFingerprint: before,
+  schemaVersion: 3, measuredAt: new Date().toISOString(), ...revisionInfo(), sourceFingerprint: before,
   host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model, logicalCpus: cpus().length },
   versions: { node: process.version, emscripten: '6.0.12 (pinned Bazel emsdk)',
+    rust: '1.98.0 (pinned rules_rust)', workersRs: 'worker 0.8.7', wasmBindgen: '0.2.129', binaryen: '132',
     esbuild: await version('esbuild'), miniflare: await version('miniflare'), workerd: workerdVersion },
   compatibilityDate: '2026-10-13', options, buildMilliseconds, artifacts, summary, comparisons,
-  incrementalDigestBridgeEstimateMilliseconds: summarize(incremental), runs,
+  incrementalDigestBridgeEstimateMilliseconds: {
+    cppMinusJs: summarize(incremental.map(value => value.cppMinusJs)),
+    cppMinusRust: summarize(incremental.map(value => value.cppMinusRust)) }, runs,
   limitations: [
     'Sequential localhost HTTP including client/server buffering; not production edge latency or throughput.',
     'Setup includes esbuild, local workerd and first-response Wasm initialization, not isolated engine startup.',
-    'Incremental estimate subtracts 1-call from 16-call medians, then JS from C++; includes copies, allocations and coroutine scheduling, not just ABI instructions.',
+    'Incremental estimate subtracts 1-call from 16-call medians, then the comparator from C++; includes copies, allocations and coroutine scheduling, not just ABI instructions.',
     'Quantiles use linear interpolation; no confidence intervals or statistical-significance claims.',
     'Bundle bytes sum ESM and Wasm; gzip uses per-module level 9, excluding upload/config framing.',
-    'Alternating variant order reduces but does not eliminate host load, cache, thermal and order effects.',
+    'Rotating variant order reduces but does not eliminate host load, cache, thermal and order effects.',
     'No CPU/memory profiling or production cold-start measurement; source hashes record declared runfile inputs, and artifact hashes identify the measured modules.',
     'Bazel compilation completes before measurement; buildMilliseconds is null, not a measured build duration.',
   ],
@@ -144,7 +155,9 @@ const report = {
 await mkdir(dirname(reportPath), { recursive: true });
 await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
 console.table(scenarios.map(scenario => ({ scenario: scenario.name,
-  jsMedianMs: summary.js.scenarios[scenario.name].median.toFixed(3),
-  cppMedianMs: summary.cpp.scenarios[scenario.name].median.toFixed(3),
-  pairedDeltaMs: comparisons[scenario.name].pairedMedianDeltaMilliseconds.median.toFixed(3) })));
+  jsMs: summary.js.scenarios[scenario.name].median.toFixed(3),
+  cppMs: summary.cpp.scenarios[scenario.name].median.toFixed(3),
+  rustMs: summary.rust.scenarios[scenario.name].median.toFixed(3),
+  cppVsRustRatio: comparisons[scenario.name]['cpp-rust'].pairedMedianRatio.median.toFixed(3) })));
+console.table(Object.fromEntries(Object.entries(artifacts).map(([label, value]) => [label, { bytes: value.bytes, gzipBytes: value.gzipBytes }])));
 console.log(`Wrote ${reportPath} (raw samples, versions, hashes and limitations).`);
