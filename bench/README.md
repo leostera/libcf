@@ -19,7 +19,7 @@ Bazel builds the fixtures before the runner starts. Each round starts all local 
 
 Both fixtures expose hello, binary echo and one/16 SHA-256 operations with the same request data, body bound, response bytes and content type. C++ uses the normal libcf coroutine/operation bridge. JS uses native Web Crypto directly and the same bounded body reader. All buffering, copies, allocations and client HTTP work remain in the latency measurements.
 
-Default: six rounds, 10 warmups and 80 measured sequential requests per scenario/variant/round. Each round starts fresh local runtimes; startup includes bundling and the harness's first response. This is not an edge cold-start measurement. Inputs must remain unchanged throughout the run or the runner refuses to emit mixed measurements.
+Default: six rounds; per scenario and round, at least 10 warmup requests and 300 ms of warmup per variant, then 80 measured sequential requests per variant. `--concurrency N` sends N simultaneous requests per sample; `--warmup-ms` sets the warmup duration. Reports include p95 and p99. The Rust fixture reads its query from the raw request URL, because `Request::url()` would link the `url` crate's IDNA tables, about 90 KB of gzipped Wasm. Each round starts fresh local runtimes; startup includes bundling and the harness's first response. This is not an edge cold-start measurement. Inputs must remain unchanged throughout the run or the runner refuses to emit mixed measurements.
 
 ## Rust comparator (workers-rs)
 
@@ -30,27 +30,44 @@ bazel run //:benchmark_sdk -- /tmp/libcf-benchmark.json      # JS, C++ and Rust,
 bazel run //:benchmark_boundary_probe                         # JS<->Wasm calls per request (diagnostic)
 ```
 
+## Compute workloads
+
+`/image` and `/search` are CPU-bound workloads, where Wasm can help. They follow the published specification of [bitemyapp/workerd-compute-bench](https://github.com/bitemyapp/workerd-compute-bench). That project has no licence, so they are re-implemented here and no code is copied.
+
+- `/image?w=&h=`: `w*h` grayscale bytes in, the same number out. A 5×5 binomial blur (the outer product of `[1,4,6,4,1]`, rounded half-up after both passes), then the Sobel magnitude `min(255, |gx|+|gy|)`. The outer three rows and columns are zero.
+- `/search?n=&d=&q=&k=`: `n` int8 candidate vectors, then `q` query vectors, each of `d` values. For each query, the result is `k` records of `[id: u32 LE][score: i32 LE]`, by descending dot product, with smaller ids first on ties.
+
+C++ and Rust use the same algorithms (separable blur, single-pass top-k) with the same explicit Wasm SIMD. Both are built at opt-level 3 with `simd128`. The JS fixture splits each phase into its own function. `bench/oracle.mjs` is a naive reference implementation that checks every response byte. Each compute case cycles through four payloads, so no variant can cache a result. The test suite also checks odd sizes (scalar tails), tie-heavy searches and invalid requests against all three variants. `search-large` uses 8,000 candidates rather than 32,768, to stay within libcf's 1 MiB request-body limit. Echo 64 KiB and echo 1 MiB are the transport controls for `image-256` and `image-1024`: they have the same request and response sizes, with no compute.
+
 ## Measured results
 
-These are two consecutive full default runs (6 rounds × 80 samples per variant and scenario) from a clean worktree, on 2026-10-21 UTC on an Apple M4 Pro under heavy background load (load average about 10). All three variants run side by side, and each sample index requests every variant once in rotating order, so load drift falls on all variants alike.
+These are two consecutive full default runs (6 rounds × 80 samples per variant and scenario, 960 requests per variant and scenario in total), on 2026-10-21 UTC on an Apple M4 Pro under heavy background load (load average 13–30). All three variants run side by side, and each sample index requests every variant once in rotating order, so load drift falls on all variants alike.
 
 | Scenario | JS (ms) | C++ libcf (ms) | Rust workers-rs (ms) | C++ vs Rust |
 | --- | ---: | ---: | ---: | ---: |
-| Hello | 1.358 | 1.569 | 1.596 | 0.98× |
-| Echo, 1 KiB | 1.575 | 1.719 | 1.740 | 0.99× |
-| Echo, 64 KiB | 2.830 | 2.580 | 2.536 | 1.02× |
-| Echo, 1 MiB | 26.694 | 19.486 | 18.626 | 1.05× |
-| SHA-256, 1 × 1 KiB | 1.732 | 1.895 | 1.915 | 0.99× |
-| SHA-256, 16 × 1 KiB | 1.783 | 2.018 | 2.171 | 0.93× |
-| SHA-256, 1 × 64 KiB | 2.038 | 1.808 | 1.731 | 1.04× |
+| Hello | 1.419 | 1.633 | 1.695 | 0.96× |
+| Echo, 1 KiB | 1.991 | 2.248 | 2.282 | 0.99× |
+| Echo, 64 KiB | 2.608 | 3.002 | 2.980 | 1.01× |
+| Echo, 1 MiB | 20.055 | 18.984 | 19.616 | 0.97× |
+| SHA-256, 1 × 1 KiB | 1.665 | 1.889 | 1.814 | 1.04× |
+| SHA-256, 16 × 1 KiB | 1.914 | 2.124 | 2.251 | 0.94× |
+| SHA-256, 1 × 64 KiB | 1.947 | 2.228 | 2.017 | 1.10× |
+| Image, 256 × 256 | 4.429 | 2.346 | 2.365 | 0.99× |
+| Image, 1024 × 1024 | 50.177 | 11.414 | 11.300 | 1.01× |
+| Search, 1,024 × 128, 1 query | 2.531 | 2.253 | 2.033 | 1.11× |
+| Search, 8,000 × 128, 8 queries | 35.813 | 7.784 | 7.154 | 1.09× |
 
-Times are medians over all samples from both runs (960 requests per variant and scenario). The multiplier is C++ time divided by Rust time; below 1× means libcf is faster. libcf and workers-rs are at parity: per-round paired ratios (in each generated report) span 1× in almost every scenario, and run-to-run differences are as large as the gaps. libcf is consistently ahead only for sequential binding calls (16 digests, about 7% faster). It is not reliably faster than Rust for single requests.
+Times are medians over all samples from both runs. The multiplier is C++ time divided by Rust time; below 1× means libcf is faster.
+
+- **Compute is where Wasm pays off:** C++ and Rust are 1.9× faster than JS on `image-256`, 4.4× on `image-1024`, and 4.6× on `search-large`. For bridge-bound requests, JS remains as fast or faster.
+- **libcf and workers-rs are at parity for image processing.** Rust is about 9–11% faster on search in both runs; the two modules use the same SIMD instructions in their inner loops. For bridge work, the two are within run-to-run noise, except 16 sequential digests, where libcf is about 6% faster.
+- **JS GC cliff:** the JS fixture originally buffered bodies with a doubling stream reader, which allocated about 3 MiB of short-lived buffers per 1 MiB request. In workerd, repeated `image-1024` requests then slowed 5–7× after about 47 requests and stayed slow; Node did not reproduce this. Reading Content-Length bodies with one `arrayBuffer()` allocation, as the libcf runtime and workers-rs do, removed it.
 
 | Code shape | C++ (libcf) | Rust (workers-rs) |
 | --- | ---: | ---: |
-| Wasm, bytes (gzip) | 50,827 (20,056) | 169,690 (51,649) |
+| Wasm, bytes (gzip) | 60,646 (24,229) | 189,739 (58,063) |
 | Bundled JS, bytes (gzip) | 164,311 (29,996), whole libcf runtime | 40,889 (6,966) |
-| Deployed total, gzip (per module) | 50,052 | 58,615 |
+| Deployed total, gzip (per module) | 54,225 | 65,029 |
 | Wasm imports / exports | 13 / 20 | 69 / 53 |
 | Boundary calls, hello (imports + exports) | 1 + 4 | 28 + 10 |
 | Boundary calls, one digest | 2 + 5 | 42 + 14 |
