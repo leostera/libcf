@@ -3,6 +3,12 @@ load("@rust_bench_crates//:defs.bzl", "all_crate_deps")
 
 exports_files(["Cargo.toml", "Cargo.lock"])
 
+filegroup(
+    name = "sources",
+    srcs = ["BUILD.bazel", "Cargo.lock", "Cargo.toml", "src/lib.rs"],
+    visibility = ["//visibility:public"],
+)
+
 rust_shared_library(
     name = "benchmark_rust_lib",
     srcs = ["src/lib.rs"],

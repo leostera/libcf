@@ -41,15 +41,15 @@ def _rust_worker_impl(ctx):
     wasm = [f for f in library if f.extension == "wasm"]
     if len(wasm) != 1:
         fail("expected exactly one cdylib .wasm output, got %s" % library)
-    out_js = ctx.actions.declare_file("build/%s/index.js" % ctx.label.name)
-    out_wasm = ctx.actions.declare_file("build/%s/index_bg.wasm" % ctx.label.name)
+    # A tree artifact: wasm-bindgen also emits inline JS snippets under snippets/.
+    out_dir = ctx.actions.declare_directory("build/%s" % ctx.label.name)
     bindgen = ctx.executable._wasm_bindgen
     wasm_opt = ctx.executable._wasm_opt
     opt_args = " ".join(["-O"] + ["--enable-" + feature for feature in _WASM_OPT_FEATURES] + ["--debuginfo"])
     ctx.actions.run_shell(
         inputs = wasm,
         tools = [bindgen, wasm_opt] + ctx.files._binaryen_runtime,
-        outputs = [out_js, out_wasm],
+        outputs = [out_dir],
         mnemonic = "RustWorkerBuild",
         progress_message = "Running wasm-bindgen and wasm-opt for %{label}",
         command = """
@@ -58,18 +58,18 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 "{bindgen}" "{input}" --out-dir "$tmp" --no-typescript --target module --out-name index \
   --experimental-reset-state-function --force-enable-abort-handler
-"{wasm_opt}" "$tmp/index_bg.wasm" -o "{out_wasm}" {opt_args}
-sed 's/import source /import /' "$tmp/index.js" > "{out_js}"
+"{wasm_opt}" "$tmp/index_bg.wasm" -o "{out_dir}/index_bg.wasm" {opt_args}
+sed 's/import source /import /' "$tmp/index.js" > "{out_dir}/index.js"
+if [ -d "$tmp/snippets" ]; then cp -R "$tmp/snippets" "{out_dir}/snippets"; fi
 """.format(
             bindgen = bindgen.path,
             input = wasm[0].path,
             wasm_opt = wasm_opt.path,
-            out_wasm = out_wasm.path,
-            out_js = out_js.path,
+            out_dir = out_dir.path,
             opt_args = opt_args,
         ),
     )
-    return [DefaultInfo(files = depset([out_js, out_wasm]))]
+    return [DefaultInfo(files = depset([out_dir]))]
 
 rust_worker = rule(
     implementation = _rust_worker_impl,

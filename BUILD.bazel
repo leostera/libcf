@@ -213,7 +213,7 @@ JS_TEST_FILES = glob(
 js_test(
     name = "benchmark_local_test",
     entry_point = "tests/benchmark-integration.test.mjs",
-    data = JS_TEST_DATA + [":benchmark", ":js_test_inputs"],
+    data = JS_TEST_DATA + [":benchmark", ":benchmark_rust", ":js_test_inputs"],
 )
 
 js_binary(
@@ -259,9 +259,9 @@ js_binary(
     name = "benchmark_sdk",
     entry_point = "bench/run.mjs",
     data = JS_TEST_DATA + [
-        ":benchmark", ":sdk_archive", "bench/support.mjs",
+        ":benchmark", ":benchmark_rust", ":sdk_archive", "bench/support.mjs",
         "pnpm-lock.yaml", "MODULE.bazel", "MODULE.bazel.lock", "BUILD.bazel", ".bazelversion", ".bazelrc",
-    ] + glob(["include/cf/**/*.hpp", "src/*.cpp", "bench/src/*.cpp"]),
+    ] + glob(["include/cf/**/*.hpp", "src/*.cpp", "bench/src/*.cpp"]) + ["//bench/rust:sources"],
     tags = ["manual"],
 )
 
