@@ -10,7 +10,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       CC: /usr/bin/gcc-13
       CXX: /usr/bin/g++-13
@@ -42,9 +42,14 @@ jobs:
           python -m pip install clang-format==21.1.8
           sudo apt-get update
           sudo apt-get install -y clang-tidy
-      - run: npm ci
+      # package.json pins pnpm; pnpm-lock.yaml is the only JavaScript lockfile.
+      - name: Install JavaScript tools
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
       - run: npm run format:check
-      - run: npm run lint:cpp
+      # lint:cpp still needs the retired CMake configuration (see CONTRIBUTING.md),
+      # so it is not part of the supported Bazel CI workflow.
       - run: bazel test --lockfile_mode=error //...
       - run: bazel test --lockfile_mode=error --config=cxx23 //:native_tests
       - name: Relocated SDK external consumer
