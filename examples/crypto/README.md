@@ -5,7 +5,7 @@ bazel build //:crypto
 bazel test //:crypto_local_test
 ```
 
-`cf::SubtleCrypto(context.bindings)` exposes `sha256`, `sha384`, and `sha512`, returning fixed-size byte arrays through `AsyncResult`. Inputs are owned binary bytes, including empty values, with a 1 MiB cap. No configured resource binding is needed.
+`cf::SubtleCrypto(context.bindings)` exposes `sha256`, `sha384`, and `sha512`. Each borrows a `std::span<const std::uint8_t>` (any byte container, or `cf::bytes_of(text)`, empty included, with a 1 MiB cap) and returns an allocation-free awaitable yielding `Result<std::array<std::uint8_t, N>>`. The input is read when awaited, so keep it alive until then: `co_await crypto.sha256(cf::bytes_of(request.body))` is fine. No configured resource binding is needed.
 
 POST bytes to `/sha256`, `/sha384`, or `/sha512` for hexadecimal output. `/random` and `/uuid` use platform randomness. Cancellation does not promise to stop already-running computation. Key management, signatures, encryption, HMAC, streaming digests, and timing-safe comparison are not exposed by this API.
 
