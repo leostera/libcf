@@ -6,6 +6,7 @@ load("@rules_python//python:defs.bzl", "py_binary")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//tools:worker.bzl", "bridge_spike", "cf_worker")
 load("//tools:sdk.bzl", "cf_sdk")
+load("//tools:rust_worker.bzl", "rust_worker")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -79,6 +80,11 @@ EXAMPLES = [
 WORKER_DIRS = {name: "bench" if name == "benchmark" else "examples/" + name for name in EXAMPLES}
 
 [cf_worker(name = name, srcs = [WORKER_DIRS[name] + "/src/main.cpp"]) for name in EXAMPLES]
+rust_worker(
+    name = "benchmark_rust",
+    library = "//bench/rust:benchmark_rust_lib",
+)
+
 cf_worker(name = "durable-object", srcs = ["examples/durable/src/object.cpp"])
 bridge_spike(name = "spike")
 cf_worker(name = "stream-lifecycle-probe", srcs = ["tests/stream-lifecycle/main.cpp"], cxx_standard = 23)

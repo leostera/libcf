@@ -1,0 +1,16 @@
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
+load("@rust_bench_crates//:defs.bzl", "all_crate_deps")
+
+exports_files(["Cargo.toml", "Cargo.lock"])
+
+rust_shared_library(
+    name = "benchmark_rust_lib",
+    srcs = ["src/lib.rs"],
+    crate_name = "libcf_benchmark_rust",
+    edition = "2021",
+    # compilation_mode=opt (set by rust_worker) gives Cargo's default release
+    # profile, which the workers-rs templates use: opt-level 3, no LTO.
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True),
+)

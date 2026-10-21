@@ -1,1 +1,40 @@
 exports_files(["BUILD.bazel", "sdk.bzl", "worker.bzl"])
+
+config_setting(
+    name = "darwin_arm64",
+    constraint_values = ["@platforms//os:macos", "@platforms//cpu:arm64"],
+)
+
+config_setting(
+    name = "linux_amd64",
+    constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
+# Benchmark-only tools for the workers-rs comparator. Supported hosts match CI
+# (Linux x86_64) and the reference benchmark machine (macOS arm64).
+alias(
+    name = "wasm_bindgen",
+    actual = select({
+        ":darwin_arm64": "@wasm_bindgen_cli_darwin_arm64//:wasm-bindgen",
+        ":linux_amd64": "@wasm_bindgen_cli_linux_amd64//:wasm-bindgen",
+    }),
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "wasm_opt",
+    actual = select({
+        ":darwin_arm64": "@binaryen_darwin_arm64//:bin/wasm-opt",
+        ":linux_amd64": "@binaryen_linux_amd64//:bin/wasm-opt",
+    }),
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "binaryen_runtime",
+    actual = select({
+        ":darwin_arm64": "@binaryen_darwin_arm64//:all",
+        ":linux_amd64": "@binaryen_linux_amd64//:all",
+    }),
+    visibility = ["//visibility:public"],
+)

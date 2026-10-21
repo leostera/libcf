@@ -59,3 +59,71 @@ npm.npm_translate_lock(
     data = ["//:pnpm-workspace.yaml"],
 )
 use_repo(npm, "npm")
+
+# workers-rs benchmark comparator (development only). Versions mirror
+# worker-build 0.8.7: wasm-bindgen 0.2.129 (Cargo.lock) and binaryen 132.
+bazel_dep(name = "rules_rust", version = "0.74.0", dev_dependency = True)
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust", dev_dependency = True)
+rust.toolchain(
+    edition = "2021",
+    extra_target_triples = ["wasm32-unknown-unknown"],
+    versions = ["1.98.0"],
+)
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all", dev_dependency = True)
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate", dev_dependency = True)
+crate.from_cargo(
+    name = "rust_bench_crates",
+    cargo_lockfile = "//bench/rust:Cargo.lock",
+    manifests = ["//bench/rust:Cargo.toml"],
+    supported_platform_triples = [
+        "aarch64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "wasm32-unknown-unknown",
+    ],
+)
+use_repo(crate, "rust_bench_crates")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+_TOOL_BUILD = """exports_files(glob(["**"]))
+filegroup(name = "all", srcs = glob(["**"]), visibility = ["//visibility:public"])
+"""
+
+http_archive(
+    name = "wasm_bindgen_cli_darwin_arm64",
+    build_file_content = _TOOL_BUILD,
+    dev_dependency = True,
+    sha256 = "81d4a23d56b3c3eb8187658329116d50e0b228a93b343825fb71f70179051cd1",
+    strip_prefix = "wasm-bindgen-0.2.129-aarch64-apple-darwin",
+    urls = ["https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.129/wasm-bindgen-0.2.129-aarch64-apple-darwin.tar.gz"],
+)
+
+http_archive(
+    name = "wasm_bindgen_cli_linux_amd64",
+    build_file_content = _TOOL_BUILD,
+    dev_dependency = True,
+    sha256 = "82d12bb940e2d4e72e0d5605387fc1b8ca179044e012b620f0ce4e7440e8320e",
+    strip_prefix = "wasm-bindgen-0.2.129-x86_64-unknown-linux-musl",
+    urls = ["https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.129/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz"],
+)
+
+http_archive(
+    name = "binaryen_darwin_arm64",
+    build_file_content = _TOOL_BUILD,
+    dev_dependency = True,
+    sha256 = "98aad827847af7ef990ed7098d885725c8e5b5aae75073403635617ae4e259aa",
+    strip_prefix = "binaryen-version_132",
+    urls = ["https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-arm64-macos.tar.gz"],
+)
+
+http_archive(
+    name = "binaryen_linux_amd64",
+    build_file_content = _TOOL_BUILD,
+    dev_dependency = True,
+    sha256 = "195ddc94f9bc89f45abdabb0b9eea86023d727ba90eac8b35b80f2544fc30572",
+    strip_prefix = "binaryen-version_132",
+    urls = ["https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-x86_64-linux.tar.gz"],
+)

@@ -1,0 +1,5 @@
+{
+  "name": "libcf-benchmark-rust-local",
+  "main": "rust-worker.mjs",
+  "compatibility_date": "2026-10-13"
+}

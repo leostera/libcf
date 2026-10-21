@@ -1,0 +1,104 @@
+// Adapted from worker-build 0.8.7 src/js/shim.js (Apache-2.0/MIT, cloudflare/workers-rs)
+// with the generated `fetch` handler substituted. Only the import path differs.
+import { WorkerEntrypoint } from "cloudflare:workers";
+import * as exports from "../build/benchmark_rust/index.js";
+
+Error.stackTraceLimit = 100;
+const initState = exports.__worker_init_state();
+
+function checkReinitialize() {
+  if (initState.criticalError) {
+    console.log("Reinitializing Wasm application");
+    exports.__wbg_reset_state();
+    initState.criticalError = false;
+    initState.instanceId++;
+  }
+}
+
+addEventListener('error', (e) => {
+  handleMaybeCritical(e.error);
+});
+
+function handleMaybeCritical(e) {
+  if (e instanceof WebAssembly.RuntimeError) {
+    console.error('Critical', e);
+    initState.criticalError = true;
+  }
+}
+
+class Entrypoint extends WorkerEntrypoint {}
+
+Entrypoint.prototype.fetch = function fetch(arg) {
+  return exports.fetch.call(this, arg, this.env, this.ctx);
+};
+
+const instanceProxyHooks = {
+  set: (target, prop, value, receiver) => Reflect.set(target.instance, prop, value, receiver),
+  has: (target, prop) => Reflect.has(target.instance, prop),
+  deleteProperty: (target, prop) => Reflect.deleteProperty(target.instance, prop),
+  apply: (target, thisArg, args) => Reflect.apply(target.instance, thisArg, args),
+  construct: (target, args, newTarget) => Reflect.construct(target.instance, args, newTarget),
+  getPrototypeOf: (target) => Reflect.getPrototypeOf(target.instance),
+  setPrototypeOf: (target, proto) => Reflect.setPrototypeOf(target.instance, proto),
+  isExtensible: (target) => Reflect.isExtensible(target.instance),
+  preventExtensions: (target) => Reflect.preventExtensions(target.instance),
+  getOwnPropertyDescriptor: (target, prop) => Reflect.getOwnPropertyDescriptor(target.instance, prop),
+  defineProperty: (target, prop, descriptor) => Reflect.defineProperty(target.instance, prop, descriptor),
+  ownKeys: (target) => Reflect.ownKeys(target.instance),
+};
+
+const classProxyHooks = {
+  construct(ctor, args, newTarget) {
+    try {
+      checkReinitialize();
+      const instance = {
+        instance: Reflect.construct(ctor, args, newTarget),
+        instanceId: initState.instanceId,
+        ctor,
+        args,
+        newTarget
+      };
+      return new Proxy(instance, {
+        ...instanceProxyHooks,
+        get(target, prop, receiver) {
+          if (target.instanceId !== initState.instanceId) {
+            target.instance = Reflect.construct(target.ctor, target.args, target.newTarget);
+            target.instanceId = initState.instanceId;
+          }
+          const original = Reflect.get(target.instance, prop, receiver);
+          if (typeof original !== 'function') return original;
+          if (original.constructor === Function) {
+            return new Proxy(original, {
+              apply(target, thisArg, argArray) {
+                checkReinitialize();
+                try {
+                  return target.apply(thisArg, argArray);
+                } catch (e) {
+                  handleMaybeCritical(e);
+                  throw e;
+                }
+              }
+            });
+          } else {
+            return new Proxy(original, {
+              async apply(target, thisArg, argArray) {
+                checkReinitialize();
+                try {
+                  return await target.apply(thisArg, argArray);
+                } catch (e) {
+                  handleMaybeCritical(e);
+                  throw e;
+                }
+              }
+            });
+          }
+        }
+      });
+    } catch (e) {
+      initState.criticalError = true;
+      throw e;
+    }
+  }
+};
+
+export default new Proxy(Entrypoint, classProxyHooks);
