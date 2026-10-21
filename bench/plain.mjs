@@ -1,10 +1,20 @@
 import { readBounded } from '../lib/body.mjs';
 import { image, parseQuery, search, validImage, validSearch } from './kernels.mjs';
 const text = (body, status = 200) => new Response(body, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+// Reads a Content-Length body in one native allocation, like the libcf runtime;
+// other bodies use the bounded stream reader.
+async function readBody(request) {
+  const declared = request.headers.get('content-length');
+  if (!request.body || declared === null || !/^(0|[1-9][0-9]{0,6})$/.test(declared) || Number(declared) > 1048576)
+    return readBounded(request.body);
+  const bytes = new Uint8Array(await request.arrayBuffer());
+  if (bytes.byteLength !== Number(declared)) throw new TypeError('body length differs from Content-Length');
+  return bytes;
+}
 const binary = body => new Response(body, { headers: { 'content-type': 'application/octet-stream' } });
 export default {
   async fetch(request) {
-    const input = await readBounded(request.body);
+    const input = await readBody(request);
     const url = new URL(request.url);
     const path = url.pathname;
     if (path === '/hello') return text('ok');
