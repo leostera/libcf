@@ -32,19 +32,19 @@ bazel run //:benchmark_boundary_probe                         # JS<->Wasm calls 
 
 ## Measured results
 
-These are two consecutive full default runs (6 rounds × 80 samples per variant and scenario) from a clean worktree, on 2026-10-21 UTC on an Apple M4 Pro under heavy background load (load average about 10). All three variants run side by side, and each sample index requests every variant once in rotating order, so load drift falls on all variants alike. Values are medians in milliseconds. The C++/Rust ratio is the median of per-round paired ratios; the bracket gives the range across the six rounds.
+These are two consecutive full default runs (6 rounds × 80 samples per variant and scenario) from a clean worktree, on 2026-10-21 UTC on an Apple M4 Pro under heavy background load (load average about 10). All three variants run side by side, and each sample index requests every variant once in rotating order, so load drift falls on all variants alike.
 
-| Scenario | JS | C++ (libcf) | Rust (workers-rs) | C++/Rust, run 1 | C++/Rust, run 2 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Hello | 1.343 | 1.531 | 1.579 | 0.99 [0.87–1.04] | 1.06 [0.87–1.18] |
-| Echo, 1 KiB | 1.538 | 1.689 | 1.719 | 0.97 [0.89–1.10] | 1.01 [0.96–1.10] |
-| Echo, 64 KiB | 2.926 | 2.631 | 2.569 | 1.03 [0.92–1.12] | 1.02 [0.96–1.09] |
-| Echo, 1 MiB | 27.749 | 19.027 | 20.116 | 1.04 [0.78–1.33] | 1.00 [0.83–1.34] |
-| SHA-256, 1 × 1 KiB | 1.775 | 1.918 | 1.969 | 0.97 [0.89–1.03] | 0.99 [0.86–1.04] |
-| SHA-256, 16 × 1 KiB | 1.699 | 1.911 | 2.088 | 0.93 [0.83–1.05] | 0.92 [0.88–1.04] |
-| SHA-256, 1 × 64 KiB | 1.688 | 1.468 | 1.377 | 1.08 [1.00–1.24] | 1.02 [0.96–1.11] |
+| Scenario | JS (ms) | C++ libcf (ms) | Rust workers-rs (ms) | C++ vs Rust |
+| --- | ---: | ---: | ---: | ---: |
+| Hello | 1.358 | 1.569 | 1.596 | 0.98× |
+| Echo, 1 KiB | 1.575 | 1.719 | 1.740 | 0.99× |
+| Echo, 64 KiB | 2.830 | 2.580 | 2.536 | 1.02× |
+| Echo, 1 MiB | 26.694 | 19.486 | 18.626 | 1.05× |
+| SHA-256, 1 × 1 KiB | 1.732 | 1.895 | 1.915 | 0.99× |
+| SHA-256, 16 × 1 KiB | 1.783 | 2.018 | 2.171 | 0.93× |
+| SHA-256, 1 × 64 KiB | 2.038 | 1.808 | 1.731 | 1.04× |
 
-Absolute medians are from run 1. libcf and workers-rs are at parity: every per-round range spans 1.0 except SHA-256 1 × 64 KiB in run 1, and the gaps are within run-to-run noise. libcf is consistently ahead only for sequential binding calls (16 digests, about 8% faster). It is not reliably faster than Rust for single requests.
+Times are medians over all samples from both runs (960 requests per variant and scenario). The multiplier is C++ time divided by Rust time; below 1× means libcf is faster. libcf and workers-rs are at parity: per-round paired ratios (in each generated report) span 1× in almost every scenario, and run-to-run differences are as large as the gaps. libcf is consistently ahead only for sequential binding calls (16 digests, about 7% faster). It is not reliably faster than Rust for single requests.
 
 | Code shape | C++ (libcf) | Rust (workers-rs) |
 | --- | ---: | ---: |
