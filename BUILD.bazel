@@ -265,6 +265,13 @@ js_binary(
     tags = ["manual"],
 )
 
+js_binary(
+    name = "benchmark_boundary_probe",
+    entry_point = "bench/boundary-probe.mjs",
+    data = JS_TEST_DATA + [":benchmark", ":benchmark_rust", "bench/support.mjs"],
+    tags = ["manual"],
+)
+
 test_suite(
     name = "local_tests",
     tests = [":" + name + "_local_test" for name in LOCAL_EXAMPLES] + [":benchmark_local_test"],
