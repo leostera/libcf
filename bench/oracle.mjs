@@ -3,6 +3,22 @@
 // the published specification of bitemyapp/workerd-compute-bench (re-implemented
 // here; no code is copied from that project).
 
+import { fnv1a, shardBytes } from './shard.mjs';
+
+// Fan-out gateway result: [seed][items], then [id][bytes][checksum] per shard (u32 LE).
+export function aggregateReference({ items, bytes, seed }) {
+  const output = new Uint8Array(8 + 12 * items);
+  const view = new DataView(output.buffer);
+  view.setUint32(0, seed, true);
+  view.setUint32(4, items, true);
+  for (let id = 0; id < items; id++) {
+    view.setUint32(8 + id * 12, id, true);
+    view.setUint32(12 + id * 12, bytes, true);
+    view.setUint32(16 + id * 12, fnv1a(shardBytes(seed, id, bytes)), true);
+  }
+  return output;
+}
+
 // Deterministic xorshift32 stream.
 function random(seed) {
   let state = (seed * 2654435761 + 1) >>> 0 || 1;

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
-import { imageReference, makeImage, makeVectors, searchReference } from './oracle.mjs';
+import { aggregateReference, imageReference, makeImage, makeVectors, searchReference } from './oracle.mjs';
+
+// The origin Worker every variant reaches through its ORIGIN service binding.
+export const ORIGIN_CONFIG = 'bench/origin.wrangler.jsonc';
 
 export function parseOptions(args) {
   const options = { rounds: 6, samples: 80, warmups: 10, warmupMs: 300, concurrency: 1 };
@@ -47,6 +50,16 @@ function searchPayload(n, d, q, k, seed, spread) {
   return { body, expected: searchReference(body, n, d, q, k) };
 }
 
+function aggregatePath(params) {
+  return `/aggregate?items=${params.items}&parallel=${params.parallel}&bytes=${params.bytes}&delay=${params.delay}&seed=${params.seed}`;
+}
+
+// One fan-out case; each payload uses a different seed, so the path varies.
+function aggregateCase(name, params, seeds) {
+  return { name, path: aggregatePath({ ...params, seed: seeds[0] }), method: 'GET', contentType: BINARY,
+    payloads: seeds.map(seed => ({ path: aggregatePath({ ...params, seed }), expected: aggregateReference({ ...params, seed }) })) };
+}
+
 // Compute cases cycle through four different payloads so no result can be cached.
 const SEEDS = [1, 2, 3, 4];
 
@@ -75,6 +88,14 @@ export function benchmarkCases() {
     cases.push({ name, path: `/search?n=${n}&d=${d}&q=${q}&k=${k}`, method: 'POST', contentType: BINARY,
       payloads: SEEDS.map(seed => searchPayload(n, d, q, k, seed)) });
   }
+  // I/O fan-out: each shard waits `delay` ms at the origin before its headers.
+  // Serial, six and twelve outstanding requests, and larger 64 KiB shards.
+  for (const [name, params] of [
+    ['io-serial', { items: 12, parallel: 1, bytes: 4096, delay: 10 }],
+    ['io-fanout-6', { items: 12, parallel: 6, bytes: 4096, delay: 10 }],
+    ['io-fanout-12', { items: 12, parallel: 12, bytes: 4096, delay: 10 }],
+    ['io-64k-6', { items: 8, parallel: 6, bytes: 65536, delay: 8 }],
+  ]) cases.push(aggregateCase(name, params, SEEDS));
   return (cached = cases);
 }
 
@@ -90,6 +111,12 @@ export function correctnessCases() {
     cases.push({ name: `search-${n}-${d}-${q}-${k}`, path: `/search?n=${n}&d=${d}&q=${q}&k=${k}`, method: 'POST', contentType: BINARY,
       payloads: [searchPayload(n, d, q, k, n + d, spread)] });
   }
+  for (const [name, params] of [
+    ['aggregate-single', { items: 1, parallel: 1, bytes: 1, delay: 0 }],
+    ['aggregate-wide', { items: 32, parallel: 32, bytes: 100, delay: 0 }],
+    ['aggregate-parallel-above-items', { items: 3, parallel: 8, bytes: 777, delay: 1 }],
+    ['aggregate-uneven-lanes', { items: 7, parallel: 3, bytes: 65536, delay: 2 }],
+  ]) cases.push(aggregateCase(name, params, [999999]));
   const rejected = (name, path, length) => ({ name, path, method: 'POST', contentType: TEXT, status: 400,
     payloads: [{ body: new Uint8Array(length), expected: null }] });
   cases.push(
@@ -102,6 +129,10 @@ export function correctnessCases() {
     rejected('search-bad-dimension', '/search?n=4&d=20&q=1&k=1', 100),
     rejected('search-k-above-n', '/search?n=4&d=16&q=1&k=5', 80),
     rejected('search-too-many-queries', '/search?n=4&d=16&q=17&k=1', 336),
+    rejected('aggregate-no-items', '/aggregate?items=0&parallel=1&bytes=1&delay=0&seed=1', 0),
+    rejected('aggregate-too-parallel', '/aggregate?items=1&parallel=33&bytes=1&delay=0&seed=1', 0),
+    rejected('aggregate-shard-too-large', '/aggregate?items=1&parallel=1&bytes=65537&delay=0&seed=1', 0),
+    rejected('aggregate-missing-seed', '/aggregate?items=1&parallel=1&bytes=1&delay=0', 0),
   );
   return cases;
 }
@@ -111,7 +142,7 @@ export function correctnessCases() {
 export async function sample(base, scenario, index = 0) {
   const payload = scenario.payloads[index % scenario.payloads.length];
   const start = performance.now();
-  const response = await fetch(`${base}${scenario.path}`, {
+  const response = await fetch(`${base}${payload.path ?? scenario.path}`, {
     method: scenario.method, body: payload.body, signal: AbortSignal.timeout(10000),
   });
   const actual = Buffer.from(await response.arrayBuffer());

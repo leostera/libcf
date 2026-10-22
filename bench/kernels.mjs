@@ -27,6 +27,11 @@ export function validSearch({ n, d, q, k }, length) {
     q >= 1 && q <= 16 && k >= 1 && k <= 100 && k <= n && length === (n + q) * d;
 }
 
+export function validAggregate({ items, parallel, bytes, delay }) {
+  return items >= 1 && items <= 32 && parallel >= 1 && parallel <= 32 && bytes >= 1 && bytes <= 65536 &&
+    delay >= 0 && delay <= 1000;
+}
+
 let rows = new Uint16Array(0);
 let blurred = new Uint16Array(0);
 

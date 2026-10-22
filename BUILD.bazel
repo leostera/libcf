@@ -132,7 +132,7 @@ JS_ENTRIES = {
     name = name + "_bundle",
     tool = ":bundle_tool",
     srcs = [entry] + ([":spike"] if name == "hello" else []) +
-           (["bench/kernels.mjs", ":runtime_modules"] if name == "benchmark-js" else []),
+           (["bench/kernels.mjs", "bench/shard.mjs", ":runtime_modules"] if name == "benchmark-js" else []),
     args = [entry, "bundles/" + name],
     out_dirs = ["bundles/" + name],
 ) for name, entry in JS_ENTRIES.items()]
@@ -294,7 +294,7 @@ test_suite(
 NATIVE_SUITES = [
     "core", "storage", "d1", "events", "websocket", "email", "rate_limit",
     "analytics", "metadata", "worker_loader", "subtle_crypto", "http_client",
-    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp", "vectorize", "dispatch", "media", "ai_search", "stream_video", "browser", "agent_memory", "container", "flagship", "artifacts", "analytics_sql", "ai_gateway", "sites", "outbound_http",
+    "pipeline", "timer", "workflow", "images", "clock", "wire_limits", "rpc", "ai", "service_tcp", "vectorize", "dispatch", "media", "ai_search", "stream_video", "browser", "agent_memory", "container", "flagship", "artifacts", "analytics_sql", "ai_gateway", "sites", "outbound_http", "when_all",
 ]
 
 [cc_test(

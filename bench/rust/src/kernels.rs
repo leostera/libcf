@@ -46,6 +46,10 @@ pub fn valid_search(n: usize, d: usize, q: usize, k: usize, length: usize) -> bo
         && length == (n + q) * d
 }
 
+pub fn valid_aggregate(items: usize, parallel: usize, bytes: usize, delay: usize) -> bool {
+    (1..=32).contains(&items) && (1..=32).contains(&parallel) && (1..=65536).contains(&bytes) && delay <= 1000
+}
+
 fn horizontal(pixels: &[u8], w: usize, h: usize, rows: &mut [u16]) {
     for y in 0..h {
         let input = &pixels[y * w..(y + 1) * w];

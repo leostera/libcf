@@ -66,6 +66,21 @@ inline bool valid_search(int n, int d, int q, int k, std::size_t length) {
          length == static_cast<std::size_t>(n + q) * static_cast<std::size_t>(d);
 }
 
+inline bool valid_aggregate(int items, int parallel, int bytes, int delay) {
+  return items >= 1 && items <= 32 && parallel >= 1 && parallel <= 32 && bytes >= 1 &&
+         bytes <= 65536 && delay >= 0 && delay <= 1000;
+}
+
+inline std::uint32_t fnv1a(std::string_view bytes) {
+  std::uint32_t hash = 0x811c9dc5u;
+  for (unsigned char byte : bytes) hash = (hash ^ byte) * 0x01000193u;
+  return hash;
+}
+
+inline void append_u32(std::string& out, std::uint32_t value) {
+  for (int shift = 0; shift < 32; shift += 8) out.push_back(static_cast<char>(value >> shift));
+}
+
 namespace detail {
 
 // rows[x] = p[x-2] + 4p[x-1] + 6p[x] + 4p[x+1] + p[x+2], for 2 <= x <= w-3.

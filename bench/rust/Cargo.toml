@@ -10,6 +10,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 worker = "=0.8.7"
+# Already a workers-rs dependency; used for bounded fan-out (StreamExt::buffered).
+futures-util = { version = "0.3.34", default-features = false, features = ["alloc"] }
 web-sys = { version = "0.3", features = ["Crypto", "SubtleCrypto", "WorkerGlobalScope"] }
 
 # No [profile] section: like the workers-rs hello-world template, the comparator

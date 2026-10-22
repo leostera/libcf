@@ -8,7 +8,7 @@ import { arch, cpus, platform, release } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { gzipSync } from 'node:zlib';
 import { startLocalWorker } from '../examples/test/local-worker.mjs';
-import { benchmarkCases, parseOptions, sample, summarize } from './support.mjs';
+import { ORIGIN_CONFIG, benchmarkCases, parseOptions, sample, summarize } from './support.mjs';
 
 const [reportPath, ...args] = process.argv.slice(2);
 if (!reportPath || !isAbsolute(reportPath)) throw new Error('Pass a new absolute report path, followed by benchmark options');
@@ -89,7 +89,7 @@ for (let round = 0; round < options.rounds; round++) {
   try {
     for (const label of labels) {
       const setupStart = performance.now();
-      workers[label] = await startLocalWorker(variants[label].config);
+      workers[label] = await startLocalWorker(variants[label].config, { additionalConfigs: [ORIGIN_CONFIG] });
       setup[label] = performance.now() - setupStart;
     }
     const measurements = Object.fromEntries(labels.map(label => [label, {}]));

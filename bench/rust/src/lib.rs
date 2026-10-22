@@ -4,7 +4,8 @@ use worker::js_sys::{global, Uint8Array};
 use worker::wasm_bindgen::JsCast;
 use worker::wasm_bindgen_futures::JsFuture;
 use web_sys::WorkerGlobalScope;
-use worker::{event, Context, Env, Request, Response, ResponseBuilder, Result};
+use futures_util::stream::{self, StreamExt};
+use worker::{event, Context, Env, Fetcher, Request, Response, ResponseBuilder, Result};
 
 const BODY_LIMIT: usize = 1024 * 1024;
 
@@ -30,6 +31,39 @@ fn binary(body: Vec<u8>) -> Result<Response> {
         .fixed(body))
 }
 
+fn fnv1a(bytes: &[u8]) -> u32 {
+    bytes.iter().fold(0x811c9dc5u32, |hash, byte| (hash ^ u32::from(*byte)).wrapping_mul(0x01000193))
+}
+
+/// One shard's checksum, or None if the origin's reply is not the expected bytes.
+async fn shard(origin: &Fetcher, seed: usize, id: usize, bytes: usize, delay: usize) -> Result<Option<u32>> {
+    let url = format!("https://origin.test/shard?seed={seed}&id={id}&bytes={bytes}&delay={delay}");
+    let mut response = origin.fetch(url, None).await?;
+    let body = response.bytes().await?;
+    Ok((response.status_code() == 200 && body.len() == bytes).then(|| fnv1a(&body)))
+}
+
+/// Fetches every shard, at most `parallel` at a time, and returns [seed][items]
+/// then [id][bytes][checksum] per shard (u32 LE), or None if any shard failed.
+async fn aggregate(env: &Env, items: usize, parallel: usize, bytes: usize, delay: usize, seed: usize) -> Result<Option<Vec<u8>>> {
+    let origin = env.service("ORIGIN")?;
+    let checksums: Vec<Result<Option<u32>>> = stream::iter(0..items)
+        .map(|id| shard(&origin, seed, id, bytes, delay))
+        .buffered(parallel)
+        .collect()
+        .await;
+    let mut output = Vec::with_capacity(8 + 12 * items);
+    output.extend_from_slice(&(seed as u32).to_le_bytes());
+    output.extend_from_slice(&(items as u32).to_le_bytes());
+    for (id, checksum) in checksums.into_iter().enumerate() {
+        let Ok(Some(checksum)) = checksum else { return Ok(None) };
+        output.extend_from_slice(&(id as u32).to_le_bytes());
+        output.extend_from_slice(&(bytes as u32).to_le_bytes());
+        output.extend_from_slice(&checksum.to_le_bytes());
+    }
+    Ok(Some(output))
+}
+
 async fn sha256(input: &[u8]) -> Result<Vec<u8>> {
     let scope: WorkerGlobalScope = global().unchecked_into();
     let promise = scope.crypto()?.subtle().digest_with_str_and_u8_array("SHA-256", input)?;
@@ -37,7 +71,7 @@ async fn sha256(input: &[u8]) -> Result<Vec<u8>> {
 }
 
 #[event(fetch)]
-async fn fetch(mut request: Request, _env: Env, _ctx: Context) -> Result<Response> {
+async fn fetch(mut request: Request, env: Env, _ctx: Context) -> Result<Response> {
     let input = request.bytes().await?;
     if input.len() > BODY_LIMIT {
         return text("body too large", 413);
@@ -50,6 +84,16 @@ async fn fetch(mut request: Request, _env: Env, _ctx: Context) -> Result<Respons
             return match kernels::parse_query(query(&request).as_deref(), ["w", "h"]) {
                 Some([w, h]) if kernels::valid_image(w, h, input.len()) => binary(kernels::image(&input, w, h)),
                 _ => text("invalid image request", 400),
+            };
+        }
+        "/aggregate" => {
+            let params = kernels::parse_query(query(&request).as_deref(), ["items", "parallel", "bytes", "delay", "seed"]);
+            let Some([items, parallel, bytes, delay, seed]) = params.filter(|[i, p, b, d, _]| kernels::valid_aggregate(*i, *p, *b, *d)) else {
+                return text("invalid aggregate request", 400);
+            };
+            return match aggregate(&env, items, parallel, bytes, delay, seed).await? {
+                Some(output) => binary(output),
+                None => text("upstream failed", 502),
             };
         }
         "/search" => {

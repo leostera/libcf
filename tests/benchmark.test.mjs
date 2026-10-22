@@ -22,7 +22,7 @@ test('statistics use linear interpolation, preserve negative deltas and reject i
   assert.equal(summarize([-2, -1]).median, -1.5);
   for (const values of [[], [NaN], [Infinity], Array(2)]) assert.throws(() => summarize(values));
   assert.equal(result.p99 <= result.max && result.p99 >= result.p95, true);
-  assert.equal(benchmarkCases().length, 11);
+  assert.equal(benchmarkCases().length, 15);
   for (const scenario of [...benchmarkCases(), ...correctnessCases()]) assert(scenario.payloads.length >= 1, scenario.name);
 });
 test('optimized JS kernels match the reference implementations, including scalar tails and ties', () => {

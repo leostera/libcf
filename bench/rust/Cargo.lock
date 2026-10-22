@@ -279,6 +279,7 @@ dependencies = [
 name = "libcf-benchmark-rust"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "web-sys",
  "worker",
 ]

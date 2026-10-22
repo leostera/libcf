@@ -6,7 +6,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { startLocalWorker } from '../examples/test/local-worker.mjs';
-import { benchmarkCases, sample } from './support.mjs';
+import { ORIGIN_CONFIG, benchmarkCases, sample } from './support.mjs';
 
 const COUNTER = `
 const counts = globalThis.__libcfBoundary = { imports: {}, exports: {} };
@@ -52,8 +52,9 @@ try {
     await writeFile(join(directory, 'counter.mjs'), COUNTER);
     await writeFile(join(directory, 'entry.mjs'), wrapper(resolve(entry)));
     await writeFile(join(directory, 'wrangler.jsonc'), JSON.stringify({
-      name: `libcf-boundary-${label}`, main: 'entry.mjs', compatibility_date: '2026-10-13' }));
-    const worker = await startLocalWorker(join(directory, 'wrangler.jsonc'));
+      name: `libcf-boundary-${label}`, main: 'entry.mjs', compatibility_date: '2026-10-13',
+      services: [{ binding: 'ORIGIN', service: 'libcf-benchmark-origin' }] }));
+    const worker = await startLocalWorker(join(directory, 'wrangler.jsonc'), { additionalConfigs: [ORIGIN_CONFIG] });
     try {
       const counts = async () => JSON.parse(await (await fetch(`${worker.base}/__boundary`)).text());
       report[label] = {};
