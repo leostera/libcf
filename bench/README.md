@@ -41,33 +41,35 @@ C++ and Rust use the same algorithms (separable blur, single-pass top-k) with th
 
 ## Measured results
 
-These are two consecutive full default runs (6 rounds × 80 samples per variant and scenario, 960 requests per variant and scenario in total), on 2026-10-21 UTC on an Apple M4 Pro under heavy background load (load average 13–30). All three variants run side by side, and each sample index requests every variant once in rotating order, so load drift falls on all variants alike.
+These are two consecutive full default runs (6 rounds × 80 samples per variant and scenario, 960 requests per variant and scenario in total), on 2026-10-21 UTC on an Apple M4 Pro under heavy background load (load average 15–19). All three variants run side by side, and each sample index requests every variant once in rotating order, so load drift falls on all variants alike.
 
 | Scenario | JS (ms) | C++ libcf (ms) | Rust workers-rs (ms) | C++ vs Rust |
 | --- | ---: | ---: | ---: | ---: |
-| Hello | 1.419 | 1.633 | 1.695 | 0.96× |
-| Echo, 1 KiB | 1.991 | 2.248 | 2.282 | 0.99× |
-| Echo, 64 KiB | 2.608 | 3.002 | 2.980 | 1.01× |
-| Echo, 1 MiB | 20.055 | 18.984 | 19.616 | 0.97× |
-| SHA-256, 1 × 1 KiB | 1.665 | 1.889 | 1.814 | 1.04× |
-| SHA-256, 16 × 1 KiB | 1.914 | 2.124 | 2.251 | 0.94× |
-| SHA-256, 1 × 64 KiB | 1.947 | 2.228 | 2.017 | 1.10× |
-| Image, 256 × 256 | 4.429 | 2.346 | 2.365 | 0.99× |
-| Image, 1024 × 1024 | 50.177 | 11.414 | 11.300 | 1.01× |
-| Search, 1,024 × 128, 1 query | 2.531 | 2.253 | 2.033 | 1.11× |
-| Search, 8,000 × 128, 8 queries | 35.813 | 7.784 | 7.154 | 1.09× |
+| Hello | 1.650 | 1.873 | 1.858 | 1.01× |
+| Echo, 1 KiB | 1.842 | 2.044 | 2.077 | 0.98× |
+| Echo, 64 KiB | 2.814 | 3.045 | 3.044 | 1.00× |
+| Echo, 1 MiB | 18.434 | 21.971 | 22.667 | 0.97× |
+| SHA-256, 1 × 1 KiB | 1.661 | 1.900 | 1.885 | 1.01× |
+| SHA-256, 16 × 1 KiB | 1.883 | 2.166 | 2.272 | 0.95× |
+| SHA-256, 1 × 64 KiB | 2.068 | 2.311 | 2.282 | 1.01× |
+| Image, 256 × 256 | 4.681 | 2.440 | 2.404 | 1.02× |
+| Image, 1024 × 1024 | 47.350 | 9.951 | 11.131 | 0.89× |
+| Search, 1,024 × 128, 1 query | 3.152 | 2.689 | 2.643 | 1.02× |
+| Search, 8,000 × 128, 8 queries | 40.015 | 7.153 | 7.572 | 0.94× |
 
 Times are medians over all samples from both runs. The multiplier is C++ time divided by Rust time; below 1× means libcf is faster.
 
-- **Compute is where Wasm pays off:** C++ and Rust are 1.9× faster than JS on `image-256`, 4.4× on `image-1024`, and 4.6× on `search-large`. For bridge-bound requests, JS remains as fast or faster.
-- **libcf and workers-rs are at parity for image processing.** Rust is about 9–11% faster on search in both runs; the two modules use the same SIMD instructions in their inner loops. For bridge work, the two are within run-to-run noise, except 16 sequential digests, where libcf is about 6% faster.
+- **Compute is where Wasm pays off:** C++ and Rust are 1.9× faster than JS on `image-256`, 4.3–4.8× on `image-1024`, and 5.3–5.6× on `search-large`. For bridge-bound requests, JS remains as fast or faster.
+- **libcf is ahead on large compute requests** (image-1024 about 11%, search-large about 6% faster, consistent in both runs), and at parity elsewhere, except 16 sequential digests, where it is about 5% faster. The kernels compile to the same SIMD inner loops in both languages; the difference is in request handling.
+- **Zero-filled request buffers:** before this run, libcf sized each request body with `std::string::resize`, zero-filling up to 1 MiB that the host then overwrote. That cost about 0.8 ns per body byte and made large-body requests 9–11% slower than Rust. The internal bridge now builds as C++23 to use `resize_and_overwrite`; public headers remain C++20.
+- **BYOB `readAtLeast` is no faster than `arrayBuffer()`** for Content-Length bodies: 1.70 vs 1.62 ms at 64 KiB, and 3.41 vs 3.33 ms at 1 MiB, in a direct local comparison. The source project's gain came from replacing a chunk-by-chunk reader, which libcf already avoids.
 - **JS GC cliff:** the JS fixture originally buffered bodies with a doubling stream reader, which allocated about 3 MiB of short-lived buffers per 1 MiB request. In workerd, repeated `image-1024` requests then slowed 5–7× after about 47 requests and stayed slow; Node did not reproduce this. Reading Content-Length bodies with one `arrayBuffer()` allocation, as the libcf runtime and workers-rs do, removed it.
 
 | Code shape | C++ (libcf) | Rust (workers-rs) |
 | --- | ---: | ---: |
-| Wasm, bytes (gzip) | 60,646 (24,229) | 189,739 (58,063) |
+| Wasm, bytes (gzip) | 60,516 (24,173) | 189,739 (58,063) |
 | Bundled JS, bytes (gzip) | 164,311 (29,996), whole libcf runtime | 40,889 (6,966) |
-| Deployed total, gzip (per module) | 54,225 | 65,029 |
+| Deployed total, gzip (per module) | 54,169 | 65,029 |
 | Wasm imports / exports | 13 / 20 | 69 / 53 |
 | Boundary calls, hello (imports + exports) | 1 + 4 | 28 + 10 |
 | Boundary calls, one digest | 2 + 5 | 42 + 14 |
