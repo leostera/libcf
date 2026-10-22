@@ -264,6 +264,13 @@ js_binary(
     tags = ["manual"],
 )
 
+# bazel run //:benchmark_charts -- "$PWD/docs/images" /tmp/report-a.json /tmp/report-b.json
+js_binary(
+    name = "benchmark_charts",
+    entry_point = "bench/chart.mjs",
+    tags = ["manual"],
+)
+
 js_binary(
     name = "benchmark_sdk",
     entry_point = "bench/run.mjs",
