@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="376" viewBox="0 0 760 376" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="760" height="376" fill="#ffffff"/>
+<text x="20" y="26" font-size="16" font-weight="600" fill="#111">I/O fan-out through a service binding (10 ms per shard)</text>
+<text x="20" y="44" font-size="11" fill="#666">Median latency in ms (lower is better). Each row is scaled to its slowest variant.</text>
+<rect x="190" y="60" width="12" height="12" rx="2" fill="#c9a400"/><text x="208" y="70" font-size="12" fill="#333">JS</text>
+<rect x="340" y="60" width="12" height="12" rx="2" fill="#00599c"/><text x="358" y="70" font-size="12" fill="#333">C++ (libcf)</text>
+<rect x="490" y="60" width="12" height="12" rx="2" fill="#ce422b"/><text x="508" y="70" font-size="12" fill="#333">Rust (workers-rs)</text>
+<text x="178" y="116.5" font-size="13" text-anchor="end" fill="#222">Fan-out 12, serial</text>
+<rect x="190" y="86" width="439.3" height="14" rx="2" fill="#c9a400"/><text x="635.3" y="97" font-size="11" fill="#333">161 ms</text>
+<rect x="190" y="103" width="438.9" height="14" rx="2" fill="#00599c"/><text x="634.9" y="114" font-size="11" fill="#333">161 ms</text>
+<rect x="190" y="120" width="440.0" height="14" rx="2" fill="#ce422b"/><text x="636.0" y="131" font-size="11" fill="#333">161 ms</text>
+<line x1="20" x2="740" y1="144" y2="144" stroke="#eee"/>
+<text x="178" y="181.5" font-size="13" text-anchor="end" fill="#222">Fan-out 12, 6 at once</text>
+<rect x="190" y="151" width="440.0" height="14" rx="2" fill="#c9a400"/><text x="636.0" y="162" font-size="11" fill="#333">33.2 ms</text>
+<rect x="190" y="168" width="435.1" height="14" rx="2" fill="#00599c"/><text x="631.1" y="179" font-size="11" fill="#333">32.8 ms</text>
+<rect x="190" y="185" width="436.1" height="14" rx="2" fill="#ce422b"/><text x="632.1" y="196" font-size="11" fill="#333">32.9 ms</text>
+<line x1="20" x2="740" y1="209" y2="209" stroke="#eee"/>
+<text x="178" y="246.5" font-size="13" text-anchor="end" fill="#222">Fan-out 12, all at once</text>
+<rect x="190" y="216" width="440.0" height="14" rx="2" fill="#c9a400"/><text x="636.0" y="227" font-size="11" fill="#333">20.0 ms</text>
+<rect x="190" y="233" width="432.6" height="14" rx="2" fill="#00599c"/><text x="628.6" y="244" font-size="11" fill="#333">19.7 ms</text>
+<rect x="190" y="250" width="434.3" height="14" rx="2" fill="#ce422b"/><text x="630.3" y="261" font-size="11" fill="#333">19.7 ms</text>
+<line x1="20" x2="740" y1="274" y2="274" stroke="#eee"/>
+<text x="178" y="311.5" font-size="13" text-anchor="end" fill="#222">Fan-out 8 × 64 KiB, 6 at once</text>
+<rect x="190" y="281" width="440.0" height="14" rx="2" fill="#c9a400"/><text x="636.0" y="292" font-size="11" fill="#333">45.8 ms</text>
+<rect x="190" y="298" width="365.8" height="14" rx="2" fill="#00599c"/><text x="561.8" y="309" font-size="11" fill="#333">38.1 ms</text>
+<rect x="190" y="315" width="387.5" height="14" rx="2" fill="#ce422b"/><text x="583.5" y="326" font-size="11" fill="#333">40.4 ms</text>
+</svg>

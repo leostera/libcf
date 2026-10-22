@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="571" viewBox="0 0 760 571" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="760" height="571" fill="#ffffff"/>
+<text x="20" y="26" font-size="16" font-weight="600" fill="#111">Request handling and platform calls</text>
+<text x="20" y="44" font-size="11" fill="#666">Median latency in ms (lower is better). Each row is scaled to its slowest variant.</text>
+<rect x="190" y="60" width="12" height="12" rx="2" fill="#c9a400"/><text x="208" y="70" font-size="12" fill="#333">JS</text>
+<rect x="340" y="60" width="12" height="12" rx="2" fill="#00599c"/><text x="358" y="70" font-size="12" fill="#333">C++ (libcf)</text>
+<rect x="490" y="60" width="12" height="12" rx="2" fill="#ce422b"/><text x="508" y="70" font-size="12" fill="#333">Rust (workers-rs)</text>
+<text x="178" y="116.5" font-size="13" text-anchor="end" fill="#222">Hello</text>
+<rect x="190" y="86" width="373.4" height="14" rx="2" fill="#c9a400"/><text x="569.4" y="97" font-size="11" fill="#333">1.72 ms</text>
+<rect x="190" y="103" width="429.9" height="14" rx="2" fill="#00599c"/><text x="625.9" y="114" font-size="11" fill="#333">1.98 ms</text>
+<rect x="190" y="120" width="440.0" height="14" rx="2" fill="#ce422b"/><text x="636.0" y="131" font-size="11" fill="#333">2.03 ms</text>
+<line x1="20" x2="740" y1="144" y2="144" stroke="#eee"/>
+<text x="178" y="181.5" font-size="13" text-anchor="end" fill="#222">Echo 1 KiB</text>
+<rect x="190" y="151" width="386.7" height="14" rx="2" fill="#c9a400"/><text x="582.7" y="162" font-size="11" fill="#333">1.94 ms</text>
+<rect x="190" y="168" width="437.4" height="14" rx="2" fill="#00599c"/><text x="633.4" y="179" font-size="11" fill="#333">2.19 ms</text>
+<rect x="190" y="185" width="440.0" height="14" rx="2" fill="#ce422b"/><text x="636.0" y="196" font-size="11" fill="#333">2.21 ms</text>
+<line x1="20" x2="740" y1="209" y2="209" stroke="#eee"/>
+<text x="178" y="246.5" font-size="13" text-anchor="end" fill="#222">Echo 64 KiB</text>
+<rect x="190" y="216" width="402.2" height="14" rx="2" fill="#c9a400"/><text x="598.2" y="227" font-size="11" fill="#333">2.97 ms</text>
+<rect x="190" y="233" width="434.3" height="14" rx="2" fill="#00599c"/><text x="630.3" y="244" font-size="11" fill="#333">3.21 ms</text>
+<rect x="190" y="250" width="440.0" height="14" rx="2" fill="#ce422b"/><text x="636.0" y="261" font-size="11" fill="#333">3.25 ms</text>
+<line x1="20" x2="740" y1="274" y2="274" stroke="#eee"/>
+<text x="178" y="311.5" font-size="13" text-anchor="end" fill="#222">Echo 1 MiB</text>
+<rect x="190" y="281" width="422.9" height="14" rx="2" fill="#c9a400"/><text x="618.9" y="292" font-size="11" fill="#333">18.3 ms</text>
+<rect x="190" y="298" width="407.8" height="14" rx="2" fill="#00599c"/><text x="603.8" y="309" font-size="11" fill="#333">17.6 ms</text>
+<rect x="190" y="315" width="440.0" height="14" rx="2" fill="#ce422b"/><text x="636.0" y="326" font-size="11" fill="#333">19.0 ms</text>
+<line x1="20" x2="740" y1="339" y2="339" stroke="#eee"/>
+<text x="178" y="376.5" font-size="13" text-anchor="end" fill="#222">SHA-256 1 × 1 KiB</text>
+<rect x="190" y="346" width="388.2" height="14" rx="2" fill="#c9a400"/><text x="584.2" y="357" font-size="11" fill="#333">1.83 ms</text>
+<rect x="190" y="363" width="440.0" height="14" rx="2" fill="#00599c"/><text x="636.0" y="374" font-size="11" fill="#333">2.07 ms</text>
+<rect x="190" y="380" width="439.0" height="14" rx="2" fill="#ce422b"/><text x="635.0" y="391" font-size="11" fill="#333">2.07 ms</text>
+<line x1="20" x2="740" y1="404" y2="404" stroke="#eee"/>
+<text x="178" y="441.5" font-size="13" text-anchor="end" fill="#222">SHA-256 16 × 1 KiB</text>
+<rect x="190" y="411" width="359.3" height="14" rx="2" fill="#c9a400"/><text x="555.3" y="422" font-size="11" fill="#333">1.97 ms</text>
+<rect x="190" y="428" width="414.7" height="14" rx="2" fill="#00599c"/><text x="610.7" y="439" font-size="11" fill="#333">2.28 ms</text>
+<rect x="190" y="445" width="440.0" height="14" rx="2" fill="#ce422b"/><text x="636.0" y="456" font-size="11" fill="#333">2.41 ms</text>
+<line x1="20" x2="740" y1="469" y2="469" stroke="#eee"/>
+<text x="178" y="506.5" font-size="13" text-anchor="end" fill="#222">SHA-256 1 × 64 KiB</text>
+<rect x="190" y="476" width="404.2" height="14" rx="2" fill="#c9a400"/><text x="600.2" y="487" font-size="11" fill="#333">2.03 ms</text>
+<rect x="190" y="493" width="440.0" height="14" rx="2" fill="#00599c"/><text x="636.0" y="504" font-size="11" fill="#333">2.21 ms</text>
+<rect x="190" y="510" width="433.2" height="14" rx="2" fill="#ce422b"/><text x="629.2" y="521" font-size="11" fill="#333">2.18 ms</text>
+</svg>

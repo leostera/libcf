@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="376" viewBox="0 0 760 376" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+<rect width="760" height="376" fill="#ffffff"/>
+<text x="20" y="26" font-size="16" font-weight="600" fill="#111">Compute: image filter and vector search</text>
+<text x="20" y="44" font-size="11" fill="#666">Median latency in ms (lower is better). Each row is scaled to its slowest variant.</text>
+<rect x="190" y="60" width="12" height="12" rx="2" fill="#c9a400"/><text x="208" y="70" font-size="12" fill="#333">JS</text>
+<rect x="340" y="60" width="12" height="12" rx="2" fill="#00599c"/><text x="358" y="70" font-size="12" fill="#333">C++ (libcf)</text>
+<rect x="490" y="60" width="12" height="12" rx="2" fill="#ce422b"/><text x="508" y="70" font-size="12" fill="#333">Rust (workers-rs)</text>
+<text x="178" y="116.5" font-size="13" text-anchor="end" fill="#222">Image 256²</text>
+<rect x="190" y="86" width="440.0" height="14" rx="2" fill="#c9a400"/><text x="636.0" y="97" font-size="11" fill="#333">5.04 ms</text>
+<rect x="190" y="103" width="211.0" height="14" rx="2" fill="#00599c"/><text x="407.0" y="114" font-size="11" fill="#333">2.42 ms</text>
+<rect x="190" y="120" width="211.7" height="14" rx="2" fill="#ce422b"/><text x="407.7" y="131" font-size="11" fill="#333">2.43 ms</text>
+<line x1="20" x2="740" y1="144" y2="144" stroke="#eee"/>
+<text x="178" y="181.5" font-size="13" text-anchor="end" fill="#222">Image 1024²</text>
+<rect x="190" y="151" width="440.0" height="14" rx="2" fill="#c9a400"/><text x="636.0" y="162" font-size="11" fill="#333">56.0 ms</text>
+<rect x="190" y="168" width="88.0" height="14" rx="2" fill="#00599c"/><text x="284.0" y="179" font-size="11" fill="#333">11.2 ms</text>
+<rect x="190" y="185" width="89.0" height="14" rx="2" fill="#ce422b"/><text x="285.0" y="196" font-size="11" fill="#333">11.3 ms</text>
+<line x1="20" x2="740" y1="209" y2="209" stroke="#eee"/>
+<text x="178" y="246.5" font-size="13" text-anchor="end" fill="#222">Search 1k × 128</text>
+<rect x="190" y="216" width="440.0" height="14" rx="2" fill="#c9a400"/><text x="636.0" y="227" font-size="11" fill="#333">2.59 ms</text>
+<rect x="190" y="233" width="353.8" height="14" rx="2" fill="#00599c"/><text x="549.8" y="244" font-size="11" fill="#333">2.09 ms</text>
+<rect x="190" y="250" width="353.2" height="14" rx="2" fill="#ce422b"/><text x="549.2" y="261" font-size="11" fill="#333">2.08 ms</text>
+<line x1="20" x2="740" y1="274" y2="274" stroke="#eee"/>
+<text x="178" y="311.5" font-size="13" text-anchor="end" fill="#222">Search 8k × 128 × 8</text>
+<rect x="190" y="281" width="440.0" height="14" rx="2" fill="#c9a400"/><text x="636.0" y="292" font-size="11" fill="#333">41.0 ms</text>
+<rect x="190" y="298" width="82.9" height="14" rx="2" fill="#00599c"/><text x="278.9" y="309" font-size="11" fill="#333">7.72 ms</text>
+<rect x="190" y="315" width="86.6" height="14" rx="2" fill="#ce422b"/><text x="282.6" y="326" font-size="11" fill="#333">8.07 ms</text>
+</svg>

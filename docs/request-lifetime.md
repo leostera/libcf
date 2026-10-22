@@ -11,6 +11,16 @@ The `createWorker` adapter owns request bytes before C++ entry and tracks each i
 - Assets and outbound HTTP calls receive an invocation-owned signal. Client abort, normal foreground completion, and error cleanup close it. Late response bodies are cancelled rather than delivered.
 - JS ownership is removed before final C++ cleanup. A native trap can still prevent native resource recovery; removing JS state is not recovery of a trapped Wasm module.
 
+## Concurrent operations
+
+`co_await` on an `AsyncResult` runs one operation at a time. `cf::when_all(operations[, max_in_flight])` starts several, optionally bounded, and resumes once all have settled, with each `Result` in input order. Like every `AsyncResult`, it starts nothing until awaited. Destroying the awaiting coroutine abandons the rest: late completions are ignored and no further operations start. Workers allows six subrequest connections waiting for response headers per invocation, so fan-out usually wants `max_in_flight <= 6`.
+
+```cpp
+std::vector<cf::AsyncResult<cf::Response>> shards;
+for (auto& url : urls) shards.push_back(origin.fetch(cf::Request{"GET", url, {}, {}}));
+auto results = co_await cf::when_all(std::move(shards), 6);
+```
+
 An already-started provider operation may finish and mutate state. **Cancellation is not rollback**, a delivery guarantee, or proof that remote work or billing stopped. Do not automatically retry an ambiguous write/send without an application idempotency strategy.
 
 Explicit JS-hosted `waitUntil` work has its own platform-governed lifetime, separate from the foreground dispatch gate. Event adapters using synthetic requests do not acquire an upstream client-disconnect signal automatically.
